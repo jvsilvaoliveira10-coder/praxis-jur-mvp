@@ -22,7 +22,8 @@ const JurisprudenceSearch = ({ onSearch, isLoading }: JurisprudenceSearchProps) 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim().length >= 3) {
-      onSearch(query.trim(), decisionType);
+      // Pass undefined if "ALL" is selected
+      onSearch(query.trim(), decisionType === 'ALL' ? undefined : decisionType);
     }
   };
 
@@ -48,7 +49,7 @@ const JurisprudenceSearch = ({ onSearch, isLoading }: JurisprudenceSearchProps) 
           <SelectContent>
             <SelectItem value="A">Acórdãos</SelectItem>
             <SelectItem value="M">Decisões Monocráticas</SelectItem>
-            <SelectItem value="">Todos</SelectItem>
+            <SelectItem value="ALL">Todos</SelectItem>
           </SelectContent>
         </Select>
 
