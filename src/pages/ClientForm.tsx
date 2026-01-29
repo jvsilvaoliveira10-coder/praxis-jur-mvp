@@ -411,8 +411,8 @@ const ClientForm = () => {
   };
 
   const renderPFStep1 = () => (
-    <div className="grid gap-4 md:grid-cols-2">
-      <div className="md:col-span-2 space-y-2">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+      <div className="sm:col-span-2 space-y-2">
         <Label htmlFor="name">Nome Completo *</Label>
         <Input
           id="name"
@@ -524,8 +524,8 @@ const ClientForm = () => {
   );
 
   const renderPJStep1 = () => (
-    <div className="grid gap-4 md:grid-cols-2">
-      <div className="md:col-span-2 space-y-2">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+      <div className="sm:col-span-2 space-y-2">
         <Label htmlFor="name">Razão Social *</Label>
         <Input
           id="name"
@@ -593,8 +593,8 @@ const ClientForm = () => {
   );
 
   const renderAddressStep = () => (
-    <div className="grid gap-4 md:grid-cols-2">
-      <div className="md:col-span-2 space-y-2">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+      <div className="sm:col-span-2 space-y-2">
         <Label htmlFor="address_street">Rua *</Label>
         <Input
           id="address_street"
@@ -682,8 +682,8 @@ const ClientForm = () => {
   );
 
   const renderLegalRepStep = () => (
-    <div className="grid gap-4 md:grid-cols-2">
-      <div className="md:col-span-2 space-y-2">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+      <div className="sm:col-span-2 space-y-2">
         <Label htmlFor="legal_rep_name">Nome do Representante Legal *</Label>
         <Input
           id="legal_rep_name"
@@ -731,16 +731,16 @@ const ClientForm = () => {
   const isLastStep = step === totalSteps;
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-3xl">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/clients')}>
+    <div className="space-y-4 sm:space-y-6 animate-fade-in max-w-3xl">
+      <div className="flex items-start gap-3 sm:gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/clients')} className="flex-shrink-0 mt-1">
           <ArrowLeft className="w-4 h-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-serif font-bold text-foreground">
+          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground">
             {isEdit ? 'Editar Cliente' : 'Novo Cliente'}
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Preencha a qualificação completa do cliente
           </p>
         </div>

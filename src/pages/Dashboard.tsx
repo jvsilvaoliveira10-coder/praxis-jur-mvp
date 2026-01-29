@@ -9,12 +9,14 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer } from 'recharts';
 import { ACTION_TYPE_LABELS, PETITION_TYPE_LABELS } from '@/types/database';
 import type { Database } from '@/integrations/supabase/types';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type ActionType = Database['public']['Enums']['action_type'];
 type PetitionType = Database['public']['Enums']['petition_type'];
 
 const Dashboard = () => {
   const { profile } = useAuth();
+  const isMobile = useIsMobile();
   const [stats, setStats] = useState({
     clients: 0,
     cases: 0,
@@ -128,23 +130,23 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Welcome header */}
       <div>
-        <h1 className="text-3xl font-serif font-bold text-foreground">
+        <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground">
           Bem-vindo, {profile?.name?.split(' ')[0] || 'Advogado'}
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">
           Gerencie seus clientes, processos e gere petições automaticamente.
         </p>
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {statCards.map((stat) => (
           <Link key={stat.title} to={stat.href}>
             <Card className="hover:shadow-md transition-shadow cursor-pointer group">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.title}
                 </CardTitle>
@@ -152,9 +154,9 @@ const Dashboard = () => {
                   <stat.icon className="w-4 h-4" />
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
                 <div className="flex items-center justify-between">
-                  <div className="text-3xl font-bold">
+                  <div className="text-2xl sm:text-3xl font-bold">
                     {loading ? '...' : stat.value}
                   </div>
                   <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
@@ -166,28 +168,28 @@ const Dashboard = () => {
       </div>
 
       {/* Charts grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Cases by Action Type */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Processos por Tipo de Ação</CardTitle>
-            <CardDescription>Distribuição dos processos cadastrados</CardDescription>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Processos por Tipo de Ação</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Distribuição dos processos cadastrados</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 sm:px-6 pb-4 sm:pb-6">
             {loading ? (
-              <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+              <div className="h-[200px] sm:h-[250px] flex items-center justify-center text-muted-foreground">
                 Carregando...
               </div>
             ) : casesByType.length === 0 ? (
-              <div className="h-[250px] flex flex-col items-center justify-center text-muted-foreground">
-                <FolderOpen className="w-12 h-12 mb-2 opacity-50" />
-                <p>Nenhum processo cadastrado</p>
+              <div className="h-[200px] sm:h-[250px] flex flex-col items-center justify-center text-muted-foreground">
+                <FolderOpen className="w-10 h-10 sm:w-12 sm:h-12 mb-2 opacity-50" />
+                <p className="text-sm">Nenhum processo cadastrado</p>
                 <Button variant="link" asChild className="mt-2">
                   <Link to="/cases/new">Criar primeiro processo</Link>
                 </Button>
               </div>
             ) : (
-              <ChartContainer config={caseChartConfig} className="h-[250px]">
+              <ChartContainer config={caseChartConfig} className="h-[200px] sm:h-[250px]">
                 <PieChart>
                   <Pie
                     data={casesByType}
@@ -195,9 +197,9 @@ const Dashboard = () => {
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={80}
-                    label={({ name, percent }) => `${name.split(' ')[0]} ${(percent * 100).toFixed(0)}%`}
-                    labelLine={false}
+                    outerRadius={isMobile ? 60 : 80}
+                    label={isMobile ? undefined : ({ name, percent }) => `${name.split(' ')[0]} ${(percent * 100).toFixed(0)}%`}
+                    labelLine={!isMobile}
                   >
                     {casesByType.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
@@ -212,28 +214,28 @@ const Dashboard = () => {
 
         {/* Petitions by Month */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Petições por Período</CardTitle>
-            <CardDescription>Petições geradas nos últimos 6 meses</CardDescription>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Petições por Período</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Petições geradas nos últimos 6 meses</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 sm:px-6 pb-4 sm:pb-6">
             {loading ? (
-              <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+              <div className="h-[200px] sm:h-[250px] flex items-center justify-center text-muted-foreground">
                 Carregando...
               </div>
             ) : petitionsByMonth.every((m) => m.count === 0) ? (
-              <div className="h-[250px] flex flex-col items-center justify-center text-muted-foreground">
-                <FileText className="w-12 h-12 mb-2 opacity-50" />
-                <p>Nenhuma petição gerada ainda</p>
+              <div className="h-[200px] sm:h-[250px] flex flex-col items-center justify-center text-muted-foreground">
+                <FileText className="w-10 h-10 sm:w-12 sm:h-12 mb-2 opacity-50" />
+                <p className="text-sm">Nenhuma petição gerada ainda</p>
                 <Button variant="link" asChild className="mt-2">
                   <Link to="/petitions/new">Gerar primeira petição</Link>
                 </Button>
               </div>
             ) : (
-              <ChartContainer config={petitionChartConfig} className="h-[250px]">
+              <ChartContainer config={petitionChartConfig} className="h-[200px] sm:h-[250px]">
                 <BarChart data={petitionsByMonth}>
-                  <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                  <YAxis tickLine={false} axisLine={false} allowDecimals={false} />
+                  <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={isMobile ? 10 : 12} />
+                  <YAxis tickLine={false} axisLine={false} allowDecimals={false} fontSize={isMobile ? 10 : 12} />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -245,31 +247,33 @@ const Dashboard = () => {
 
       {/* Quick actions */}
       <Card>
-        <CardHeader>
-          <CardTitle>Ações Rápidas</CardTitle>
-          <CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Ações Rápidas</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
             Comece a criar documentos jurídicos em poucos cliques
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          <Button asChild>
-            <Link to="/petitions/new">
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Petição
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link to="/clients/new">
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Cliente
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link to="/cases/new">
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Processo
-            </Link>
-          </Button>
+        <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+            <Button asChild className="w-full sm:w-auto">
+              <Link to="/petitions/new">
+                <Plus className="w-4 h-4 mr-2" />
+                Nova Petição
+              </Link>
+            </Button>
+            <Button variant="outline" asChild className="w-full sm:w-auto">
+              <Link to="/clients/new">
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Cliente
+              </Link>
+            </Button>
+            <Button variant="outline" asChild className="w-full sm:w-auto">
+              <Link to="/cases/new">
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Processo
+              </Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

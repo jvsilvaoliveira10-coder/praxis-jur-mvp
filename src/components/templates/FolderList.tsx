@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface FolderListProps {
   folders: TemplateFolder[];
@@ -53,6 +54,7 @@ export const FolderList = ({
 }: FolderListProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const uncategorizedCount = templateCounts['uncategorized'] || 0;
@@ -81,7 +83,10 @@ export const FolderList = ({
   });
 
   return (
-    <div className="w-64 border-r bg-muted/30 flex flex-col">
+    <div className={cn(
+      "border-r bg-muted/30 flex flex-col",
+      isMobile ? "w-full border-r-0" : "w-64"
+    )}>
       <div className="p-4 border-b">
         <Button onClick={onCreateFolder} className="w-full" size="sm">
           <Plus className="mr-2 h-4 w-4" />
@@ -95,7 +100,7 @@ export const FolderList = ({
           <button
             onClick={() => onSelectFolder(null)}
             className={cn(
-              'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors',
+              'w-full flex items-center gap-2 px-3 py-3 sm:py-2 rounded-md text-sm transition-colors',
               selectedFolderId === null
                 ? 'bg-primary text-primary-foreground'
                 : 'hover:bg-muted'
@@ -112,7 +117,7 @@ export const FolderList = ({
               <button
                 onClick={() => onSelectFolder(folder.id)}
                 className={cn(
-                  'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors',
+                  'w-full flex items-center gap-2 px-3 py-3 sm:py-2 rounded-md text-sm transition-colors',
                   selectedFolderId === folder.id
                     ? 'bg-primary text-primary-foreground'
                     : 'hover:bg-muted'
@@ -134,7 +139,8 @@ export const FolderList = ({
                     variant="ghost"
                     size="icon"
                     className={cn(
-                      'absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover:opacity-100',
+                      'absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6',
+                      isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
                       selectedFolderId === folder.id && 'opacity-100'
                     )}
                   >
@@ -163,7 +169,7 @@ export const FolderList = ({
             <button
               onClick={() => onSelectFolder('uncategorized')}
               className={cn(
-                'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors',
+                'w-full flex items-center gap-2 px-3 py-3 sm:py-2 rounded-md text-sm transition-colors',
                 selectedFolderId === 'uncategorized'
                   ? 'bg-primary text-primary-foreground'
                   : 'hover:bg-muted'
@@ -178,7 +184,7 @@ export const FolderList = ({
       </ScrollArea>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir pasta</AlertDialogTitle>
             <AlertDialogDescription>
@@ -186,11 +192,11 @@ export const FolderList = ({
               serão movidos para "Sem categoria".
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+            <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto"
             >
               Excluir
             </AlertDialogAction>
