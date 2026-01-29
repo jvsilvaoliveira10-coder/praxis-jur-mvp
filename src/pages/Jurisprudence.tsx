@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Scale } from 'lucide-react';
+import { Scale, Sparkles, Rocket } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { jurisprudenceApi, JurisprudenceResult } from '@/lib/api/jurisprudence';
 import JurisprudenceSearch from '@/components/jurisprudence/JurisprudenceSearch';
 import JurisprudenceResults from '@/components/jurisprudence/JurisprudenceResults';
@@ -95,6 +96,26 @@ const Jurisprudence = () => {
           </p>
         </div>
       </div>
+
+      {/* Preview Notice */}
+      <Alert className="border-primary/30 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
+        <Sparkles className="h-5 w-5 text-primary" />
+        <AlertTitle className="text-primary font-semibold flex items-center gap-2">
+          <Rocket className="h-4 w-4" />
+          Prévia do que está por vir!
+        </AlertTitle>
+        <AlertDescription className="text-foreground/80 mt-2">
+          <p className="mb-2">
+            Esta é uma <strong>demonstração interativa</strong> da nossa ferramenta de pesquisa jurisprudencial. 
+            Os resultados exibidos são exemplos ilustrativos para você conhecer a experiência completa.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            🚀 <strong>Em breve:</strong> Integração real com bases de jurisprudência brasileiras, 
+            permitindo buscar e vincular decisões diretamente às suas petições com um clique.
+            <span className="text-primary font-medium"> Experimente agora e veja como vai funcionar!</span>
+          </p>
+        </AlertDescription>
+      </Alert>
 
       {/* Search Card */}
       <Card>
