@@ -1,179 +1,238 @@
 
+# Plano: Sistema de Acompanhamento Processual via DataJud
 
-# Plano: Melhorar Scraping do Portal CJSG do TJSP
-
-## Visão Geral
-
-Ajustar a Edge Function `search-jurisprudence` para simular corretamente as requisições do formulário do CJSG, incluindo o fluxo correto de POST e os parâmetros necessários para contornar as limitações atuais.
+## Objetivo
+Implementar uma ferramenta para advogados acompanharem processos judiciais de forma centralizada, recebendo notificacoes automaticas quando houver novas movimentacoes.
 
 ---
 
-## Análise do Problema Atual
+## Visao Geral do Sistema
 
-O scraping atual não funciona porque:
-1. **URL incorreta**: Usamos `pesquisar.do` com query strings, mas o formulário faz POST para `resultadoCompleta.do`
-2. **Parâmetros incorretos**: O campo `tipoDecisao` foi substituído por `tipoDecisaoSelecionados` (checkbox)
-3. **reCAPTCHA**: O portal inclui reCAPTCHA invisível que pode bloquear requisições automatizadas
-4. **Sessão/Cookies**: O formulário requer um `jsessionid` válido obtido na página inicial
+O advogado cadastra manualmente os numeros dos processos que deseja acompanhar. O sistema busca dados na API publica do DataJud (CNJ) e armazena as movimentacoes no banco de dados. Um job diario verifica novas movimentacoes e notifica o usuario.
 
 ---
 
-## Estratégia de Implementação
+## Estrutura de Dados
 
-### Abordagem 1: POST Direto com Form Data (Principal)
+### Tabelas a Criar
 
-Simular o envio do formulário HTML exatamente como um navegador faria:
+**1. tracked_processes** - Processos monitorados pelo usuario
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| id | uuid | Chave primaria |
+| user_id | uuid | Referencia ao usuario |
+| case_id | uuid (opcional) | Vinculo com processo interno |
+| process_number | text | Numero CNJ (ex: 1234567-89.2024.8.26.0100) |
+| tribunal | text | Sigla do tribunal (TJSP, TRF3, etc) |
+| classe | text | Classe processual |
+| assuntos | text[] | Lista de assuntos |
+| orgao_julgador | text | Vara/Camara |
+| data_ajuizamento | timestamp | Data de ajuizamento |
+| ultimo_movimento | text | Descricao da ultima movimentacao |
+| ultimo_movimento_data | timestamp | Data da ultima movimentacao |
+| last_checked_at | timestamp | Ultima verificacao na API |
+| active | boolean | Se esta ativo para monitoramento |
+| created_at | timestamp | Data de criacao |
+| updated_at | timestamp | Data de atualizacao |
 
-1. **Primeira requisição (GET)**: Acessar `consultaCompleta.do` para obter:
-   - Cookie de sessão (`JSESSIONID`)
-   - Token reCAPTCHA (se necessário)
-   - URL do action com jsessionid
-
-2. **Segunda requisição (POST)**: Enviar os dados do formulário para `resultadoCompleta.do;jsessionid=XXX`
+**2. process_movements** - Historico de movimentacoes
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| id | uuid | Chave primaria |
+| tracked_process_id | uuid | Referencia ao processo |
+| codigo | integer | Codigo TPU da movimentacao |
+| nome | text | Descricao da movimentacao |
+| data_hora | timestamp | Data/hora da movimentacao |
+| orgao_julgador | text | Vara onde ocorreu |
+| complementos | jsonb | Complementos tabelados |
+| notified | boolean | Se ja notificou o usuario |
+| created_at | timestamp | Data de criacao |
 
 ---
 
-## Detalhes Técnicos
-
-### Parâmetros do Formulário (Mapeamento Correto)
-
-| Campo do Formulário | Descrição | Valor Padrão |
-|---------------------|-----------|--------------|
-| `dados.buscaInteiroTeor` | Pesquisa livre (inteiro teor) | Query do usuário |
-| `dados.buscaEmenta` | Pesquisa só na ementa | (vazio) |
-| `dados.pesquisarComSinonimos` | Pesquisar sinônimos | S |
-| `tipoDecisaoSelecionados` | A=Acórdãos, D=Monocráticas, H=Homologações | A |
-| `dados.origensSelecionadas` | T=2º grau, R=Recursais | T |
-| `dados.ordenarPor` | dtPublicacao ou relevancia | dtPublicacao |
-| `dados.dtJulgamentoInicio` | Data inicial julgamento | (vazio) |
-| `dados.dtJulgamentoFim` | Data final julgamento | (vazio) |
-
-### Fluxo de Requisições
+## Arquitetura Tecnica
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                    FLUXO DE SCRAPING                        │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  1. GET consultaCompleta.do                                 │
-│     └─> Extrai JSESSIONID do Set-Cookie                     │
-│     └─> Extrai action URL do formulário                     │
-│                                                             │
-│  2. POST resultadoCompleta.do;jsessionid=XXX                │
-│     └─> Content-Type: application/x-www-form-urlencoded     │
-│     └─> Cookie: JSESSIONID=XXX                              │
-│     └─> Body: dados.buscaInteiroTeor=danos+morais&...       │
-│                                                             │
-│  3. Parse HTML de resultados                                │
-│     └─> Extrair ementas, relatores, datas                   │
-│     └─> Extrair links para PDFs                             │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Headers HTTP Necessários
-
-```text
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
-Accept-Language: pt-BR,pt;q=0.9,en;q=0.8
-Content-Type: application/x-www-form-urlencoded
-Referer: https://esaj.tjsp.jus.br/cjsg/consultaCompleta.do
-Cookie: JSESSIONID={session_id}
++------------------+     +-------------------+     +------------------+
+|    Frontend      |     |   Edge Function   |     |  DataJud API     |
+|  (React/Vite)    | --> | search-datajud    | --> |  (CNJ Publica)   |
++------------------+     +-------------------+     +------------------+
+                               |
+                               v
+                         +------------------+
+                         |  Lovable Cloud   |
+                         |    Database      |
+                         +------------------+
+                               ^
+                               |
+                         +-------------------+
+                         |   Edge Function   |  <- Cron Job Diario
+                         | check-movements   |
+                         +-------------------+
 ```
 
 ---
 
-## Mudanças na Edge Function
+## Componentes a Implementar
 
-### 1. Substituir Firecrawl por Fetch Nativo
+### 1. Backend (Edge Functions)
 
-O Firecrawl é ótimo para scraping genérico, mas para este caso específico precisamos de controle total sobre cookies e headers. Usaremos `fetch()` nativo do Deno.
+**search-datajud** - Consultar API DataJud
+- Recebe numero do processo e tribunal
+- Consulta endpoint correto baseado no tribunal
+- Retorna dados do processo e movimentacoes
+- Autenticacao via header `Authorization: APIKey [chave]`
 
-### 2. Implementar Gerenciamento de Sessão
+Exemplo de requisicao a API:
+```text
+POST https://api-publica.datajud.cnj.jus.br/api_publica_tjsp/_search
+Headers:
+  Authorization: APIKey cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV...
+  Content-Type: application/json
+Body:
+  {
+    "query": {
+      "match": {
+        "numeroProcesso": "00123456720248260100"
+      }
+    }
+  }
+```
 
-- Fazer GET inicial para obter cookies
-- Manter JSESSIONID entre requisições
-- Usar Referer correto para simular navegação
+**check-movements** - Verificar novas movimentacoes (cron diario)
+- Busca processos ativos com `last_checked_at` > 24h
+- Consulta DataJud para cada processo
+- Compara movimentacoes novas com as armazenadas
+- Insere novas movimentacoes e cria notificacoes
+- Atualiza `last_checked_at`
 
-### 3. Melhorar Parser de Resultados
+### 2. Frontend (Paginas e Componentes)
 
-- Identificar padrões específicos da página de resultados do CJSG
-- Extrair links de PDF (formato: `obterVotosAcordaos.do?numRegistro=XXX`)
-- Tratar encoding UTF-8/ISO-8859-1
+**Nova rota /tracking** - Pagina principal de acompanhamento
+- Lista de processos monitorados com status
+- Indicador visual de novas movimentacoes
+- Filtros por tribunal e status
+- Botao para adicionar novo processo
+
+**Componente AddProcessDialog** - Modal para adicionar processo
+- Campo para numero CNJ com mascara (NNNNNNN-NN.NNNN.N.NN.NNNN)
+- Selector de tribunal (dropdown com todos os tribunais)
+- Validacao do formato do numero
+- Preview dos dados antes de confirmar
+
+**Componente ProcessCard** - Card de processo monitorado
+- Numero e classe do processo
+- Ultimo movimento com data
+- Badge de status (ativo/inativo)
+- Botao para ver todas movimentacoes
+
+**Componente MovementTimeline** - Timeline de movimentacoes
+- Exibicao cronologica das movimentacoes
+- Destaque para movimentacoes nao lidas
+- Filtro por periodo
+
+### 3. Integracao com Sistema Atual
+
+**Vinculo opcional com processos internos**
+- Ao cadastrar um processo para acompanhamento, o usuario pode vincular a um processo ja cadastrado no sistema
+- Permite sincronizar o numero do processo entre as telas
+- Movimentacoes podem ser acessadas pela tela de detalhes do processo
+
+**Notificacoes integradas**
+- Usa a tabela `notifications` existente
+- Aproveita o `NotificationBell` ja implementado
+- Notificacoes de novas movimentacoes aparecem junto com prazos
 
 ---
 
-## Estrutura do Código Atualizado
+## API do DataJud - Detalhes Tecnicos
 
+### Autenticacao
+A API publica do DataJud requer uma chave de API gratuita obtida no portal do CNJ.
+- Header: `Authorization: APIKey [chave]`
+- Chave sera armazenada como secret no Lovable Cloud
+
+### Tribunais Suportados (principais)
+- TJSP, TJRJ, TJMG, TJRS, TJPR, TJSC (Justica Estadual)
+- TRF1 a TRF6 (Justica Federal)
+- TRT1 a TRT24 (Justica do Trabalho)
+- STJ, TST, TSE, STM (Tribunais Superiores)
+
+### Estrutura de Resposta
 ```text
-search-jurisprudence/index.ts
-├── Constantes de configuração
-│   └── URLs, Headers padrão, Rate limits
-│
-├── Funções auxiliares
-│   ├── getSession() - Obtém JSESSIONID
-│   ├── buildFormData() - Monta dados do formulário
-│   └── parseResults() - Extrai dados do HTML
-│
-├── Handler principal
-│   ├── Validação de input
-│   ├── Rate limiting
-│   ├── Verificação de cache
-│   ├── Execução do scraping (2 requisições)
-│   └── Salvamento em cache
-│
-└── Tratamento de erros
-    └── Logs detalhados para debugging
+{
+  "hits": {
+    "hits": [{
+      "_source": {
+        "numeroProcesso": "00123456720248260100",
+        "tribunal": "TJSP",
+        "dataAjuizamento": "2024-01-15",
+        "classe": { "codigo": 123, "nome": "Procedimento Comum" },
+        "assuntos": [{ "codigo": 456, "nome": "Indenizacao" }],
+        "orgaoJulgador": { "codigo": 789, "nome": "1a Vara Civel" },
+        "movimentos": [
+          { "codigo": 60, "nome": "Expedido", "dataHora": "2024-01-20T10:30:00" },
+          { "codigo": 22, "nome": "Distribuido", "dataHora": "2024-01-15T09:00:00" }
+        ]
+      }
+    }]
+  }
+}
 ```
 
 ---
 
-## Mitigação de Riscos
+## Sidebar Atualizada
 
-### reCAPTCHA
-
-- O reCAPTCHA invisível geralmente só é ativado para tráfego suspeito
-- Com rate limiting conservador (3s entre requisições) e User-Agent válido, é improvável ser bloqueado
-- Se bloqueado, o erro será logado e retornado ao usuário
-
-### Mudanças no HTML
-
-- Logs detalhados do conteúdo recebido
-- Testes automatizados para verificar estrutura
-- Fallback para retornar "site indisponível" com mensagem clara
-
-### Bloqueio de IP
-
-- Rate limiting já implementado
-- Cache de 7 dias reduz requisições
-- Limite global de 5 requisições simultâneas
+Nova entrada no menu de navegacao:
+- Icone: `Radar` ou `Activity` (lucide-react)
+- Label: "Acompanhamento"
+- Rota: `/tracking`
 
 ---
 
-## Tarefas de Implementação
+## Tarefas de Implementacao
 
-1. **Atualizar Edge Function** (Principal)
-   - Implementar fluxo de duas requisições (GET + POST)
-   - Gerenciar cookies/sessão manualmente
-   - Melhorar parsing do HTML de resultados
+### Fase 1: Infraestrutura
+1. Criar tabelas `tracked_processes` e `process_movements` com RLS
+2. Solicitar/configurar API Key do DataJud como secret
+3. Criar edge function `search-datajud`
 
-2. **Adicionar Logs de Debug**
-   - Logar tamanho do conteúdo recebido
-   - Logar se encontrou indicadores de resultados
-   - Logar erros de parsing específicos
+### Fase 2: Interface de Cadastro
+4. Criar pagina `/tracking` com listagem vazia
+5. Implementar `AddProcessDialog` com validacao
+6. Integrar busca na API via edge function
+7. Salvar processo monitorado no banco
 
-3. **Testes**
-   - Testar com termos comuns ("danos morais", "furto")
-   - Verificar extração de ementas e metadados
-   - Validar links de PDF
+### Fase 3: Visualizacao
+8. Implementar `ProcessCard` com dados do processo
+9. Criar `MovementTimeline` para historico
+10. Adicionar rota no sidebar
+
+### Fase 4: Automacao
+11. Criar edge function `check-movements`
+12. Configurar cron job diario
+13. Integrar notificacoes de novas movimentacoes
+
+### Fase 5: Integracao
+14. Permitir vincular com processo interno (cases)
+15. Mostrar movimentacoes na tela de detalhes do processo
 
 ---
 
-## Resultado Esperado
+## Consideracoes de Seguranca
 
-Após a implementação:
-- Busca por "danos morais" retornará resultados reais do TJSP
-- Cada resultado incluirá: ementa, relator, órgão julgador, data, link PDF
-- Cache funcionará corretamente, reduzindo carga no portal
+- RLS nas tabelas para isolamento por usuario
+- API Key armazenada como secret (nao exposta no frontend)
+- Validacao de formato do numero CNJ antes de consultar
+- Rate limiting nas edge functions para evitar bloqueio
+
+---
+
+## Limitacoes Conhecidas
+
+1. **Dados do DataJud**: Contem metadados e movimentacoes, mas nao o texto completo de decisoes/despachos
+2. **Atraso**: Dados podem ter delay de 24-48h em relacao ao tribunal
+3. **Cobertura**: Nem todos os tribunais enviam dados completos
+4. **API Key**: Necessario solicitar chave no portal do CNJ (processo simples e gratuito)
 
