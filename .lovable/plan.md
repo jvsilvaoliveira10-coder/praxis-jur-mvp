@@ -1,238 +1,198 @@
 
-# Plano: Sistema de Acompanhamento Processual via DataJud
+
+# Plano: Fase 4 - Automacao de Verificacao de Movimentacoes
 
 ## Objetivo
-Implementar uma ferramenta para advogados acompanharem processos judiciais de forma centralizada, recebendo notificacoes automaticas quando houver novas movimentacoes.
+Criar a edge function `check-movements` que verifica automaticamente novas movimentacoes nos processos monitorados e gera notificacoes para os usuarios. Configurar um cron job diario para executar essa verificacao.
 
 ---
 
-## Visao Geral do Sistema
-
-O advogado cadastra manualmente os numeros dos processos que deseja acompanhar. O sistema busca dados na API publica do DataJud (CNJ) e armazena as movimentacoes no banco de dados. Um job diario verifica novas movimentacoes e notifica o usuario.
-
----
-
-## Estrutura de Dados
-
-### Tabelas a Criar
-
-**1. tracked_processes** - Processos monitorados pelo usuario
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| id | uuid | Chave primaria |
-| user_id | uuid | Referencia ao usuario |
-| case_id | uuid (opcional) | Vinculo com processo interno |
-| process_number | text | Numero CNJ (ex: 1234567-89.2024.8.26.0100) |
-| tribunal | text | Sigla do tribunal (TJSP, TRF3, etc) |
-| classe | text | Classe processual |
-| assuntos | text[] | Lista de assuntos |
-| orgao_julgador | text | Vara/Camara |
-| data_ajuizamento | timestamp | Data de ajuizamento |
-| ultimo_movimento | text | Descricao da ultima movimentacao |
-| ultimo_movimento_data | timestamp | Data da ultima movimentacao |
-| last_checked_at | timestamp | Ultima verificacao na API |
-| active | boolean | Se esta ativo para monitoramento |
-| created_at | timestamp | Data de criacao |
-| updated_at | timestamp | Data de atualizacao |
-
-**2. process_movements** - Historico de movimentacoes
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| id | uuid | Chave primaria |
-| tracked_process_id | uuid | Referencia ao processo |
-| codigo | integer | Codigo TPU da movimentacao |
-| nome | text | Descricao da movimentacao |
-| data_hora | timestamp | Data/hora da movimentacao |
-| orgao_julgador | text | Vara onde ocorreu |
-| complementos | jsonb | Complementos tabelados |
-| notified | boolean | Se ja notificou o usuario |
-| created_at | timestamp | Data de criacao |
-
----
-
-## Arquitetura Tecnica
+## Arquitetura da Solucao
 
 ```text
-+------------------+     +-------------------+     +------------------+
-|    Frontend      |     |   Edge Function   |     |  DataJud API     |
-|  (React/Vite)    | --> | search-datajud    | --> |  (CNJ Publica)   |
-+------------------+     +-------------------+     +------------------+
-                               |
-                               v
-                         +------------------+
-                         |  Lovable Cloud   |
-                         |    Database      |
-                         +------------------+
-                               ^
-                               |
-                         +-------------------+
-                         |   Edge Function   |  <- Cron Job Diario
-                         | check-movements   |
-                         +-------------------+
++---------------------+
+|   pg_cron (diario)  |
+|   06:00 UTC-3       |
++----------+----------+
+           |
+           v
++---------------------+     +------------------+
+|   check-movements   | --> |   DataJud API    |
+|   Edge Function     |     |   (por tribunal) |
++----------+----------+     +------------------+
+           |
+           v
++---------------------+
+|   Para cada processo|
+|   ativo:            |
+|   - Buscar API      |
+|   - Comparar movim. |
+|   - Inserir novos   |
+|   - Criar notific.  |
++----------+----------+
+           |
+           v
++---------------------+     +------------------+
+|  process_movements  |     |   notifications  |
+|  (novos registros)  |     |  (alertas user)  |
++---------------------+     +------------------+
 ```
 
 ---
 
 ## Componentes a Implementar
 
-### 1. Backend (Edge Functions)
+### 1. Edge Function: check-movements
 
-**search-datajud** - Consultar API DataJud
-- Recebe numero do processo e tribunal
-- Consulta endpoint correto baseado no tribunal
-- Retorna dados do processo e movimentacoes
-- Autenticacao via header `Authorization: APIKey [chave]`
+**Responsabilidades:**
+- Buscar todos os processos ativos que precisam verificacao (last_checked_at > 24h ou nulo)
+- Para cada processo, consultar a API DataJud
+- Comparar movimentacoes retornadas com as ja armazenadas
+- Inserir novas movimentacoes na tabela `process_movements`
+- Criar notificacoes para movimentacoes novas
+- Atualizar `last_checked_at` e `ultimo_movimento` do processo
 
-Exemplo de requisicao a API:
-```text
-POST https://api-publica.datajud.cnj.jus.br/api_publica_tjsp/_search
-Headers:
-  Authorization: APIKey cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV...
-  Content-Type: application/json
-Body:
-  {
-    "query": {
-      "match": {
-        "numeroProcesso": "00123456720248260100"
-      }
-    }
-  }
+**Logica de Deteccao de Novos Movimentos:**
+- Buscar movimentacoes existentes do processo
+- Comparar por `codigo` + `data_hora` (chave composta)
+- Inserir apenas movimentacoes que nao existem
+
+**Formato da Notificacao:**
+- Titulo: "Nova Movimentacao Processual"
+- Mensagem: "[Nome da movimentacao] - Processo [numero formatado]"
+
+### 2. Cron Job Diario
+
+**Configuracao:**
+- Horario: 06:00 (horario de Brasilia / UTC-3)
+- Frequencia: Diaria
+- Usa extensoes `pg_cron` e `pg_net`
+
+**SQL para Configuracao:**
+```sql
+SELECT cron.schedule(
+  'check-movements-daily',
+  '0 9 * * *',  -- 09:00 UTC = 06:00 BRT
+  $$
+  SELECT net.http_post(
+    url := 'https://htxpsggxvbjqsojaabxu.supabase.co/functions/v1/check-movements',
+    headers := '{"Authorization": "Bearer [ANON_KEY]"}'::jsonb,
+    body := '{}'::jsonb
+  );
+  $$
+);
 ```
-
-**check-movements** - Verificar novas movimentacoes (cron diario)
-- Busca processos ativos com `last_checked_at` > 24h
-- Consulta DataJud para cada processo
-- Compara movimentacoes novas com as armazenadas
-- Insere novas movimentacoes e cria notificacoes
-- Atualiza `last_checked_at`
-
-### 2. Frontend (Paginas e Componentes)
-
-**Nova rota /tracking** - Pagina principal de acompanhamento
-- Lista de processos monitorados com status
-- Indicador visual de novas movimentacoes
-- Filtros por tribunal e status
-- Botao para adicionar novo processo
-
-**Componente AddProcessDialog** - Modal para adicionar processo
-- Campo para numero CNJ com mascara (NNNNNNN-NN.NNNN.N.NN.NNNN)
-- Selector de tribunal (dropdown com todos os tribunais)
-- Validacao do formato do numero
-- Preview dos dados antes de confirmar
-
-**Componente ProcessCard** - Card de processo monitorado
-- Numero e classe do processo
-- Ultimo movimento com data
-- Badge de status (ativo/inativo)
-- Botao para ver todas movimentacoes
-
-**Componente MovementTimeline** - Timeline de movimentacoes
-- Exibicao cronologica das movimentacoes
-- Destaque para movimentacoes nao lidas
-- Filtro por periodo
-
-### 3. Integracao com Sistema Atual
-
-**Vinculo opcional com processos internos**
-- Ao cadastrar um processo para acompanhamento, o usuario pode vincular a um processo ja cadastrado no sistema
-- Permite sincronizar o numero do processo entre as telas
-- Movimentacoes podem ser acessadas pela tela de detalhes do processo
-
-**Notificacoes integradas**
-- Usa a tabela `notifications` existente
-- Aproveita o `NotificationBell` ja implementado
-- Notificacoes de novas movimentacoes aparecem junto com prazos
 
 ---
 
-## API do DataJud - Detalhes Tecnicos
+## Detalhes Tecnicos
 
-### Autenticacao
-A API publica do DataJud requer uma chave de API gratuita obtida no portal do CNJ.
-- Header: `Authorization: APIKey [chave]`
-- Chave sera armazenada como secret no Lovable Cloud
+### Estrutura da Edge Function
 
-### Tribunais Suportados (principais)
-- TJSP, TJRJ, TJMG, TJRS, TJPR, TJSC (Justica Estadual)
-- TRF1 a TRF6 (Justica Federal)
-- TRT1 a TRT24 (Justica do Trabalho)
-- STJ, TST, TSE, STM (Tribunais Superiores)
-
-### Estrutura de Resposta
 ```text
+supabase/functions/check-movements/index.ts
+├── Imports (supabase-js)
+├── CORS headers
+├── Mapeamento tribunalEndpoints (reutilizado de search-datajud)
+├── Funcao cleanProcessNumber
+├── Interface DataJudResponse
+├── Handler principal:
+│   ├── Buscar processos ativos (last_checked_at > 24h)
+│   ├── Para cada processo:
+│   │   ├── Chamar API DataJud
+│   │   ├── Buscar movimentacoes existentes
+│   │   ├── Filtrar movimentacoes novas
+│   │   ├── Inserir novas movimentacoes
+│   │   ├── Criar notificacao
+│   │   └── Atualizar tracked_process
+│   └── Retornar estatisticas
+```
+
+### Tratamento de Erros
+
+- Se API DataJud falhar para um processo, continuar com os demais
+- Logar erros individuais sem interromper o loop
+- Rate limiting: Aguardar 500ms entre requisicoes para evitar bloqueio
+
+### Metricas de Retorno
+
+```json
 {
-  "hits": {
-    "hits": [{
-      "_source": {
-        "numeroProcesso": "00123456720248260100",
-        "tribunal": "TJSP",
-        "dataAjuizamento": "2024-01-15",
-        "classe": { "codigo": 123, "nome": "Procedimento Comum" },
-        "assuntos": [{ "codigo": 456, "nome": "Indenizacao" }],
-        "orgaoJulgador": { "codigo": 789, "nome": "1a Vara Civel" },
-        "movimentos": [
-          { "codigo": 60, "nome": "Expedido", "dataHora": "2024-01-20T10:30:00" },
-          { "codigo": 22, "nome": "Distribuido", "dataHora": "2024-01-15T09:00:00" }
-        ]
-      }
-    }]
-  }
+  "success": true,
+  "processes_checked": 15,
+  "new_movements_found": 7,
+  "notifications_created": 7,
+  "errors": 0,
+  "timestamp": "2026-01-29T09:00:00Z"
 }
 ```
 
 ---
 
-## Sidebar Atualizada
+## Integracao com Sistema de Notificacoes
 
-Nova entrada no menu de navegacao:
-- Icone: `Radar` ou `Activity` (lucide-react)
-- Label: "Acompanhamento"
-- Rota: `/tracking`
+A tabela `notifications` ja existe com a seguinte estrutura:
+- `user_id`: UUID do usuario
+- `title`: Titulo da notificacao
+- `message`: Mensagem detalhada
+- `read`: Boolean (default false)
+- `deadline_id`: Opcional (nao usado para movimentacoes)
+
+O `NotificationBell` ja esta configurado com realtime, entao as notificacoes aparecerao automaticamente para o usuario.
+
+---
+
+## Configuracao do supabase/config.toml
+
+Adicionar a nova funcao:
+```toml
+[functions.check-movements]
+verify_jwt = false
+```
 
 ---
 
 ## Tarefas de Implementacao
 
-### Fase 1: Infraestrutura
-1. Criar tabelas `tracked_processes` e `process_movements` com RLS
-2. Solicitar/configurar API Key do DataJud como secret
-3. Criar edge function `search-datajud`
+1. **Criar edge function check-movements**
+   - Arquivo: `supabase/functions/check-movements/index.ts`
+   - Reutilizar logica de mapeamento de tribunais
+   - Implementar loop de verificacao com tratamento de erros
 
-### Fase 2: Interface de Cadastro
-4. Criar pagina `/tracking` com listagem vazia
-5. Implementar `AddProcessDialog` com validacao
-6. Integrar busca na API via edge function
-7. Salvar processo monitorado no banco
+2. **Atualizar supabase/config.toml**
+   - Adicionar configuracao da nova funcao
 
-### Fase 3: Visualizacao
-8. Implementar `ProcessCard` com dados do processo
-9. Criar `MovementTimeline` para historico
-10. Adicionar rota no sidebar
+3. **Habilitar extensoes pg_cron e pg_net**
+   - Criar migration para habilitar extensoes
 
-### Fase 4: Automacao
-11. Criar edge function `check-movements`
-12. Configurar cron job diario
-13. Integrar notificacoes de novas movimentacoes
+4. **Configurar cron job**
+   - Executar SQL para agendar job diario
 
-### Fase 5: Integracao
-14. Permitir vincular com processo interno (cases)
-15. Mostrar movimentacoes na tela de detalhes do processo
+5. **Testar fluxo completo**
+   - Chamar edge function manualmente
+   - Verificar insercao de movimentacoes
+   - Confirmar criacao de notificacoes
 
 ---
 
-## Consideracoes de Seguranca
+## Seguranca
 
-- RLS nas tabelas para isolamento por usuario
-- API Key armazenada como secret (nao exposta no frontend)
-- Validacao de formato do numero CNJ antes de consultar
-- Rate limiting nas edge functions para evitar bloqueio
+- Edge function usa `SUPABASE_SERVICE_ROLE_KEY` para acesso administrativo
+- `DATAJUD_API_KEY` ja configurada como secret
+- RLS das tabelas continua ativo (service role bypassa RLS)
+- Cron job autenticado com anon key (funcao tem verify_jwt = false)
 
 ---
 
-## Limitacoes Conhecidas
+## Limitacoes e Consideracoes
 
-1. **Dados do DataJud**: Contem metadados e movimentacoes, mas nao o texto completo de decisoes/despachos
-2. **Atraso**: Dados podem ter delay de 24-48h em relacao ao tribunal
-3. **Cobertura**: Nem todos os tribunais enviam dados completos
-4. **API Key**: Necessario solicitar chave no portal do CNJ (processo simples e gratuito)
+1. **Rate Limiting**: DataJud pode bloquear muitas requisicoes consecutivas
+   - Solucao: Delay de 500ms entre requisicoes
+
+2. **Timeout**: Edge functions tem limite de 150s
+   - Se muitos processos, pode ser necessario processar em batches
+
+3. **Duplicatas**: Usar chave composta (codigo + data_hora) evita duplicatas
+
+4. **Processos inativos**: Processos com `active = false` nao sao verificados
 
