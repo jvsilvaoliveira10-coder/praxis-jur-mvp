@@ -12,7 +12,8 @@ import {
   ChevronRight,
   CalendarDays,
   BookTemplate,
-  Search
+  Search,
+  Radar
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -29,6 +30,7 @@ const Sidebar = () => {
     { to: '/petitions', icon: FileText, label: 'Petições' },
     { to: '/templates', icon: BookTemplate, label: 'Modelos' },
     { to: '/jurisprudence', icon: Search, label: 'Jurisprudência' },
+    { to: '/tracking', icon: Radar, label: 'Acompanhamento' },
     { to: '/agenda', icon: CalendarDays, label: 'Agenda' },
   ];
 

@@ -20,6 +20,7 @@ import TemplateForm from "./pages/TemplateForm";
 import Agenda from "./pages/Agenda";
 import DeadlineForm from "./pages/DeadlineForm";
 import Jurisprudence from "./pages/Jurisprudence";
+import Tracking from "./pages/Tracking";
 import NotFound from "./pages/NotFound";
 
 // Layout
@@ -58,6 +59,7 @@ const App = () => (
               <Route path="/agenda/new" element={<DeadlineForm />} />
               <Route path="/agenda/:id/edit" element={<DeadlineForm />} />
               <Route path="/jurisprudence" element={<Jurisprudence />} />
+              <Route path="/tracking" element={<Tracking />} />
             </Route>
             
             {/* Catch-all */}
