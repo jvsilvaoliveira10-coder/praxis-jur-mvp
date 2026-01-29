@@ -26,9 +26,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Cases = () => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -85,15 +87,16 @@ const Cases = () => {
   );
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      {/* Responsive header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-serif font-bold text-foreground">Processos</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground">Processos</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Gerencie seus processos judiciais
           </p>
         </div>
-        <Button asChild>
+        <Button asChild className="w-full sm:w-auto">
           <Link to="/cases/new">
             <Plus className="w-4 h-4 mr-2" />
             Novo Processo
@@ -102,9 +105,9 @@ const Cases = () => {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3 sm:pb-6">
           <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar processos..."
@@ -115,7 +118,7 @@ const Cases = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 sm:px-6">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -130,67 +133,112 @@ const Cases = () => {
                 {search ? 'Tente outro termo de busca' : 'Clique em "Novo Processo" para começar'}
               </p>
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Número</TableHead>
-                  <TableHead>Vara/Comarca</TableHead>
-                  <TableHead>Tipo de Ação</TableHead>
-                  <TableHead>Parte Contrária</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCases.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">
-                      {(c.client as any)?.name || '-'}
-                    </TableCell>
-                    <TableCell>{c.process_number || '-'}</TableCell>
-                    <TableCell>{c.court}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
+          ) : isMobile ? (
+            // Mobile: Card list view
+            <div className="space-y-3">
+              {filteredCases.map((c) => (
+                <div
+                  key={c.id}
+                  className="border rounded-lg p-4 space-y-3"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium">{(c.client as any)?.name || '-'}</p>
+                      <Badge variant="secondary" className="flex-shrink-0 text-xs">
                         {ACTION_TYPE_LABELS[c.action_type]}
                       </Badge>
-                    </TableCell>
-                    <TableCell>{c.opposing_party}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link to={`/cases/${c.id}/edit`}>
-                            <Edit className="w-4 h-4" />
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteId(c.id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {c.process_number || 'Sem número'}
+                    </p>
+                    <p className="text-sm">{c.court}</p>
+                    <p className="text-sm text-muted-foreground">
+                      vs. {c.opposing_party}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 pt-2 border-t">
+                    <Button variant="outline" size="sm" asChild className="flex-1">
+                      <Link to={`/cases/${c.id}/edit`}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        Editar
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDeleteId(c.id)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            // Desktop: Table view with horizontal scroll
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Número</TableHead>
+                    <TableHead>Vara/Comarca</TableHead>
+                    <TableHead>Tipo de Ação</TableHead>
+                    <TableHead>Parte Contrária</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredCases.map((c) => (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-medium">
+                        {(c.client as any)?.name || '-'}
+                      </TableCell>
+                      <TableCell>{c.process_number || '-'}</TableCell>
+                      <TableCell>{c.court}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {ACTION_TYPE_LABELS[c.action_type]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{c.opposing_party}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button variant="ghost" size="icon" asChild>
+                            <Link to={`/cases/${c.id}/edit`}>
+                              <Edit className="w-4 h-4" />
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeleteId(c.id)}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir este processo? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+            <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="w-full sm:w-auto">Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

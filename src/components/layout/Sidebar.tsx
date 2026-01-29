@@ -17,11 +17,20 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
-const Sidebar = () => {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
+const Sidebar = ({ onNavigate }: SidebarProps) => {
   const { profile, signOut } = useAuth();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const isMobile = useIsMobile();
+
+  // On mobile, sidebar is always expanded (inside Sheet)
+  const isCollapsed = isMobile ? false : collapsed;
 
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -36,11 +45,83 @@ const Sidebar = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  const handleNavClick = () => {
+    if (onNavigate) {
+      onNavigate();
+    }
+  };
+
+  const handleSignOut = () => {
+    signOut();
+    if (onNavigate) {
+      onNavigate();
+    }
+  };
+
+  // Mobile sidebar (inside Sheet - no fixed positioning)
+  if (isMobile) {
+    return (
+      <div className="h-full bg-sidebar text-sidebar-foreground flex flex-col">
+        {/* Logo */}
+        <div className="p-4 border-b border-sidebar-border">
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-sidebar-primary flex items-center justify-center">
+              <Scale className="w-5 h-5 text-sidebar-primary-foreground" />
+            </div>
+            <div className="overflow-hidden">
+              <h1 className="font-serif font-bold text-lg leading-tight">LegalTech</h1>
+              <p className="text-xs text-sidebar-foreground/70">Sistema Jurídico</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={handleNavClick}
+              className={cn(
+                "flex items-center gap-3 px-3 py-3 rounded-lg transition-colors",
+                isActive(item.to)
+                  ? "bg-sidebar-accent text-sidebar-primary"
+                  : "hover:bg-sidebar-accent/50 text-sidebar-foreground/80 hover:text-sidebar-foreground"
+              )}
+            >
+              <item.icon className="w-5 h-5 flex-shrink-0" />
+              <span className="font-medium">{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* User info */}
+        <div className="p-3 border-t border-sidebar-border">
+          {profile && (
+            <div className="mb-3 px-3">
+              <p className="font-medium text-sm truncate">{profile.name}</p>
+              <p className="text-xs text-sidebar-foreground/70 capitalize">{profile.role}</p>
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+            onClick={handleSignOut}
+          >
+            <LogOut className="w-5 h-5" />
+            <span>Sair</span>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop sidebar (fixed positioning)
   return (
     <aside 
       className={cn(
         "fixed left-0 top-0 h-full bg-sidebar text-sidebar-foreground transition-all duration-300 flex flex-col z-50",
-        collapsed ? "w-16" : "w-64"
+        isCollapsed ? "w-16" : "w-64"
       )}
     >
       {/* Logo */}
@@ -49,7 +130,7 @@ const Sidebar = () => {
           <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-sidebar-primary flex items-center justify-center">
             <Scale className="w-5 h-5 text-sidebar-primary-foreground" />
           </div>
-          {!collapsed && (
+          {!isCollapsed && (
             <div className="overflow-hidden">
               <h1 className="font-serif font-bold text-lg leading-tight">LegalTech</h1>
               <p className="text-xs text-sidebar-foreground/70">Sistema Jurídico</p>
@@ -72,14 +153,14 @@ const Sidebar = () => {
             )}
           >
             <item.icon className="w-5 h-5 flex-shrink-0" />
-            {!collapsed && <span className="font-medium">{item.label}</span>}
+            {!isCollapsed && <span className="font-medium">{item.label}</span>}
           </NavLink>
         ))}
       </nav>
 
       {/* User info */}
       <div className="p-3 border-t border-sidebar-border">
-        {!collapsed && profile && (
+        {!isCollapsed && profile && (
           <div className="mb-3 px-3">
             <p className="font-medium text-sm truncate">{profile.name}</p>
             <p className="text-xs text-sidebar-foreground/70 capitalize">{profile.role}</p>
@@ -89,12 +170,12 @@ const Sidebar = () => {
           variant="ghost"
           className={cn(
             "w-full justify-start gap-3 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
-            collapsed && "justify-center px-0"
+            isCollapsed && "justify-center px-0"
           )}
           onClick={signOut}
         >
           <LogOut className="w-5 h-5" />
-          {!collapsed && <span>Sair</span>}
+          {!isCollapsed && <span>Sair</span>}
         </Button>
       </div>
 
@@ -105,7 +186,7 @@ const Sidebar = () => {
         className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-sidebar border border-sidebar-border shadow-md hover:bg-sidebar-accent"
         onClick={() => setCollapsed(!collapsed)}
       >
-        {collapsed ? (
+        {isCollapsed ? (
           <ChevronRight className="w-4 h-4" />
         ) : (
           <ChevronLeft className="w-4 h-4" />

@@ -92,14 +92,14 @@ const Tracking = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Responsive header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-serif font-bold text-foreground">Acompanhamento Processual</h1>
-          <p className="text-muted-foreground">Monitore processos e receba notificações de movimentações</p>
+          <h1 className="text-xl sm:text-2xl font-serif font-bold text-foreground">Acompanhamento Processual</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">Monitore processos e receba notificações de movimentações</p>
         </div>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
+        <Button onClick={() => setIsAddDialogOpen(true)} className="w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-2" />
           Adicionar Processo
         </Button>
@@ -107,14 +107,14 @@ const Tracking = () => {
 
       {/* Process List */}
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
             <Card key={i}>
-              <CardHeader>
+              <CardHeader className="p-4 sm:p-6">
                 <Skeleton className="h-5 w-48" />
                 <Skeleton className="h-4 w-24" />
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
                 <Skeleton className="h-4 w-full mb-2" />
                 <Skeleton className="h-4 w-3/4" />
               </CardContent>
@@ -123,10 +123,10 @@ const Tracking = () => {
         </div>
       ) : processes?.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
+          <CardContent className="flex flex-col items-center justify-center py-12 px-4">
             <Radar className="w-12 h-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">Nenhum processo monitorado</h3>
-            <p className="text-muted-foreground text-center mb-4">
+            <h3 className="text-lg font-medium mb-2 text-center">Nenhum processo monitorado</h3>
+            <p className="text-muted-foreground text-center mb-4 text-sm">
               Adicione processos para acompanhar movimentações automaticamente
             </p>
             <Button onClick={() => setIsAddDialogOpen(true)}>
@@ -136,40 +136,40 @@ const Tracking = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {processes?.map((process) => (
             <Card key={process.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-sm font-mono">
+              <CardHeader className="pb-2 p-4 sm:p-6">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1 min-w-0">
+                    <CardTitle className="text-xs sm:text-sm font-mono break-all">
                       {formatProcessNumber(process.process_number)}
                     </CardTitle>
-                    <CardDescription className="flex items-center gap-2">
-                      <Badge variant="outline">{process.tribunal}</Badge>
+                    <CardDescription className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className="text-xs">{process.tribunal}</Badge>
                       {process.active ? (
-                        <Badge variant="secondary" className="text-primary">
+                        <Badge variant="secondary" className="text-primary text-xs">
                           Ativo
                         </Badge>
                       ) : (
-                        <Badge variant="secondary">Inativo</Badge>
+                        <Badge variant="secondary" className="text-xs">Inativo</Badge>
                       )}
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3 px-4 sm:px-6 pb-4 sm:pb-6">
                 {process.classe && (
-                  <p className="text-sm font-medium">{process.classe}</p>
+                  <p className="text-sm font-medium line-clamp-2">{process.classe}</p>
                 )}
                 {process.orgao_julgador && (
-                  <p className="text-sm text-muted-foreground">{process.orgao_julgador}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-1">{process.orgao_julgador}</p>
                 )}
                 
                 {process.ultimo_movimento && (
                   <div className="pt-2 border-t">
                     <p className="text-xs text-muted-foreground mb-1">Última movimentação:</p>
-                    <p className="text-sm">{process.ultimo_movimento}</p>
+                    <p className="text-sm line-clamp-2">{process.ultimo_movimento}</p>
                     {process.ultimo_movimento_data && (
                       <p className="text-xs text-muted-foreground mt-1">
                         {format(new Date(process.ultimo_movimento_data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
@@ -182,11 +182,11 @@ const Tracking = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1"
+                    className="flex-1 text-xs sm:text-sm"
                     onClick={() => setSelectedProcess(process)}
                   >
                     <Eye className="w-4 h-4 mr-1" />
-                    Ver Movimentações
+                    <span className="hidden sm:inline">Ver </span>Movimentações
                   </Button>
                   <Button
                     variant="ghost"
@@ -222,7 +222,7 @@ const Tracking = () => {
       />
 
       <AlertDialog open={!!processToDelete} onOpenChange={() => setProcessToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Remover processo?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -230,11 +230,11 @@ const Tracking = () => {
               Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+            <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => processToDelete && deleteMutation.mutate(processToDelete.id)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto"
             >
               Remover
             </AlertDialogAction>
