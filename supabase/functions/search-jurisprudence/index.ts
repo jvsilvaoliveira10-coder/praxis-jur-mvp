@@ -5,18 +5,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Rate limiting: track last request per user
+// Rate limiting
 const userLastRequest = new Map<string, number>();
-const MIN_REQUEST_INTERVAL = 3000; // 3 seconds between requests per user
+const MIN_REQUEST_INTERVAL = 3000;
 
-// Global concurrent request limit
 let activeRequests = 0;
 const MAX_CONCURRENT_REQUESTS = 5;
 
-// Generate a hash for the query to check cache
-function generateQueryHash(query: string): string {
-  const normalized = query.toLowerCase().trim().replace(/\s+/g, ' ');
-  // Simple hash function
+function generateQueryHash(query: string, decisionType?: string): string {
+  const normalized = (query.toLowerCase().trim().replace(/\s+/g, ' ') + (decisionType || '')).toLowerCase();
   let hash = 0;
   for (let i = 0; i < normalized.length; i++) {
     const char = normalized.charCodeAt(i);
@@ -26,8 +23,7 @@ function generateQueryHash(query: string): string {
   return hash.toString(36);
 }
 
-// Parse TJSP CJSG HTML response to extract jurisprudence data
-function parseJurisprudenceResults(html: string): Array<{
+interface ParsedResult {
   externalId: string;
   processNumber: string;
   ementa: string;
@@ -36,103 +32,148 @@ function parseJurisprudenceResults(html: string): Array<{
   judgmentDate: string;
   decisionType: string;
   pdfUrl: string;
-}> {
-  const results: Array<{
-    externalId: string;
-    processNumber: string;
-    ementa: string;
-    orgaoJulgador: string;
-    relator: string;
-    judgmentDate: string;
-    decisionType: string;
-    pdfUrl: string;
-  }> = [];
+}
 
-  try {
-    // Match each jurisprudence entry block
-    // The CJSG uses divs with class "fundocinza1" or similar for each result
-    const entryPattern = /<tr[^>]*class="[^"]*fundocinza[^"]*"[^>]*>([\s\S]*?)<\/tr>/gi;
-    let match;
+// Parse TJSP CJSG results from the scraped content
+function parseJurisprudenceResults(html: string, markdown: string): ParsedResult[] {
+  const results: ParsedResult[] = [];
+  
+  console.log('Parsing content - HTML:', html.length, 'chars, Markdown:', markdown.length, 'chars');
 
-    while ((match = entryPattern.exec(html)) !== null) {
-      const entryHtml = match[1];
+  // The CJSG results page shows results in a specific format
+  // Each result contains:
+  // - "Registro do Acórdão" - registro number
+  // - Process number in format XXXXXXX-XX.XXXX.X.XX.XXXX
+  // - Ementa text
+  // - Relator(a), Comarca, Órgão julgador, Data do julgamento
+  
+  // Look for process numbers as primary indicator of results
+  const processPattern = /(\d{7}-\d{2}\.\d{4}\.\d{1,2}\.\d{2}\.\d{4})/g;
+  const processMatches = [...html.matchAll(processPattern)];
+  const uniqueProcessNumbers = [...new Set(processMatches.map(m => m[1]))];
+  console.log('Found', uniqueProcessNumbers.length, 'unique process numbers');
+  
+  // If we found process numbers, try to extract the surrounding context for each
+  if (uniqueProcessNumbers.length > 0) {
+    for (const processNumber of uniqueProcessNumbers.slice(0, 10)) {
+      // Find the block of content containing this process number
+      const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const blockPattern = new RegExp(
+        `((?:[\\s\\S]{0,2000})?${escapeRegex(processNumber)}(?:[\\s\\S]{0,2000})?)`,
+        'i'
+      );
       
-      // Extract ementa
-      const ementaMatch = entryHtml.match(/<div[^>]*class="[^"]*ementaClass[^"]*"[^>]*>([\s\S]*?)<\/div>/i) ||
-                          entryHtml.match(/Ementa:?\s*<\/[^>]+>\s*([^<]+)/i);
-      
-      // Extract process number
-      const processMatch = entryHtml.match(/Processo:?\s*<\/[^>]+>\s*<[^>]+>([^<]+)/i) ||
-                          entryHtml.match(/(\d{7}-\d{2}\.\d{4}\.\d{1,2}\.\d{2}\.\d{4})/);
-      
-      // Extract relator
-      const relatorMatch = entryHtml.match(/Relator[^:]*:?\s*<\/[^>]+>\s*<[^>]+>([^<]+)/i) ||
-                          entryHtml.match(/Relator[^:]*:\s*([^<\n]+)/i);
-      
-      // Extract judgment date
-      const dateMatch = entryHtml.match(/Data do [Jj]ulgamento:?\s*<\/[^>]+>\s*<[^>]+>(\d{2}\/\d{2}\/\d{4})/i) ||
-                        entryHtml.match(/(\d{2}\/\d{2}\/\d{4})/);
-      
-      // Extract órgão julgador
-      const orgaoMatch = entryHtml.match(/[ÓO]rg[ãa]o [Jj]ulgador:?\s*<\/[^>]+>\s*<[^>]+>([^<]+)/i);
-      
-      // Extract PDF link
-      const pdfMatch = entryHtml.match(/href="([^"]*inteiro[^"]*\.pdf[^"]*)"/i) ||
-                       entryHtml.match(/href="([^"]*acordao[^"]*\.pdf[^"]*)"/i);
-      
-      // Extract decision type
-      const typeMatch = entryHtml.match(/Classe\/Assunto:?\s*<\/[^>]+>\s*<[^>]+>([^<]+)/i);
-
-      const ementa = ementaMatch ? ementaMatch[1].replace(/<[^>]+>/g, '').trim() : '';
-      
-      if (ementa) {
-        results.push({
-          externalId: processMatch ? processMatch[1].replace(/\D/g, '') : Date.now().toString(),
-          processNumber: processMatch ? processMatch[1].trim() : '',
-          ementa: ementa,
-          orgaoJulgador: orgaoMatch ? orgaoMatch[1].trim() : '',
-          relator: relatorMatch ? relatorMatch[1].trim() : '',
-          judgmentDate: dateMatch ? dateMatch[1] : '',
-          decisionType: typeMatch ? typeMatch[1].trim() : 'Acórdão',
-          pdfUrl: pdfMatch ? pdfMatch[1] : '',
-        });
-      }
-    }
-
-    // If no results found with the first pattern, try alternative parsing
-    if (results.length === 0) {
-      // Try to find any text that looks like ementa content
-      const altPattern = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-      let altMatch;
-      let currentResult: any = {};
-
-      while ((altMatch = altPattern.exec(html)) !== null) {
-        const content = altMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const blockMatch = html.match(blockPattern);
+      if (blockMatch) {
+        const block = blockMatch[1];
+        const textBlock = block.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
         
-        if (content.length > 100 && !content.includes('Pesquisar')) {
-          // This might be an ementa
-          if (!currentResult.ementa) {
-            currentResult.ementa = content;
-            currentResult.externalId = Date.now().toString() + results.length;
-            results.push({
-              externalId: currentResult.externalId,
-              processNumber: '',
-              ementa: currentResult.ementa,
-              orgaoJulgador: '',
-              relator: '',
-              judgmentDate: '',
-              decisionType: 'Decisão',
-              pdfUrl: '',
-            });
-            currentResult = {};
+        // Try to extract ementa from this block
+        let ementa = '';
+        
+        // Look for text after "Ementa:" label
+        const ementaMatch = textBlock.match(/Ementa:?\s*(.{50,1500}?)(?:Relator|Comarca|Órgão|Data do|$)/i);
+        if (ementaMatch) {
+          ementa = ementaMatch[1].trim();
+        }
+        
+        // If no ementa found with label, try to find substantial legal text
+        if (!ementa || ementa.length < 50) {
+          const legalTerms = ['recurso', 'apelação', 'agravo', 'sentença', 'provimento'];
+          for (const term of legalTerms) {
+            const termPattern = new RegExp(`([^.]*${term}[^.]{50,500}[.])`, 'gi');
+            const termMatch = textBlock.match(termPattern);
+            if (termMatch && termMatch[0].length > 100) {
+              ementa = termMatch[0].trim();
+              break;
+            }
           }
+        }
+        
+        // Extract relator
+        const relatorMatch = textBlock.match(/Relator\(?a?\)?[:\s]*([^;,\n]+?)(?=\s*(?:Comarca|Órgão|Data|;|,|\n))/i);
+        const relator = relatorMatch ? relatorMatch[1].trim() : '';
+        
+        // Extract órgão julgador
+        const orgaoMatch = textBlock.match(/Órgão [Jj]ulgador[:\s]*([^;,\n]+?)(?=\s*(?:Data|Comarca|Relator|;|,|\n))/i);
+        const orgaoJulgador = orgaoMatch ? orgaoMatch[1].trim() : '';
+        
+        // Extract date
+        const dateMatch = textBlock.match(/Data do [Jj]ulgamento[:\s]*(\d{2}\/\d{2}\/\d{4})/i);
+        const judgmentDate = dateMatch ? dateMatch[1] : '';
+        
+        // Only add if we have an ementa
+        if (ementa && ementa.length >= 50) {
+          results.push({
+            externalId: processNumber.replace(/\D/g, ''),
+            processNumber,
+            ementa: ementa.substring(0, 2000),
+            orgaoJulgador,
+            relator,
+            judgmentDate,
+            decisionType: 'Acórdão',
+            pdfUrl: '',
+          });
         }
       }
     }
-  } catch (error) {
-    console.error('Error parsing HTML:', error);
   }
-
+  
+  // Fallback: Try to find substantial legal text blocks in markdown
+  if (results.length === 0 && markdown) {
+    console.log('Trying markdown fallback parsing...');
+    
+    const paragraphs = markdown.split(/\n\n+/);
+    
+    for (const para of paragraphs) {
+      const trimmed = para.trim();
+      
+      // Skip short or navigation content
+      if (trimmed.length < 200) continue;
+      if (trimmed.startsWith('#')) continue;
+      if (trimmed.startsWith('[')) continue;
+      if (trimmed.startsWith('|')) continue;
+      
+      // Skip known non-result content
+      const skipTerms = ['suporte técnico', 'cadastro de advogados', 'peticionamento', 
+                         'certidões', 'consultas processuais', 'requisitórios'];
+      const shouldSkip = skipTerms.some(term => trimmed.toLowerCase().includes(term));
+      if (shouldSkip) continue;
+      
+      // Check for legal content indicators
+      const legalIndicators = ['recurso', 'apelação', 'agravo', 'sentença', 'provimento',
+                               'improvido', 'negado', 'dado provimento', 'mantida'];
+      const indicatorCount = legalIndicators.filter(ind => 
+        trimmed.toLowerCase().includes(ind)
+      ).length;
+      
+      if (indicatorCount >= 2) {
+        // This looks like legal content
+        const procMatch = trimmed.match(/(\d{7}-\d{2}\.\d{4}\.\d{1,2}\.\d{2}\.\d{4})/);
+        
+        results.push({
+          externalId: procMatch ? procMatch[1].replace(/\D/g, '') : Date.now().toString() + results.length,
+          processNumber: procMatch ? procMatch[1] : '',
+          ementa: trimmed.substring(0, 2000),
+          orgaoJulgador: '',
+          relator: '',
+          judgmentDate: '',
+          decisionType: 'Acórdão',
+          pdfUrl: '',
+        });
+        
+        if (results.length >= 10) break;
+      }
+    }
+  }
+  
+  // Log sample content if no results
+  if (results.length === 0) {
+    console.log('No results extracted. Content samples:');
+    console.log('HTML sample:', html.substring(0, 500));
+    console.log('Markdown sample:', markdown.substring(0, 500));
+  }
+  
   return results;
 }
 
@@ -151,7 +192,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get authorization header for user identification
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -160,12 +200,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user from token
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
@@ -178,7 +216,7 @@ Deno.serve(async (req) => {
 
     const userId = user.id;
 
-    // Rate limiting check
+    // Rate limiting
     const lastRequest = userLastRequest.get(userId) || 0;
     const now = Date.now();
     if (now - lastRequest < MIN_REQUEST_INTERVAL) {
@@ -192,7 +230,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Global concurrent request limit
     if (activeRequests >= MAX_CONCURRENT_REQUESTS) {
       return new Response(
         JSON.stringify({ 
@@ -203,27 +240,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Generate query hash for caching
-    const queryHash = generateQueryHash(query + (decisionType || ''));
+    const queryHash = generateQueryHash(query, decisionType);
 
-    // Check cache first
-    const { data: cachedSearch, error: cacheError } = await supabase
+    // Check cache
+    const { data: cachedSearch } = await supabase
       .from('jurisprudence_searches')
       .select(`
-        id,
-        results_count,
-        created_at,
-        expires_at,
+        id, results_count, expires_at,
         jurisprudence_results (
-          id,
-          external_id,
-          process_number,
-          ementa,
-          orgao_julgador,
-          relator,
-          judgment_date,
-          decision_type,
-          pdf_url
+          id, external_id, process_number, ementa, orgao_julgador,
+          relator, judgment_date, decision_type, pdf_url
         )
       `)
       .eq('query_hash', queryHash)
@@ -232,8 +258,8 @@ Deno.serve(async (req) => {
       .limit(1)
       .single();
 
-    if (!cacheError && cachedSearch && cachedSearch.jurisprudence_results) {
-      console.log('Returning cached results for query:', query);
+    if (cachedSearch?.jurisprudence_results?.length) {
+      console.log('Returning cached results for:', query);
       return new Response(
         JSON.stringify({
           success: true,
@@ -245,35 +271,58 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update rate limiting
     userLastRequest.set(userId, now);
     activeRequests++;
 
     try {
-      // Check for Firecrawl API key
       const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
       if (!firecrawlKey) {
-        console.error('FIRECRAWL_API_KEY not configured');
         return new Response(
           JSON.stringify({ success: false, error: 'Serviço de scraping não configurado' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      // Build CJSG search URL
-      const cjsgUrl = 'https://esaj.tjsp.jus.br/cjsg/resultadoCompleta.do';
+      // The TJSP CJSG uses a specific URL pattern for search results
+      // We need to use the getResult endpoint or try the search action
+      // Let's try the direct search with action parameter
+      
+      const tipoDecisaoParam = decisionType || 'A';
+      
+      // Try the pesquisar action URL - this should trigger the search
+      const cjsgUrl = 'https://esaj.tjsp.jus.br/cjsg/pesquisar.do';
       const searchParams = new URLSearchParams({
+        'conversationId': '',
         'dados.buscaInteiroTeor': query,
         'dados.pesquisarComSinonimos': 'S',
-        'dados.pesquisarComNumeroPF': 'S',
-        'tipoDecisao': decisionType || 'A', // A = Acórdãos
-        'pagina': page.toString(),
+        'dados.buscaEmenta': '',
+        'dados.nuProcOrigem': '',
+        'dados.nuRegistro': '',
+        'aession': '',
+        'dados.buscaLivre': '',
+        'contession': '',
+        'gateway': 'true',
+        'paginaConsulta': page.toString(),
+        'localPesquisa.cdLocal': '-1',
+        'cbPesquisa': 'NUMPROC',
+        'tipoDecisao': tipoDecisaoParam,
+        'decession': '',
+        'dados.dtJulgamentoInicio': '',
+        'dados.dtJulgamentoFim': '',
+        'dados.dtPublicacaoInicio': '',
+        'dados.dtPublicacaoFim': '',
+        'dados.dtRegistroInicio': '',
+        'dados.dtRegistroFim': '',
+        'dados.origensSelecionadas': '',
+        'classeTreeSelection.values': '',
+        'assuntoTreeSelection.values': '',
+        'colunaOrdenacao': 'relevance',
+        'tipoOrdenacao': 'DESC',
       });
 
       const targetUrl = `${cjsgUrl}?${searchParams.toString()}`;
-      console.log('Scraping TJSP CJSG:', targetUrl);
+      console.log('Attempting TJSP search:', targetUrl.substring(0, 200));
 
-      // Use Firecrawl to scrape the page
       const firecrawlResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
         method: 'POST',
         headers: {
@@ -284,7 +333,7 @@ Deno.serve(async (req) => {
           url: targetUrl,
           formats: ['html', 'markdown'],
           onlyMainContent: false,
-          waitFor: 2000, // Wait for dynamic content
+          waitFor: 8000, // Wait longer for JavaScript
         }),
       });
 
@@ -294,7 +343,7 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'Erro ao acessar o portal do TJSP. Tente novamente.' 
+            error: 'Erro ao acessar o portal do TJSP. O site pode estar lento ou indisponível.' 
           }),
           { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -305,53 +354,33 @@ Deno.serve(async (req) => {
       const markdown = firecrawlData.data?.markdown || firecrawlData.markdown || '';
 
       if (!html && !markdown) {
-        console.log('No content returned from Firecrawl');
         return new Response(
           JSON.stringify({ 
             success: true, 
             data: [], 
             cached: false,
             totalResults: 0,
-            message: 'Nenhum resultado encontrado para esta busca.' 
+            message: 'Nenhum conteúdo retornado do portal do TJSP.' 
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      // Parse results from HTML
-      let parsedResults = parseJurisprudenceResults(html);
-
-      // If HTML parsing didn't work well, try to extract from markdown
-      if (parsedResults.length === 0 && markdown) {
-        console.log('Trying to parse from markdown...');
-        // Simple markdown parsing for fallback
-        const lines = markdown.split('\n');
-        let currentEmenta = '';
-        
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (trimmed.length > 100 && !trimmed.startsWith('#') && !trimmed.includes('[')) {
-            currentEmenta = trimmed;
-            parsedResults.push({
-              externalId: Date.now().toString() + parsedResults.length,
-              processNumber: '',
-              ementa: currentEmenta,
-              orgaoJulgador: '',
-              relator: '',
-              judgmentDate: '',
-              decisionType: 'Decisão',
-              pdfUrl: '',
-            });
-          }
-        }
-      }
-
+      // Check if we got the search form page or actual results
+      const hasResults = html.includes('fundocinza') || 
+                        html.includes('ementaClass') ||
+                        html.includes('Registro do Acórdão') ||
+                        /\d{7}-\d{2}\.\d{4}\.\d{1,2}\.\d{2}\.\d{4}/.test(html);
+      
+      console.log('Content appears to have results:', hasResults);
+      
+      // Parse results
+      const parsedResults = parseJurisprudenceResults(html, markdown);
       console.log(`Parsed ${parsedResults.length} results`);
 
       // Save to cache if we got results
       if (parsedResults.length > 0) {
-        // Create search record
-        const { data: searchRecord, error: searchError } = await supabase
+        const { data: searchRecord } = await supabase
           .from('jurisprudence_searches')
           .insert({
             user_id: userId,
@@ -362,8 +391,7 @@ Deno.serve(async (req) => {
           .select('id')
           .single();
 
-        if (searchRecord && !searchError) {
-          // Save individual results
+        if (searchRecord) {
           const resultsToInsert = parsedResults.map(r => ({
             search_id: searchRecord.id,
             external_id: r.externalId,
@@ -373,25 +401,17 @@ Deno.serve(async (req) => {
             relator: r.relator,
             judgment_date: r.judgmentDate ? (() => {
               const parts = r.judgmentDate.split('/');
-              if (parts.length === 3) {
-                return `${parts[2]}-${parts[1]}-${parts[0]}`;
-              }
-              return null;
+              return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : null;
             })() : null,
             decision_type: r.decisionType,
             pdf_url: r.pdfUrl,
           }));
 
-          const { data: insertedResults, error: resultsError } = await supabase
+          const { data: insertedResults } = await supabase
             .from('jurisprudence_results')
             .insert(resultsToInsert)
             .select();
 
-          if (resultsError) {
-            console.error('Error saving results:', resultsError);
-          }
-
-          // Return the inserted results with their IDs
           if (insertedResults) {
             return new Response(
               JSON.stringify({
@@ -406,16 +426,15 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Return parsed results even if caching failed
       return new Response(
         JSON.stringify({
           success: true,
-          data: parsedResults.map((r, i) => ({
-            id: `temp-${i}`,
-            ...r,
-          })),
+          data: parsedResults.map((r, i) => ({ id: `temp-${i}`, ...r })),
           cached: false,
           totalResults: parsedResults.length,
+          message: parsedResults.length === 0 
+            ? 'O portal do TJSP não retornou resultados para esta busca. Isso pode ocorrer devido a limitações do site. Tente termos diferentes ou aguarde alguns minutos.'
+            : undefined,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -425,10 +444,9 @@ Deno.serve(async (req) => {
     }
 
   } catch (error) {
-    console.error('Search jurisprudence error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('Search error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Erro desconhecido' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
