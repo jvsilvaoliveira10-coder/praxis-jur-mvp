@@ -1,104 +1,179 @@
 
 
-# Plano: Módulo de Pesquisa de Jurisprudência do TJSP
+# Plano: Melhorar Scraping do Portal CJSG do TJSP
 
 ## Visão Geral
-Implementar um módulo funcional de busca de jurisprudência do TJSP integrado ao gerador de petições, usando a abordagem mais simples possível para o MVP.
+
+Ajustar a Edge Function `search-jurisprudence` para simular corretamente as requisições do formulário do CJSG, incluindo o fluxo correto de POST e os parâmetros necessários para contornar as limitações atuais.
 
 ---
 
-## Fase 1: MVP - Busca Básica (Entrega Inicial)
+## Análise do Problema Atual
 
-### 1.1 Interface de Pesquisa
-- Tela dedicada "Pesquisa de Jurisprudência" (substituir placeholder atual)
-- Campo de busca por texto livre / palavras-chave
-- Filtro opcional por tipo de decisão (Acórdãos, Decisões Monocráticas)
-- Lista de resultados com: ementa, órgão julgador, relator, data do julgamento
-- Botão "Usar na petição" em cada resultado
-
-### 1.2 Backend de Consulta
-- Edge function que faz a consulta ao portal CJSG do TJSP
-- Conectar Firecrawl como serviço de scraping (conector disponível)
-- Parsing dos resultados HTML para extrair dados estruturados
-- Rate limiting: máximo 1 requisição a cada 3 segundos por usuário
-- Limite global de 5 requisições simultâneas ao TJSP
-
-### 1.3 Sistema de Cache
-- Tabela no banco para armazenar resultados de buscas
-- Cache de 7 dias para a mesma consulta
-- Antes de consultar o TJSP, verificar se já existe no cache
-- Reduz drasticamente a carga no TJSP e melhora performance
-
-### 1.4 Integração com Petições
-- Ao selecionar jurisprudência, salvar vínculo com a petição
-- Passar jurisprudência selecionada como contexto para a IA
-- IA deve citar a decisão na fundamentação jurídica
-- Exibir jurisprudências vinculadas na visualização da petição
+O scraping atual não funciona porque:
+1. **URL incorreta**: Usamos `pesquisar.do` com query strings, mas o formulário faz POST para `resultadoCompleta.do`
+2. **Parâmetros incorretos**: O campo `tipoDecisao` foi substituído por `tipoDecisaoSelecionados` (checkbox)
+3. **reCAPTCHA**: O portal inclui reCAPTCHA invisível que pode bloquear requisições automatizadas
+4. **Sessão/Cookies**: O formulário requer um `jsessionid` válido obtido na página inicial
 
 ---
 
-## Fase 2: Melhorias (Pós-MVP)
+## Estratégia de Implementação
 
-### 2.1 Biblioteca Pessoal
-- Permitir "favoritar" decisões importantes
-- Organizar por pastas/categorias
-- Reutilizar decisões salvas em futuras petições
+### Abordagem 1: POST Direto com Form Data (Principal)
 
-### 2.2 Filtros Avançados
-- Busca por número do processo
-- Filtro por câmara/seção
-- Filtro por período de julgamento
-- Filtro por comarca de origem
+Simular o envio do formulário HTML exatamente como um navegador faria:
 
-### 2.3 Extração do Inteiro Teor (PDF)
-- Guardar link do PDF para acesso manual (MVP)
-- Futuramente: Extração de texto do PDF com OCR
-- Resumo automático da decisão com IA
+1. **Primeira requisição (GET)**: Acessar `consultaCompleta.do` para obter:
+   - Cookie de sessão (`JSESSIONID`)
+   - Token reCAPTCHA (se necessário)
+   - URL do action com jsessionid
+
+2. **Segunda requisição (POST)**: Enviar os dados do formulário para `resultadoCompleta.do;jsessionid=XXX`
 
 ---
 
-## Estrutura Técnica
+## Detalhes Técnicos
 
-### Banco de Dados
-- `jurisprudence_searches`: Cache das buscas realizadas
-- `jurisprudence_results`: Resultados individuais encontrados
-- `petition_jurisprudence`: Vínculo entre petições e jurisprudências usadas
-- `saved_jurisprudence`: Jurisprudências favoritadas pelo usuário
+### Parâmetros do Formulário (Mapeamento Correto)
 
-### Backend (Edge Functions)
-- `search-jurisprudence`: Realiza busca com cache e rate limiting
-- `get-jurisprudence`: Recupera detalhes de uma decisão
+| Campo do Formulário | Descrição | Valor Padrão |
+|---------------------|-----------|--------------|
+| `dados.buscaInteiroTeor` | Pesquisa livre (inteiro teor) | Query do usuário |
+| `dados.buscaEmenta` | Pesquisa só na ementa | (vazio) |
+| `dados.pesquisarComSinonimos` | Pesquisar sinônimos | S |
+| `tipoDecisaoSelecionados` | A=Acórdãos, D=Monocráticas, H=Homologações | A |
+| `dados.origensSelecionadas` | T=2º grau, R=Recursais | T |
+| `dados.ordenarPor` | dtPublicacao ou relevancia | dtPublicacao |
+| `dados.dtJulgamentoInicio` | Data inicial julgamento | (vazio) |
+| `dados.dtJulgamentoFim` | Data final julgamento | (vazio) |
 
-### Frontend
-- Página de Pesquisa com busca e resultados
-- Modal de seleção durante criação de petição
-- Componente para exibir jurisprudência vinculada
+### Fluxo de Requisições
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                    FLUXO DE SCRAPING                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. GET consultaCompleta.do                                 │
+│     └─> Extrai JSESSIONID do Set-Cookie                     │
+│     └─> Extrai action URL do formulário                     │
+│                                                             │
+│  2. POST resultadoCompleta.do;jsessionid=XXX                │
+│     └─> Content-Type: application/x-www-form-urlencoded     │
+│     └─> Cookie: JSESSIONID=XXX                              │
+│     └─> Body: dados.buscaInteiroTeor=danos+morais&...       │
+│                                                             │
+│  3. Parse HTML de resultados                                │
+│     └─> Extrair ementas, relatores, datas                   │
+│     └─> Extrair links para PDFs                             │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Headers HTTP Necessários
+
+```text
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: pt-BR,pt;q=0.9,en;q=0.8
+Content-Type: application/x-www-form-urlencoded
+Referer: https://esaj.tjsp.jus.br/cjsg/consultaCompleta.do
+Cookie: JSESSIONID={session_id}
+```
 
 ---
 
-## Riscos e Mitigações
+## Mudanças na Edge Function
 
-| Risco | Mitigação |
-|-------|-----------|
-| TJSP mudar estrutura HTML | Monitoramento de erros + logs detalhados |
-| Bloqueio de IP | Rate limiting conservador + cache agressivo |
-| PDFs escaneados | MVP usa apenas ementa (texto), PDF como link |
-| Alta concorrência | Fila de requisições + limite global |
+### 1. Substituir Firecrawl por Fetch Nativo
+
+O Firecrawl é ótimo para scraping genérico, mas para este caso específico precisamos de controle total sobre cookies e headers. Usaremos `fetch()` nativo do Deno.
+
+### 2. Implementar Gerenciamento de Sessão
+
+- Fazer GET inicial para obter cookies
+- Manter JSESSIONID entre requisições
+- Usar Referer correto para simular navegação
+
+### 3. Melhorar Parser de Resultados
+
+- Identificar padrões específicos da página de resultados do CJSG
+- Extrair links de PDF (formato: `obterVotosAcordaos.do?numRegistro=XXX`)
+- Tratar encoding UTF-8/ISO-8859-1
 
 ---
 
-## O que entra no MVP
-✅ Busca por texto livre  
-✅ Exibição de ementa e metadados  
-✅ Cache de resultados  
-✅ Seleção para usar em petições  
-✅ Link para PDF (acesso manual)  
-✅ Rate limiting básico  
+## Estrutura do Código Atualizado
 
-## O que fica para depois
-⏳ Extração de texto do PDF  
-⏳ Filtros avançados  
-⏳ Biblioteca pessoal de jurisprudências  
-⏳ Resumo automático com IA  
-⏳ Fila robusta de requisições  
+```text
+search-jurisprudence/index.ts
+├── Constantes de configuração
+│   └── URLs, Headers padrão, Rate limits
+│
+├── Funções auxiliares
+│   ├── getSession() - Obtém JSESSIONID
+│   ├── buildFormData() - Monta dados do formulário
+│   └── parseResults() - Extrai dados do HTML
+│
+├── Handler principal
+│   ├── Validação de input
+│   ├── Rate limiting
+│   ├── Verificação de cache
+│   ├── Execução do scraping (2 requisições)
+│   └── Salvamento em cache
+│
+└── Tratamento de erros
+    └── Logs detalhados para debugging
+```
+
+---
+
+## Mitigação de Riscos
+
+### reCAPTCHA
+
+- O reCAPTCHA invisível geralmente só é ativado para tráfego suspeito
+- Com rate limiting conservador (3s entre requisições) e User-Agent válido, é improvável ser bloqueado
+- Se bloqueado, o erro será logado e retornado ao usuário
+
+### Mudanças no HTML
+
+- Logs detalhados do conteúdo recebido
+- Testes automatizados para verificar estrutura
+- Fallback para retornar "site indisponível" com mensagem clara
+
+### Bloqueio de IP
+
+- Rate limiting já implementado
+- Cache de 7 dias reduz requisições
+- Limite global de 5 requisições simultâneas
+
+---
+
+## Tarefas de Implementação
+
+1. **Atualizar Edge Function** (Principal)
+   - Implementar fluxo de duas requisições (GET + POST)
+   - Gerenciar cookies/sessão manualmente
+   - Melhorar parsing do HTML de resultados
+
+2. **Adicionar Logs de Debug**
+   - Logar tamanho do conteúdo recebido
+   - Logar se encontrou indicadores de resultados
+   - Logar erros de parsing específicos
+
+3. **Testes**
+   - Testar com termos comuns ("danos morais", "furto")
+   - Verificar extração de ementas e metadados
+   - Validar links de PDF
+
+---
+
+## Resultado Esperado
+
+Após a implementação:
+- Busca por "danos morais" retornará resultados reais do TJSP
+- Cada resultado incluirá: ementa, relator, órgão julgador, data, link PDF
+- Cache funcionará corretamente, reduzindo carga no portal
 
