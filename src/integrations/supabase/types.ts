@@ -449,6 +449,50 @@ export type Database = {
           },
         ]
       }
+      process_movements: {
+        Row: {
+          codigo: number | null
+          complementos: Json | null
+          created_at: string
+          data_hora: string
+          id: string
+          nome: string
+          notified: boolean
+          orgao_julgador: string | null
+          tracked_process_id: string
+        }
+        Insert: {
+          codigo?: number | null
+          complementos?: Json | null
+          created_at?: string
+          data_hora: string
+          id?: string
+          nome: string
+          notified?: boolean
+          orgao_julgador?: string | null
+          tracked_process_id: string
+        }
+        Update: {
+          codigo?: number | null
+          complementos?: Json | null
+          created_at?: string
+          data_hora?: string
+          id?: string
+          nome?: string
+          notified?: boolean
+          orgao_julgador?: string | null
+          tracked_process_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_movements_tracked_process_id_fkey"
+            columns: ["tracked_process_id"]
+            isOneToOne: false
+            referencedRelation: "tracked_processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -537,6 +581,68 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      tracked_processes: {
+        Row: {
+          active: boolean
+          assuntos: string[] | null
+          case_id: string | null
+          classe: string | null
+          created_at: string
+          data_ajuizamento: string | null
+          id: string
+          last_checked_at: string | null
+          orgao_julgador: string | null
+          process_number: string
+          tribunal: string
+          ultimo_movimento: string | null
+          ultimo_movimento_data: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          assuntos?: string[] | null
+          case_id?: string | null
+          classe?: string | null
+          created_at?: string
+          data_ajuizamento?: string | null
+          id?: string
+          last_checked_at?: string | null
+          orgao_julgador?: string | null
+          process_number: string
+          tribunal: string
+          ultimo_movimento?: string | null
+          ultimo_movimento_data?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          assuntos?: string[] | null
+          case_id?: string | null
+          classe?: string | null
+          created_at?: string
+          data_ajuizamento?: string | null
+          id?: string
+          last_checked_at?: string | null
+          orgao_julgador?: string | null
+          process_number?: string
+          tribunal?: string
+          ultimo_movimento?: string | null
+          ultimo_movimento_data?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracked_processes_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
