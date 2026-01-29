@@ -65,12 +65,10 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
         {/* Logo */}
         <div className="p-4 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-sidebar-primary flex items-center justify-center">
-              <Scale className="w-5 h-5 text-sidebar-primary-foreground" />
-            </div>
+            <img src="/favicon.svg" alt="Práxis AI" className="w-10 h-10" />
             <div className="overflow-hidden">
-              <h1 className="font-serif font-bold text-lg leading-tight">LegalTech</h1>
-              <p className="text-xs text-sidebar-foreground/70">Sistema Jurídico</p>
+              <h1 className="font-serif font-bold text-lg leading-tight">Práxis AI</h1>
+              <p className="text-xs text-sidebar-foreground/70">Hub Jurídico Inteligente</p>
             </div>
           </div>
         </div>
@@ -127,13 +125,11 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
       {/* Logo */}
       <div className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-sidebar-primary flex items-center justify-center">
-            <Scale className="w-5 h-5 text-sidebar-primary-foreground" />
-          </div>
+          <img src="/favicon.svg" alt="Práxis AI" className="w-10 h-10" />
           {!isCollapsed && (
             <div className="overflow-hidden">
-              <h1 className="font-serif font-bold text-lg leading-tight">LegalTech</h1>
-              <p className="text-xs text-sidebar-foreground/70">Sistema Jurídico</p>
+              <h1 className="font-serif font-bold text-lg leading-tight">Práxis AI</h1>
+              <p className="text-xs text-sidebar-foreground/70">Hub Jurídico Inteligente</p>
             </div>
           )}
         </div>

@@ -2,8 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LegalTech MVP - Premium Legal Theme */
-/* Navy Blue & Gold palette for professional legal aesthetics */
+/* Práxis AI - Premium Legal Theme */
+/* Navy Blue & Teal palette for professional legal aesthetics */
 
 @layer base {
   :root {
@@ -49,8 +49,8 @@
     --sidebar-border: 222 47% 25%;
     --sidebar-ring: 45 70% 50%;
 
-    /* Custom LegalTech tokens */
-    --legal-gold: 45 70% 50%;
+    /* Custom Práxis AI tokens */
+    --legal-teal: 186 95% 28%;
     --legal-navy: 222 47% 20%;
     --legal-navy-dark: 222 47% 15%;
   }

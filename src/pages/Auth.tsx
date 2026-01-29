@@ -122,11 +122,11 @@ const Auth = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary mb-4">
-            <Scale className="w-8 h-8 text-primary-foreground" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <img src="/favicon.svg" alt="Práxis AI" className="w-16 h-16" />
           </div>
-          <h1 className="text-2xl font-serif font-bold text-foreground">LegalTech MVP</h1>
-          <p className="text-muted-foreground mt-1">Sistema de Petições Jurídicas</p>
+          <h1 className="text-2xl font-serif font-bold text-foreground">Práxis AI</h1>
+          <p className="text-muted-foreground mt-1">Hub Jurídico Inteligente</p>
         </div>
 
         <Card className="animate-fade-in shadow-lg border-0">
@@ -243,7 +243,7 @@ const Auth = () => {
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          © 2024 LegalTech MVP. Todos os direitos reservados.
+          © {new Date().getFullYear()} Práxis AI. Todos os direitos reservados.
         </p>
       </div>
     </div>

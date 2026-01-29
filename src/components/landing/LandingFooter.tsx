@@ -10,10 +10,8 @@ export function LandingFooter() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                <Scale className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="font-serif font-bold text-xl text-foreground">LegalTech</span>
+              <img src="/favicon.svg" alt="Práxis AI" className="w-10 h-10" />
+              <span className="font-serif font-bold text-xl text-foreground">Práxis AI</span>
             </div>
 
             {/* Links */}
@@ -34,14 +32,14 @@ export function LandingFooter() {
 
             {/* Copyright */}
             <p className="text-sm text-muted-foreground">
-              © {currentYear} LegalTech. Todos os direitos reservados.
+              © {currentYear} Práxis AI. Todos os direitos reservados.
             </p>
           </div>
 
           {/* Bottom text */}
           <div className="mt-8 pt-8 border-t text-center">
             <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
-              LegalTech é uma plataforma de produtividade para advogados. 
+              Práxis AI é uma plataforma de produtividade para advogados.
               As petições geradas devem ser revisadas pelo profissional responsável. 
               A utilização da plataforma não substitui o trabalho e a responsabilidade do advogado.
             </p>
