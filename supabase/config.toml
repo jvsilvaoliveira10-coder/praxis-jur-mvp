@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.search-datajud]
 verify_jwt = false
+
+[functions.check-movements]
+verify_jwt = false
