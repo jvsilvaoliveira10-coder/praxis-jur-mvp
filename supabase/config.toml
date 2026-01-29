@@ -1,1 +1,4 @@
 project_id = "htxpsggxvbjqsojaabxu"
+
+[functions.search-jurisprudence]
+verify_jwt = false
