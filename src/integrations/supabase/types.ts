@@ -201,6 +201,92 @@ export type Database = {
           },
         ]
       }
+      jurisprudence_results: {
+        Row: {
+          created_at: string
+          decision_type: string | null
+          ementa: string
+          external_id: string | null
+          full_text: string | null
+          id: string
+          judgment_date: string | null
+          metadata: Json | null
+          orgao_julgador: string | null
+          pdf_url: string | null
+          process_number: string | null
+          relator: string | null
+          search_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          decision_type?: string | null
+          ementa: string
+          external_id?: string | null
+          full_text?: string | null
+          id?: string
+          judgment_date?: string | null
+          metadata?: Json | null
+          orgao_julgador?: string | null
+          pdf_url?: string | null
+          process_number?: string | null
+          relator?: string | null
+          search_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          decision_type?: string | null
+          ementa?: string
+          external_id?: string | null
+          full_text?: string | null
+          id?: string
+          judgment_date?: string | null
+          metadata?: Json | null
+          orgao_julgador?: string | null
+          pdf_url?: string | null
+          process_number?: string | null
+          relator?: string | null
+          search_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jurisprudence_results_search_id_fkey"
+            columns: ["search_id"]
+            isOneToOne: false
+            referencedRelation: "jurisprudence_searches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jurisprudence_searches: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          query_hash: string
+          query_text: string
+          results_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          query_hash: string
+          query_text: string
+          results_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          query_hash?: string
+          query_text?: string
+          results_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -235,6 +321,45 @@ export type Database = {
             columns: ["deadline_id"]
             isOneToOne: false
             referencedRelation: "deadlines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      petition_jurisprudence: {
+        Row: {
+          created_at: string
+          id: string
+          jurisprudence_id: string
+          petition_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          jurisprudence_id: string
+          petition_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          jurisprudence_id?: string
+          petition_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "petition_jurisprudence_jurisprudence_id_fkey"
+            columns: ["jurisprudence_id"]
+            isOneToOne: false
+            referencedRelation: "jurisprudence_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "petition_jurisprudence_petition_id_fkey"
+            columns: ["petition_id"]
+            isOneToOne: false
+            referencedRelation: "petitions"
             referencedColumns: ["id"]
           },
         ]
@@ -353,6 +478,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      saved_jurisprudence: {
+        Row: {
+          created_at: string
+          id: string
+          jurisprudence_id: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          jurisprudence_id: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          jurisprudence_id?: string
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_jurisprudence_jurisprudence_id_fkey"
+            columns: ["jurisprudence_id"]
+            isOneToOne: false
+            referencedRelation: "jurisprudence_results"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       template_folders: {
         Row: {
