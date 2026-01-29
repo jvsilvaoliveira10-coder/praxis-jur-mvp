@@ -13,8 +13,8 @@ const Jurisprudence = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string>();
   const [cached, setCached] = useState(false);
+  const [isMock, setIsMock] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
   const handleSearch = async (query: string, decisionType?: string) => {
     setIsLoading(true);
     setError(undefined);
@@ -26,6 +26,7 @@ const Jurisprudence = () => {
       if (response.success && response.data) {
         setResults(response.data);
         setCached(response.cached || false);
+        setIsMock(response.mock || false);
         
         if (response.data.length === 0) {
           toast({
@@ -115,6 +116,7 @@ const Jurisprudence = () => {
         hasSearched={hasSearched}
         error={error}
         cached={cached}
+        isMock={isMock}
         selectedIds={selectedIds}
         onSelect={handleSelect}
       />

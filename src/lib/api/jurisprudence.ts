@@ -19,6 +19,7 @@ export interface SearchResponse {
   cached?: boolean;
   totalResults?: number;
   message?: string;
+  mock?: boolean;
 }
 
 export const jurisprudenceApi = {

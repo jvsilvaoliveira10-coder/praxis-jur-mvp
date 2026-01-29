@@ -1,4 +1,4 @@
-import { Scale, Search, Info } from 'lucide-react';
+import { Scale, Search, Info, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { JurisprudenceResult } from '@/lib/api/jurisprudence';
 import JurisprudenceCard from './JurisprudenceCard';
@@ -9,6 +9,7 @@ interface JurisprudenceResultsProps {
   hasSearched: boolean;
   error?: string;
   cached?: boolean;
+  isMock?: boolean;
   selectedIds?: Set<string>;
   onSelect?: (result: JurisprudenceResult) => void;
 }
@@ -19,6 +20,7 @@ const JurisprudenceResults = ({
   hasSearched,
   error,
   cached,
+  isMock,
   selectedIds = new Set(),
   onSelect,
 }: JurisprudenceResultsProps) => {
@@ -76,11 +78,23 @@ const JurisprudenceResults = ({
 
   return (
     <div className="space-y-4">
+      {/* Mock data warning */}
+      {isMock && (
+        <Alert className="border-warning/50 bg-warning/10">
+          <AlertTriangle className="h-4 w-4 text-warning" />
+          <AlertDescription className="text-warning-foreground">
+            <strong>Dados de demonstração:</strong> O portal TJSP está temporariamente indisponível para consultas automatizadas. 
+            Os resultados abaixo são exemplos realistas para permitir testar o sistema.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           {results.length} resultado{results.length !== 1 ? 's' : ''} encontrado{results.length !== 1 ? 's' : ''}
+          {isMock && ' (demonstração)'}
         </p>
-        {cached && (
+        {cached && !isMock && (
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Info className="h-3 w-3" />
             Resultados em cache
