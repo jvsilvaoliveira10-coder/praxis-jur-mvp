@@ -287,6 +287,133 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_articles: {
+        Row: {
+          article_number: string
+          chapter: string | null
+          code_id: string
+          content: string
+          created_at: string
+          id: string
+          keywords: string[] | null
+          search_vector: unknown
+          themes: string[] | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          article_number: string
+          chapter?: string | null
+          code_id: string
+          content: string
+          created_at?: string
+          id?: string
+          keywords?: string[] | null
+          search_vector?: unknown
+          themes?: string[] | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          article_number?: string
+          chapter?: string | null
+          code_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          keywords?: string[] | null
+          search_vector?: unknown
+          themes?: string[] | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_articles_code_id_fkey"
+            columns: ["code_id"]
+            isOneToOne: false
+            referencedRelation: "legal_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_codes: {
+        Row: {
+          abbreviation: string
+          active: boolean
+          code_type: Database["public"]["Enums"]["code_type"]
+          created_at: string
+          id: string
+          last_updated: string
+          law_number: string | null
+          name: string
+          publication_date: string | null
+          source_url: string | null
+        }
+        Insert: {
+          abbreviation: string
+          active?: boolean
+          code_type: Database["public"]["Enums"]["code_type"]
+          created_at?: string
+          id?: string
+          last_updated?: string
+          law_number?: string | null
+          name: string
+          publication_date?: string | null
+          source_url?: string | null
+        }
+        Update: {
+          abbreviation?: string
+          active?: boolean
+          code_type?: Database["public"]["Enums"]["code_type"]
+          created_at?: string
+          id?: string
+          last_updated?: string
+          law_number?: string | null
+          name?: string
+          publication_date?: string | null
+          source_url?: string | null
+        }
+        Relationships: []
+      }
+      legal_themes: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          related_codes: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          related_codes?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          related_codes?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_themes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "legal_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -555,6 +682,60 @@ export type Database = {
           },
         ]
       }
+      sumulas: {
+        Row: {
+          content: string
+          court: Database["public"]["Enums"]["court_type"]
+          created_at: string
+          id: string
+          is_binding: boolean
+          keywords: string[] | null
+          notes: string | null
+          number: number
+          precedents: string[] | null
+          publication_date: string | null
+          search_vector: unknown
+          source_url: string | null
+          status: Database["public"]["Enums"]["sumula_status"]
+          themes: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          court: Database["public"]["Enums"]["court_type"]
+          created_at?: string
+          id?: string
+          is_binding?: boolean
+          keywords?: string[] | null
+          notes?: string | null
+          number: number
+          precedents?: string[] | null
+          publication_date?: string | null
+          search_vector?: unknown
+          source_url?: string | null
+          status?: Database["public"]["Enums"]["sumula_status"]
+          themes?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          court?: Database["public"]["Enums"]["court_type"]
+          created_at?: string
+          id?: string
+          is_binding?: boolean
+          keywords?: string[] | null
+          notes?: string | null
+          number?: number
+          precedents?: string[] | null
+          publication_date?: string | null
+          search_vector?: unknown
+          source_url?: string | null
+          status?: Database["public"]["Enums"]["sumula_status"]
+          themes?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       template_folders: {
         Row: {
           color: string | null
@@ -649,7 +830,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      search_legal_references: {
+        Args: {
+          filter_code_types?: Database["public"]["Enums"]["code_type"][]
+          filter_courts?: Database["public"]["Enums"]["court_type"][]
+          include_articles?: boolean
+          include_sumulas?: boolean
+          result_limit?: number
+          search_query: string
+        }
+        Returns: {
+          ref_content: string
+          ref_id: string
+          ref_label: string
+          ref_source: string
+          ref_type: string
+          relevance: number
+        }[]
+      }
     }
     Enums: {
       action_type:
@@ -657,6 +855,17 @@ export type Database = {
         | "cobranca"
         | "indenizacao_danos_morais"
       client_type: "pessoa_fisica" | "pessoa_juridica"
+      code_type:
+        | "CF"
+        | "CC"
+        | "CPC"
+        | "CDC"
+        | "CLT"
+        | "CP"
+        | "CPP"
+        | "LEI"
+        | "DECRETO"
+      court_type: "STF" | "STJ" | "TST" | "TSE"
       deadline_type: "prazo_processual" | "audiencia" | "compromisso"
       marital_status:
         | "solteiro"
@@ -676,6 +885,7 @@ export type Database = {
         | "embargos"
         | "manifestacao"
         | "outros"
+      sumula_status: "VIGENTE" | "CANCELADA" | "REVISADA"
       user_role: "admin" | "advogado"
     }
     CompositeTypes: {
@@ -810,6 +1020,18 @@ export const Constants = {
         "indenizacao_danos_morais",
       ],
       client_type: ["pessoa_fisica", "pessoa_juridica"],
+      code_type: [
+        "CF",
+        "CC",
+        "CPC",
+        "CDC",
+        "CLT",
+        "CP",
+        "CPP",
+        "LEI",
+        "DECRETO",
+      ],
+      court_type: ["STF", "STJ", "TST", "TSE"],
       deadline_type: ["prazo_processual", "audiencia", "compromisso"],
       marital_status: [
         "solteiro",
@@ -831,6 +1053,7 @@ export const Constants = {
         "manifestacao",
         "outros",
       ],
+      sumula_status: ["VIGENTE", "CANCELADA", "REVISADA"],
       user_role: ["admin", "advogado"],
     },
   },
