@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.check-movements]
 verify_jwt = false
+
+[functions.search-legal-references]
+verify_jwt = false
+
+[functions.populate-legal-database]
+verify_jwt = false
