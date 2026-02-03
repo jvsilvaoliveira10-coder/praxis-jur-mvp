@@ -1,320 +1,663 @@
 
-# Plano: Base de Dados de Legislacao para IA Juridica
+# Plano: Modulo Financeiro Profissional para Escritorios de Advocacia
 
-## Contexto e Objetivo
+## Visao Geral
 
-Criar uma base de conhecimento juridico local no Praxis AI com leis, sumulas e artigos dos principais codigos brasileiros, que sera usada como referencia pela IA durante a geracao de peticoes. Isso eliminara o problema de "alucinacoes" juridicas e garantira citacoes precisas e atualizadas.
-
----
-
-## Fontes de Dados Publicas Identificadas
-
-### Documentos Oficiais Disponiveis
-
-| Fonte | Tipo de Conteudo | Formato | Disponibilidade |
-|-------|-----------------|---------|-----------------|
-| Planalto.gov.br | Leis Federais, CPC, CC, CDC, CF | HTML/PDF | Publico |
-| STF | Sumulas (1-736), Sumulas Vinculantes (1-58) | PDF | Publico |
-| STJ | Sumulas (1-660+) | HTML/PDF | Publico |
-| TJSP e-SAJ | Jurisprudencia estadual | HTML | Parcial (reCAPTCHA) |
-
-### Links Oficiais para Coleta
-
-1. **Sumulas STF**: https://www.stf.jus.br/arquivo/cms/jurisprudenciaSumula/anexo/Enunciados_Sumulas_STF_1_a_736_Completo.pdf
-2. **Sumulas Vinculantes STF**: https://portal.stf.jus.br/jurisprudencia/sumariosumulas.asp?base=26
-3. **Legislacao Federal**: http://legislacao.planalto.gov.br
+Este plano detalha a implementacao de um modulo financeiro completo e profissional para o Praxis AI, permitindo que advogados gerenciem toda a saude financeira do escritorio em um unico sistema. O modulo incluira dashboard financeiro, contas a pagar/receber, controle de honorarios, fluxo de caixa, relatorios e integracao com processos/clientes existentes.
 
 ---
 
-## Arquitetura da Solucao
+## Analise do Sistema Atual
+
+### Entidades Existentes (que se relacionarao com o financeiro)
+- **Clientes** (clients) - fonte de receita
+- **Processos** (cases) - podem ter honorarios vinculados
+- **Peticoes** (petitions) - podem gerar cobrancas por peca
+
+### Gaps Identificados
+- Nenhuma tabela financeira existe
+- Nao ha controle de honorarios por cliente/processo
+- Nao ha fluxo de caixa ou DRE
+- Dashboard atual mostra apenas metricas de producao (clientes, processos, peticoes)
+
+---
+
+## Arquitetura do Modulo Financeiro
 
 ```text
-+------------------+     +-------------------+     +------------------+
-|                  |     |                   |     |                  |
-|  Edge Function   |     |  Tabelas no       |     |  Edge Function   |
-|  populate-laws   +---->+  Banco de Dados   +---->+  generate-       |
-|  (importacao)    |     |  (legal_articles, |     |  petition (IA)   |
-|                  |     |   sumulas, etc)   |     |                  |
-+------------------+     +-------------------+     +------------------+
-        ^                         |
-        |                         v
-+------------------+     +-------------------+
-|  Firecrawl API   |     |  Busca Semantica  |
-|  (scraping)      |     |  por Tema/Palavra |
-+------------------+     +-------------------+
++-------------------------------------------------------------------+
+|                    DASHBOARD FINANCEIRO                            |
+|  +-------------+  +-------------+  +-------------+  +-------------+|
+|  | Receita     |  | Despesas    |  | Saldo       |  | A Receber  ||
+|  | do Mes      |  | do Mes      |  | Atual       |  | Atrasado   ||
+|  +-------------+  +-------------+  +-------------+  +-------------+|
+|                                                                    |
+|  +---------------------------+  +---------------------------+      |
+|  |   Fluxo de Caixa         |  |   Receitas vs Despesas    |      |
+|  |   (Grafico de Area)      |  |   (Grafico de Barras)     |      |
+|  +---------------------------+  +---------------------------+      |
+|                                                                    |
+|  +---------------------------+  +---------------------------+      |
+|  |   Contas a Vencer (7d)   |  |   Maiores Clientes        |      |
+|  |   (Lista com alertas)    |  |   (Ranking de Receita)    |      |
+|  +---------------------------+  +---------------------------+      |
++-------------------------------------------------------------------+
+
++-------------------------------------------------------------------+
+|                    CONTAS A RECEBER                                |
+|  - Honorarios contratuais (mensais, fixos)                        |
+|  - Honorarios por exito                                            |
+|  - Consultas avulsas                                               |
+|  - Parcelas de acordos                                             |
+|  - Vinculacao com Cliente + Processo (opcional)                   |
++-------------------------------------------------------------------+
+
++-------------------------------------------------------------------+
+|                    CONTAS A PAGAR                                  |
+|  - Custas processuais                                              |
+|  - Despesas operacionais (aluguel, software, etc)                 |
+|  - Impostos (ISS, IR)                                              |
+|  - Fornecedores                                                    |
+|  - Funcionarios/Pro-labore                                         |
++-------------------------------------------------------------------+
+
++-------------------------------------------------------------------+
+|                    TRANSACOES                                      |
+|  - Registro de pagamentos recebidos                               |
+|  - Registro de pagamentos efetuados                               |
+|  - Vinculacao automatica com contas                               |
+|  - Conciliacao bancaria manual                                    |
++-------------------------------------------------------------------+
 ```
 
 ---
 
 ## Estrutura do Banco de Dados
 
-### Tabela: `legal_codes`
-Armazena os codigos e leis principais.
+### ENUMs Necessarios
+
+```text
+transaction_type: 'receita' | 'despesa'
+payment_status: 'pendente' | 'pago' | 'atrasado' | 'cancelado' | 'parcial'
+recurrence_type: 'unico' | 'semanal' | 'mensal' | 'trimestral' | 'anual'
+receivable_type: 'honorario_contratual' | 'honorario_exito' | 'consulta' | 'acordo' | 'reembolso' | 'outros'
+payable_type: 'custas_processuais' | 'aluguel' | 'software' | 'impostos' | 'funcionarios' | 'prolabore' | 'fornecedor' | 'outros'
+payment_method: 'pix' | 'boleto' | 'cartao_credito' | 'cartao_debito' | 'transferencia' | 'dinheiro' | 'cheque'
+```
+
+### Tabela: `financial_accounts`
+Contas bancarias/caixas do escritorio.
 
 | Coluna | Tipo | Descricao |
 |--------|------|-----------|
 | id | UUID | Identificador unico |
-| code_type | ENUM | CF, CC, CPC, CDC, CLT, CP, CPP, LEI, DECRETO |
-| name | TEXT | Nome completo (ex: "Codigo de Processo Civil") |
-| abbreviation | TEXT | Sigla (ex: "CPC") |
-| law_number | TEXT | Numero da lei (ex: "13.105/2015") |
-| publication_date | DATE | Data de publicacao |
-| last_updated | TIMESTAMPTZ | Ultima atualizacao no sistema |
-| source_url | TEXT | URL da fonte oficial |
-| active | BOOLEAN | Se esta vigente |
-
-### Tabela: `legal_articles`
-Armazena artigos individuais com texto completo.
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | UUID | Identificador unico |
-| code_id | UUID | FK para legal_codes |
-| article_number | TEXT | Numero do artigo (ex: "85", "927, §1º") |
-| title | TEXT | Titulo/ementa do artigo (se houver) |
-| content | TEXT | Texto completo do artigo |
-| chapter | TEXT | Capitulo/secao onde esta inserido |
-| keywords | TEXT[] | Palavras-chave para busca |
-| themes | TEXT[] | Temas juridicos relacionados |
-| search_vector | TSVECTOR | Para busca full-text |
+| user_id | UUID | FK para auth.users |
+| name | TEXT | Nome da conta (ex: "Conta Principal Itau") |
+| account_type | TEXT | banco, caixa, carteira_digital |
+| bank_name | TEXT | Nome do banco (opcional) |
+| initial_balance | NUMERIC(12,2) | Saldo inicial |
+| current_balance | NUMERIC(12,2) | Saldo atual (calculado) |
+| is_active | BOOLEAN | Se a conta esta ativa |
+| color | TEXT | Cor para identificacao visual |
 | created_at | TIMESTAMPTZ | Data de criacao |
 | updated_at | TIMESTAMPTZ | Data de atualizacao |
 
-### Tabela: `sumulas`
-Armazena sumulas do STF e STJ.
+### Tabela: `financial_categories`
+Categorias para classificacao de receitas/despesas.
 
 | Coluna | Tipo | Descricao |
 |--------|------|-----------|
 | id | UUID | Identificador unico |
-| court | ENUM | STF, STJ, TST, TSE |
-| number | INTEGER | Numero da sumula |
-| is_binding | BOOLEAN | Se e sumula vinculante |
-| content | TEXT | Texto completo da sumula |
-| themes | TEXT[] | Temas juridicos |
-| keywords | TEXT[] | Palavras-chave |
-| precedents | TEXT[] | Precedentes citados |
-| publication_date | DATE | Data de publicacao |
-| status | ENUM | VIGENTE, CANCELADA, REVISADA |
-| notes | TEXT | Observacoes |
-| search_vector | TSVECTOR | Para busca full-text |
-| source_url | TEXT | URL da fonte |
+| user_id | UUID | FK para auth.users |
+| name | TEXT | Nome da categoria |
+| type | transaction_type | receita ou despesa |
+| parent_id | UUID | FK para categoria pai (hierarquia) |
+| color | TEXT | Cor para graficos |
+| icon | TEXT | Icone (nome do Lucide icon) |
+| is_system | BOOLEAN | Se e categoria do sistema (nao editavel) |
 | created_at | TIMESTAMPTZ | Data de criacao |
 
-### Tabela: `legal_themes`
-Catalogo de temas juridicos para categorizacao.
+### Tabela: `receivables` (Contas a Receber)
+Todas as receitas esperadas do escritorio.
 
 | Coluna | Tipo | Descricao |
 |--------|------|-----------|
 | id | UUID | Identificador unico |
-| name | TEXT | Nome do tema (ex: "Danos Morais") |
-| parent_id | UUID | FK para tema pai (hierarquia) |
-| description | TEXT | Descricao do tema |
-| related_codes | TEXT[] | Codigos relacionados (CPC, CC, etc) |
+| user_id | UUID | FK para auth.users |
+| client_id | UUID | FK para clients (opcional) |
+| case_id | UUID | FK para cases (opcional) |
+| category_id | UUID | FK para financial_categories |
+| receivable_type | receivable_type | Tipo do recebivel |
+| description | TEXT | Descricao detalhada |
+| amount | NUMERIC(12,2) | Valor total |
+| amount_paid | NUMERIC(12,2) | Valor ja pago (para parciais) |
+| due_date | DATE | Data de vencimento |
+| payment_date | DATE | Data do pagamento efetivo |
+| status | payment_status | Status atual |
+| recurrence | recurrence_type | Tipo de recorrencia |
+| recurrence_end_date | DATE | Fim da recorrencia |
+| installments_total | INTEGER | Total de parcelas |
+| installment_number | INTEGER | Numero da parcela atual |
+| parent_receivable_id | UUID | FK para receivable pai (parcelamento) |
+| notes | TEXT | Observacoes |
+| created_at | TIMESTAMPTZ | Data de criacao |
+| updated_at | TIMESTAMPTZ | Data de atualizacao |
+
+### Tabela: `payables` (Contas a Pagar)
+Todas as despesas e obrigacoes do escritorio.
+
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| id | UUID | Identificador unico |
+| user_id | UUID | FK para auth.users |
+| case_id | UUID | FK para cases (opcional - custas processuais) |
+| category_id | UUID | FK para financial_categories |
+| payable_type | payable_type | Tipo da despesa |
+| supplier_name | TEXT | Nome do fornecedor/credor |
+| description | TEXT | Descricao detalhada |
+| amount | NUMERIC(12,2) | Valor total |
+| amount_paid | NUMERIC(12,2) | Valor ja pago |
+| due_date | DATE | Data de vencimento |
+| payment_date | DATE | Data do pagamento efetivo |
+| status | payment_status | Status atual |
+| recurrence | recurrence_type | Tipo de recorrencia |
+| recurrence_end_date | DATE | Fim da recorrencia |
+| installments_total | INTEGER | Total de parcelas |
+| installment_number | INTEGER | Numero da parcela atual |
+| parent_payable_id | UUID | FK para payable pai |
+| barcode | TEXT | Codigo de barras (boleto) |
+| notes | TEXT | Observacoes |
+| created_at | TIMESTAMPTZ | Data de criacao |
+| updated_at | TIMESTAMPTZ | Data de atualizacao |
+
+### Tabela: `transactions` (Movimentacoes)
+Registro de todas as movimentacoes financeiras reais.
+
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| id | UUID | Identificador unico |
+| user_id | UUID | FK para auth.users |
+| account_id | UUID | FK para financial_accounts |
+| receivable_id | UUID | FK para receivables (opcional) |
+| payable_id | UUID | FK para payables (opcional) |
+| category_id | UUID | FK para financial_categories |
+| type | transaction_type | receita ou despesa |
+| description | TEXT | Descricao |
+| amount | NUMERIC(12,2) | Valor da transacao |
+| transaction_date | DATE | Data da transacao |
+| payment_method | payment_method | Forma de pagamento |
+| is_confirmed | BOOLEAN | Se foi conciliado/confirmado |
+| notes | TEXT | Observacoes |
+| created_at | TIMESTAMPTZ | Data de criacao |
+| updated_at | TIMESTAMPTZ | Data de atualizacao |
+
+### Tabela: `fee_contracts` (Contratos de Honorarios)
+Contratos de honorarios recorrentes com clientes.
+
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| id | UUID | Identificador unico |
+| user_id | UUID | FK para auth.users |
+| client_id | UUID | FK para clients |
+| case_id | UUID | FK para cases (opcional) |
+| contract_name | TEXT | Nome/identificacao do contrato |
+| contract_type | TEXT | mensal_fixo, por_ato, exito, misto |
+| monthly_amount | NUMERIC(12,2) | Valor mensal (se aplicavel) |
+| success_fee_percentage | NUMERIC(5,2) | Percentual de exito (se aplicavel) |
+| per_act_amount | NUMERIC(12,2) | Valor por ato (se aplicavel) |
+| billing_day | INTEGER | Dia do vencimento (1-31) |
+| start_date | DATE | Inicio do contrato |
+| end_date | DATE | Fim do contrato (opcional) |
+| is_active | BOOLEAN | Se o contrato esta ativo |
+| auto_generate_receivables | BOOLEAN | Gerar recebiveis automaticamente |
+| notes | TEXT | Observacoes |
+| created_at | TIMESTAMPTZ | Data de criacao |
+| updated_at | TIMESTAMPTZ | Data de atualizacao |
+
+### Tabela: `cost_centers` (Centros de Custo)
+Para escritorios maiores que precisam separar custos por area.
+
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| id | UUID | Identificador unico |
+| user_id | UUID | FK para auth.users |
+| name | TEXT | Nome do centro de custo |
+| code | TEXT | Codigo (ex: "ADM", "TRB", "CIV") |
+| description | TEXT | Descricao |
+| is_active | BOOLEAN | Se esta ativo |
+| created_at | TIMESTAMPTZ | Data de criacao |
 
 ---
 
-## Dados a Serem Importados (Fase 1)
+## Funcionalidades por Modulo
 
-### Codigos Prioritarios
+### 1. Dashboard Financeiro (/financeiro)
 
-1. **Constituicao Federal 1988** - Artigos mais citados (5º, 37, 170, 225, etc)
-2. **Codigo de Processo Civil (Lei 13.105/2015)** - Artigos completos
-3. **Codigo Civil (Lei 10.406/2002)** - Artigos completos
-4. **Codigo de Defesa do Consumidor (Lei 8.078/1990)** - Artigos completos
-5. **CLT** - Artigos mais relevantes
+**Cards de Resumo:**
+- Receita do Mes (total de transacoes tipo 'receita' no mes)
+- Despesas do Mes (total de transacoes tipo 'despesa' no mes)
+- Saldo em Contas (soma de current_balance das contas ativas)
+- A Receber Atrasado (soma de receivables com status 'atrasado')
+- A Pagar Hoje (payables com due_date = hoje e status pendente)
 
-### Sumulas Prioritarias
+**Graficos:**
+- Fluxo de Caixa Projetado (12 meses - receivables + payables futuros)
+- Receitas vs Despesas (barras comparativas por mes)
+- Distribuicao por Categoria (pizza para despesas)
+- Evolucao do Saldo (linha temporal)
 
-1. **Sumulas Vinculantes STF** (1-58) - Todas
-2. **Sumulas STF** - Mais citadas em direito civil/consumidor
-3. **Sumulas STJ** - Mais citadas em direito civil/consumidor
+**Listas Rapidas:**
+- Proximos Vencimentos (7 dias - payables + receivables)
+- Ultimas Movimentacoes (5 transacoes mais recentes)
+- Top 5 Clientes por Receita (ranking do mes/ano)
 
-### Quantidade Estimada
+**Alertas Inteligentes:**
+- Contas vencidas nao pagas
+- Fluxo de caixa negativo projetado
+- Clientes com pagamento atrasado
 
-| Tipo | Quantidade Aproximada |
-|------|----------------------|
-| Artigos CF | ~250 artigos |
-| Artigos CPC | ~1.072 artigos |
-| Artigos CC | ~2.046 artigos |
-| Artigos CDC | ~119 artigos |
-| Sumulas Vinculantes | 58 |
-| Sumulas STF | ~300 relevantes |
-| Sumulas STJ | ~400 relevantes |
-| **TOTAL** | ~4.200+ registros |
+### 2. Contas a Receber (/financeiro/receber)
+
+**Listagem:**
+- Filtros: status, periodo, cliente, tipo, processo
+- Ordenacao: vencimento, valor, cliente
+- Busca: por descricao ou cliente
+- Visualizacao: tabela ou cards
+- Indicadores visuais: cores por status, icones por tipo
+
+**Formulario de Cadastro:**
+- Selecao de cliente (autocomplete)
+- Vinculacao com processo (opcional)
+- Tipo de recebivel (honorario, consulta, etc)
+- Categoria financeira
+- Valor e data de vencimento
+- Recorrencia (se mensal, trimestral, etc)
+- Parcelamento (dividir em X parcelas)
+- Observacoes
+
+**Acoes:**
+- Registrar Recebimento (abre modal para confirmar pagamento)
+- Editar
+- Excluir
+- Duplicar (para criar similar)
+- Gerar Link de Pagamento (futuro - Stripe)
+
+### 3. Contas a Pagar (/financeiro/pagar)
+
+**Listagem:**
+- Filtros: status, periodo, fornecedor, tipo, processo
+- Ordenacao: vencimento, valor, fornecedor
+- Busca: por descricao ou fornecedor
+- Agenda visual (calendario de vencimentos)
+
+**Formulario de Cadastro:**
+- Fornecedor/Credor
+- Vinculacao com processo (custas processuais)
+- Tipo de despesa
+- Categoria financeira
+- Valor e data de vencimento
+- Codigo de barras (boleto)
+- Recorrencia
+- Centro de custo (opcional)
+
+**Acoes:**
+- Registrar Pagamento
+- Editar
+- Excluir
+- Agendar pagamento
+
+### 4. Lancamentos/Extrato (/financeiro/extrato)
+
+**Visualizacao:**
+- Extrato por conta bancaria
+- Filtros: periodo, conta, tipo, categoria
+- Totalizadores: entradas, saidas, saldo
+
+**Cadastro Rapido:**
+- Lancamento manual (receita ou despesa avulsa)
+- Transferencia entre contas
+- Lancamento vinculado a conta a pagar/receber
+
+**Conciliacao:**
+- Marcar transacao como conciliada
+- Import de extrato OFX (futuro)
+
+### 5. Contratos de Honorarios (/financeiro/contratos)
+
+**Listagem:**
+- Contratos ativos e inativos
+- Valor mensal recorrente
+- Proximo vencimento
+- Cliente vinculado
+
+**Formulario:**
+- Cliente
+- Processo (se especifico)
+- Tipo de contrato (mensal fixo, exito, por ato)
+- Valores conforme tipo
+- Dia de vencimento
+- Geracao automatica de recebiveis
+
+**Automacao:**
+- Edge function para gerar receivables no inicio de cada mes
+- Notificacao quando contrato esta proximo do fim
+
+### 6. Relatorios (/financeiro/relatorios)
+
+**Relatorios Disponiveis:**
+- DRE Simplificado (receitas - despesas por periodo)
+- Fluxo de Caixa Realizado vs Projetado
+- Analise por Cliente (quanto cada cliente gerou)
+- Analise por Processo (receita vs custas por processo)
+- Inadimplencia (clientes com atraso)
+- Custas Processuais por Processo
+
+**Exportacao:**
+- PDF (usando jsPDF ja instalado)
+- Excel/CSV
+
+### 7. Configuracoes Financeiras (/financeiro/config)
+
+- Contas Bancarias (CRUD)
+- Categorias Personalizadas (CRUD com hierarquia)
+- Centros de Custo (CRUD)
+- Preferencias (dia de fechamento, moeda padrao, etc)
 
 ---
 
-## Fluxo de Importacao
+## Paginas e Rotas
 
-### Edge Function: `populate-legal-database`
+| Rota | Pagina | Descricao |
+|------|--------|-----------|
+| /financeiro | FinanceDashboard | Dashboard principal |
+| /financeiro/receber | Receivables | Lista de contas a receber |
+| /financeiro/receber/novo | ReceivableForm | Cadastro de recebivel |
+| /financeiro/receber/:id/editar | ReceivableForm | Edicao de recebivel |
+| /financeiro/pagar | Payables | Lista de contas a pagar |
+| /financeiro/pagar/novo | PayableForm | Cadastro de conta a pagar |
+| /financeiro/pagar/:id/editar | PayableForm | Edicao de conta a pagar |
+| /financeiro/extrato | Transactions | Extrato/Lancamentos |
+| /financeiro/contratos | FeeContracts | Contratos de honorarios |
+| /financeiro/contratos/novo | FeeContractForm | Cadastro de contrato |
+| /financeiro/contratos/:id/editar | FeeContractForm | Edicao de contrato |
+| /financeiro/relatorios | FinanceReports | Central de relatorios |
+| /financeiro/config | FinanceSettings | Configuracoes |
+| /financeiro/contas | FinancialAccounts | Contas bancarias |
 
-Responsavel por fazer scraping/parsing dos documentos oficiais e popular as tabelas.
+---
 
+## Componentes a Criar
+
+### Paginas (src/pages/finance/)
 ```text
-1. Recebe parametros (codigo, tipo_dados)
-2. Faz requisicao para fonte oficial via Firecrawl
-3. Parsea o conteudo HTML/PDF
-4. Normaliza e estrutura os dados
-5. Insere no banco com busca full-text
-6. Retorna estatisticas de importacao
+FinanceDashboard.tsx
+Receivables.tsx
+ReceivableForm.tsx
+Payables.tsx
+PayableForm.tsx
+Transactions.tsx
+FeeContracts.tsx
+FeeContractForm.tsx
+FinanceReports.tsx
+FinanceSettings.tsx
+FinancialAccounts.tsx
+AccountForm.tsx
 ```
 
-### Estrategia de Scraping
-
-1. **Firecrawl API** (ja configurado no projeto) para extrair conteudo de paginas HTML
-2. **PDFs** - Parse manual ou API de OCR para sumulas em PDF
-3. **Rate Limiting** - Respeitar limites dos sites oficiais
-4. **Cache** - Armazenar localmente para evitar requisicoes repetidas
-
----
-
-## Integracao com Geracao de Peticoes
-
-### Modificacoes na Edge Function `generate-petition`
-
+### Componentes (src/components/finance/)
 ```text
-ANTES (atual):
-Usuario -> generate-petition -> IA gera "baseada em conhecimento interno"
-
-DEPOIS (novo):
-Usuario -> generate-petition -> Busca artigos/sumulas relevantes -> 
-           IA gera com contexto REAL de legislacao
+FinanceStatsCard.tsx       - Card de metrica com icone e variacao
+FinanceChart.tsx           - Wrapper para graficos financeiros
+CashFlowChart.tsx          - Grafico de fluxo de caixa
+RevenueExpenseChart.tsx    - Comparativo receita vs despesa
+CategoryPieChart.tsx       - Pizza de categorias
+UpcomingBills.tsx          - Lista de proximos vencimentos
+RecentTransactions.tsx     - Ultimas movimentacoes
+PaymentStatusBadge.tsx     - Badge colorido por status
+RecurrenceIndicator.tsx    - Indicador de recorrencia
+QuickPaymentModal.tsx      - Modal para registrar pagamento
+TransferModal.tsx          - Modal para transferencia entre contas
+CategorySelector.tsx       - Seletor de categoria com hierarquia
+ClientRevenueRanking.tsx   - Ranking de clientes
+FinanceFilters.tsx         - Filtros reutilizaveis
+InstallmentGenerator.tsx   - Componente para gerar parcelas
+ReportExporter.tsx         - Exportacao PDF/CSV
 ```
 
-### Nova Funcao: `search-legal-references`
-
-1. Recebe: tipo de acao, palavras-chave, tema
-2. Busca: artigos e sumulas relevantes usando full-text search
-3. Retorna: lista ordenada por relevancia com texto completo
-
-### Prompt Enriquecido para IA
-
-O prompt da IA sera modificado para incluir:
-
+### Hooks (src/hooks/)
 ```text
-LEGISLACAO APLICAVEL (dados reais do banco):
-- Art. 186 do Codigo Civil: "Aquele que, por acao ou omissao..."
-- Art. 927 do Codigo Civil: "Aquele que, por ato ilicito..."
-- Sumula 37 STJ: "Sao cumulaveis as indenizacoes..."
+useFinanceStats.ts         - Busca metricas do dashboard
+useReceivables.ts          - CRUD de recebiveis
+usePayables.ts             - CRUD de contas a pagar
+useTransactions.ts         - CRUD de transacoes
+useFeeContracts.ts         - CRUD de contratos
+useFinancialAccounts.ts    - CRUD de contas bancarias
+useCategories.ts           - CRUD de categorias
+useCashFlow.ts             - Calculo de fluxo de caixa
+```
 
-INSTRUCAO: Use EXATAMENTE estas referencias legislativas ao fundamentar.
-NAO invente artigos ou sumulas que nao estejam listados acima.
+### Types (src/types/finance.ts)
+```text
+Todos os tipos TypeScript para as entidades financeiras
+Labels e constantes (RECEIVABLE_TYPE_LABELS, PAYMENT_STATUS_LABELS, etc)
 ```
 
 ---
 
-## Interface do Usuario
+## Integracao com Modulos Existentes
 
-### Nova Secao: Biblioteca Juridica
+### Dashboard Principal
+- Adicionar card "Resumo Financeiro" com:
+  - Receita do mes
+  - Link para "/financeiro"
 
-Pagina `/legal-library` para:
-- Visualizar legislacao disponivel
-- Buscar artigos por tema/palavra-chave
-- Ver sumulas organizadas por tribunal
-- Marcar favoritos para uso frequente
+### Pagina de Clientes
+- Nova aba/secao "Financeiro" mostrando:
+  - Total recebido do cliente
+  - Contas em aberto
+  - Historico de pagamentos
+  - Link para criar nova receita
 
-### Integracao no Formulario de Peticao
+### Pagina de Processos
+- Nova aba/secao "Custos" mostrando:
+  - Custas processuais lancadas
+  - Honorarios vinculados
+  - Saldo: receita - custas
 
-1. Campo "Temas Juridicos" - autocomplete com temas cadastrados
-2. Secao "Legislacao Sugerida" - mostra artigos/sumulas relevantes
-3. Botao "Adicionar Referencia" - inclui no contexto da IA
-4. Preview das referencias que serao usadas
+### Sidebar
+- Novo item "Financeiro" com icone de moeda
+- Submenu (se expandido): Dashboard, Receber, Pagar, Extrato
 
 ---
 
-## Arquivos a Criar
+## Edge Functions
 
-### Banco de Dados (Migrations)
+### `generate-recurring-receivables`
+- Executada diariamente via cron
+- Busca fee_contracts ativos com auto_generate_receivables = true
+- Gera receivables para o mes seguinte
+- Envia notificacao ao usuario
 
-1. Criar ENUM `code_type` (CF, CC, CPC, CDC, CLT, etc)
-2. Criar ENUM `court_type` (STF, STJ, TST, TSE)
-3. Criar ENUM `sumula_status` (VIGENTE, CANCELADA, REVISADA)
-4. Criar tabela `legal_codes`
-5. Criar tabela `legal_articles` com indice GIN para busca
-6. Criar tabela `sumulas` com indice GIN para busca
-7. Criar tabela `legal_themes`
-8. Criar funcao de busca full-text `search_legal_references()`
-9. RLS policies para acesso publico de leitura
+### `check-overdue-payments`
+- Executada diariamente
+- Atualiza status de receivables/payables vencidos para 'atrasado'
+- Gera notificacoes para contas vencidas
 
-### Edge Functions
+### `calculate-account-balance`
+- Trigger no insert/update/delete de transactions
+- Recalcula current_balance da financial_account
 
-1. `supabase/functions/populate-legal-database/index.ts` - Importacao de dados
-2. `supabase/functions/search-legal-references/index.ts` - Busca de referencias
+---
 
-### Frontend
+## Regras de Negocio
 
-1. `src/pages/LegalLibrary.tsx` - Biblioteca juridica
-2. `src/components/petition/LegalReferencesSelector.tsx` - Seletor de referencias
-3. `src/lib/api/legal-references.ts` - API client
+### Status de Pagamento
+- **Pendente**: Criado, aguardando vencimento
+- **Atrasado**: Vencido e nao pago (atualizado automaticamente)
+- **Pago**: Valor total recebido/pago
+- **Parcial**: Parte do valor pago
+- **Cancelado**: Cancelado pelo usuario
 
-### Modificacoes
+### Recorrencia
+- Ao criar com recorrencia, gera apenas o primeiro registro
+- Edge function gera proximos registros automaticamente
+- Fim da recorrencia interrompe a geracao
 
-1. `supabase/functions/generate-petition/index.ts` - Integrar busca de referencias
-2. `src/pages/PetitionForm.tsx` - Adicionar selecao de referencias
-3. `src/App.tsx` - Adicionar rota /legal-library
+### Parcelamento
+- Ao parcelar, gera N registros com parent_receivable_id
+- Cada parcela tem installment_number
+- Status do pai reflete status geral
+
+### Saldo de Contas
+- Calculado: initial_balance + SUM(receitas) - SUM(despesas)
+- Atualizado via trigger ou recalculo periodico
 
 ---
 
 ## Fases de Implementacao
 
 ### Fase 1: Infraestrutura (Prioridade Alta)
+1. Criar ENUMs no banco de dados
+2. Criar tabelas: financial_accounts, financial_categories, receivables, payables, transactions
+3. Criar RLS policies para todas as tabelas
+4. Popular categorias padrao do sistema
 
-1. Criar tabelas no banco de dados
-2. Criar indices de busca full-text
-3. Criar edge function de busca
+### Fase 2: Modulo Basico (Prioridade Alta)
+5. Criar tipos TypeScript (src/types/finance.ts)
+6. Criar pagina FinanceDashboard (versao inicial)
+7. Criar CRUD de Contas Bancarias
+8. Criar CRUD de Categorias
 
-### Fase 2: Dados Iniciais (Prioridade Alta)
+### Fase 3: Contas a Receber (Prioridade Alta)
+9. Criar pagina Receivables (listagem)
+10. Criar ReceivableForm (cadastro/edicao)
+11. Implementar modal de registro de recebimento
+12. Adicionar filtros e busca
 
-4. Importar sumulas vinculantes STF (58)
-5. Importar artigos mais citados do CC/CPC/CDC
-6. Popular temas juridicos basicos
+### Fase 4: Contas a Pagar (Prioridade Alta)
+13. Criar pagina Payables (listagem)
+14. Criar PayableForm (cadastro/edicao)
+15. Implementar modal de registro de pagamento
+16. Adicionar filtros e busca
 
-### Fase 3: Integracao IA (Prioridade Alta)
+### Fase 5: Transacoes e Extrato (Prioridade Media)
+17. Criar pagina Transactions (extrato)
+18. Implementar lancamento manual
+19. Implementar transferencia entre contas
+20. Adicionar conciliacao
 
-7. Modificar generate-petition para buscar referencias
-8. Atualizar prompt com contexto de legislacao real
-9. Testar geracao com referencias
+### Fase 6: Dashboard Completo (Prioridade Media)
+21. Implementar todos os cards de metricas
+22. Criar graficos (fluxo de caixa, comparativos)
+23. Criar listas rapidas (vencimentos, ultimas transacoes)
+24. Implementar alertas
 
-### Fase 4: Interface (Prioridade Media)
+### Fase 7: Contratos de Honorarios (Prioridade Media)
+25. Criar tabela fee_contracts
+26. Criar CRUD de contratos
+27. Criar edge function de geracao automatica
+28. Testar fluxo completo
 
-10. Criar pagina de biblioteca juridica
-11. Adicionar seletor de referencias no formulario
-12. Implementar busca por tema/palavra-chave
+### Fase 8: Relatorios (Prioridade Baixa)
+29. Criar pagina FinanceReports
+30. Implementar DRE simplificado
+31. Implementar relatorio por cliente
+32. Implementar exportacao PDF/CSV
 
-### Fase 5: Expansao (Prioridade Baixa)
+### Fase 9: Integracoes (Prioridade Baixa)
+33. Adicionar aba Financeiro em Clientes
+34. Adicionar aba Custos em Processos
+35. Adicionar card no Dashboard principal
 
-13. Importar mais codigos (CLT, CP, CPP)
-14. Adicionar mais sumulas STF/STJ
-15. Implementar atualizacao automatica periodica
+### Fase 10: Automacoes (Prioridade Baixa)
+36. Edge function para atualizar status de vencidos
+37. Notificacoes de vencimento
+38. Cron jobs para recorrencias
+
+---
+
+## Arquivos a Criar
+
+### Banco de Dados
+- Migration com ENUMs e tabelas
+- Migration com RLS policies
+- Migration com dados iniciais (categorias)
+
+### Frontend
+```text
+src/types/finance.ts
+src/pages/finance/FinanceDashboard.tsx
+src/pages/finance/Receivables.tsx
+src/pages/finance/ReceivableForm.tsx
+src/pages/finance/Payables.tsx
+src/pages/finance/PayableForm.tsx
+src/pages/finance/Transactions.tsx
+src/pages/finance/FeeContracts.tsx
+src/pages/finance/FeeContractForm.tsx
+src/pages/finance/FinanceReports.tsx
+src/pages/finance/FinanceSettings.tsx
+src/pages/finance/FinancialAccounts.tsx
+src/pages/finance/AccountForm.tsx
+src/components/finance/FinanceStatsCard.tsx
+src/components/finance/CashFlowChart.tsx
+src/components/finance/RevenueExpenseChart.tsx
+src/components/finance/UpcomingBills.tsx
+src/components/finance/RecentTransactions.tsx
+src/components/finance/PaymentStatusBadge.tsx
+src/components/finance/QuickPaymentModal.tsx
+src/components/finance/CategorySelector.tsx
+src/hooks/useFinanceStats.ts
+src/hooks/useReceivables.ts
+src/hooks/usePayables.ts
+src/hooks/useTransactions.ts
+```
+
+### Backend (Edge Functions)
+```text
+supabase/functions/generate-recurring-receivables/index.ts
+supabase/functions/check-overdue-payments/index.ts
+```
+
+### Modificacoes
+- `src/App.tsx` - Adicionar rotas /financeiro/*
+- `src/components/layout/Sidebar.tsx` - Adicionar item Financeiro
+- `src/pages/Dashboard.tsx` - Adicionar card financeiro
+- `src/pages/Clients.tsx` - (futuro) Adicionar aba financeiro
+- `src/pages/Cases.tsx` - (futuro) Adicionar aba custos
 
 ---
 
 ## Consideracoes Tecnicas
 
 ### Performance
-
-- Indices GIN para busca full-text eficiente
-- Limite de referencias por busca (max 10-15)
-- Cache de buscas frequentes
-
-### Manutencao
-
-- Legislacao muda pouco (atualizacoes periodicas)
-- Sistema de versionamento para alteracoes
-- Flag de "vigencia" para artigos revogados
+- Indices em due_date, status, user_id para queries frequentes
+- Paginacao em todas as listagens
+- Cache de metricas do dashboard (invalidar em transacoes)
 
 ### Seguranca
+- RLS em todas as tabelas financeiras
+- user_id obrigatorio em todas as queries
+- Validacao de valores (nao negativos, limites)
 
-- Dados de legislacao sao publicos (sem RLS restritivo)
-- Apenas super_admin pode modificar a base
-- Usuarios podem apenas ler/buscar
+### UX/UI
+- Cores semanticas: verde (receita), vermelho (despesa), amarelo (pendente), laranja (atrasado)
+- Formatacao de moeda brasileira (R$)
+- Graficos responsivos
+- Acoes rapidas (pagar, receber) sem navegar
+
+### Escalabilidade
+- Estrutura preparada para multi-usuario (escritorios com funcionarios)
+- Centros de custo para escritorios maiores
+- Relatorios customizaveis
 
 ---
 
 ## Resultado Esperado
 
-1. **IA com fundamentos reais** - Cita artigos e sumulas que existem de verdade
-2. **Peticoes mais robustas** - Fundamentacao juridica precisa e verificavel
-3. **Menos revisao manual** - Advogado nao precisa corrigir citacoes erradas
-4. **Diferencial competitivo** - Base propria de conhecimento juridico
-5. **Escalabilidade** - Adicionar mais codigos e sumulas conforme demanda
+1. **Visao 360 das financas** - Advogado ve tudo em um dashboard
+2. **Controle de honorarios** - Vinculacao com clientes e processos
+3. **Fluxo de caixa** - Projecao de entradas e saidas
+4. **Alertas automaticos** - Notificacoes de vencimentos e inadimplencia
+5. **Relatorios profissionais** - DRE, analise por cliente, exportacao
+6. **Integracao completa** - Financeiro conectado com toda a operacao juridica
+7. **Base para Stripe** - Estrutura pronta para integrar pagamentos online
