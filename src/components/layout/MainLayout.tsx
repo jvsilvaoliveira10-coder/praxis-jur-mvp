@@ -1,6 +1,7 @@
 import { Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from './Sidebar';
+import TopHeader from './TopHeader';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -98,9 +99,7 @@ const MainLayout = () => {
       <div className="min-h-screen bg-background">
         <Sidebar />
         <main className="ml-64 transition-all duration-300">
-          <div className="flex justify-end p-4 border-b">
-            <NotificationBell />
-          </div>
+          <TopHeader />
           <div className="p-6">
             <Outlet />
           </div>
