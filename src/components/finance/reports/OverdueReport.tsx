@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ReportExporter } from './ReportExporter';
+import { ReportFilters } from './ReportFilters';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency } from '@/types/finance';
 import { generateGenericTablePdf } from '@/lib/pdf-report-export';
 import { exportToCSV } from '@/lib/csv-export';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, startOfYear, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Loader2, AlertTriangle, Phone, Mail } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -39,12 +40,16 @@ export function OverdueReport() {
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<OverdueItem[]>([]);
   const [agingSummary, setAgingSummary] = useState<AgingSummary[]>([]);
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
+    const now = new Date();
+    return { from: startOfYear(now), to: endOfMonth(now) };
+  });
 
   useEffect(() => {
     if (user) {
       loadOverdueData();
     }
-  }, [user]);
+  }, [user, dateRange]);
 
   const loadOverdueData = async () => {
     if (!user) return;
@@ -62,6 +67,8 @@ export function OverdueReport() {
           client:clients(id, name, phone, email)
         `)
         .eq('status', 'atrasado')
+        .gte('due_date', format(dateRange.from, 'yyyy-MM-dd'))
+        .lte('due_date', format(dateRange.to, 'yyyy-MM-dd'))
         .order('due_date', { ascending: true });
 
       const today = new Date();
@@ -120,7 +127,7 @@ export function OverdueReport() {
 
   const handleExportPDF = () => {
     generateGenericTablePdf(
-      'Relatório de Inadimplência',
+      `Relatório de Inadimplência - ${format(dateRange.from, 'dd/MM/yyyy')} a ${format(dateRange.to, 'dd/MM/yyyy')}`,
       [
         { header: 'Cliente', width: 45 },
         { header: 'Descrição', width: 45 },
@@ -149,7 +156,7 @@ export function OverdueReport() {
       { header: 'Valor Pendente', accessor: (i) => (i.amount - i.amountPaid).toFixed(2) },
       { header: 'Vencimento', accessor: (i) => format(new Date(i.dueDate), 'dd/MM/yyyy') },
       { header: 'Dias em Atraso', accessor: 'daysOverdue' },
-    ], 'Inadimplencia');
+    ], `Inadimplencia_${format(dateRange.from, 'yyyyMMdd')}_${format(dateRange.to, 'yyyyMMdd')}`);
   };
 
   const getAgingColor = (bucket: string) => {
@@ -179,6 +186,12 @@ export function OverdueReport() {
         />
       </div>
 
+      {/* Date Filter */}
+      <ReportFilters
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
+      />
+
       {/* Aging Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {agingSummary.map((bucket) => (
@@ -201,7 +214,7 @@ export function OverdueReport() {
           <CardContent className="flex flex-col items-center justify-center h-64 text-muted-foreground">
             <AlertTriangle className="h-12 w-12 text-green-500 mb-4" />
             <p className="text-lg font-medium">Nenhuma inadimplência!</p>
-            <p className="text-sm">Todos os clientes estão em dia.</p>
+            <p className="text-sm">Todos os clientes estão em dia no período selecionado.</p>
           </CardContent>
         </Card>
       ) : (

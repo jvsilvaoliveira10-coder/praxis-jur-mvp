@@ -35,12 +35,13 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile';
 import { PaymentStatusBadge } from '@/components/finance/PaymentStatusBadge';
 import { QuickPaymentModal } from '@/components/finance/QuickPaymentModal';
+import { DateRangeFilter, DateFilterField } from '@/components/finance/DateRangeFilter';
 import { 
   PAYABLE_TYPE_LABELS, 
   PAYMENT_STATUS_LABELS,
   formatCurrency
 } from '@/types/finance';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface Payable {
@@ -50,12 +51,19 @@ interface Payable {
   amount_paid: number;
   due_date: string;
   payment_date: string | null;
+  created_at: string;
   status: 'pendente' | 'pago' | 'atrasado' | 'cancelado' | 'parcial';
   payable_type: string;
   supplier_name: string | null;
   case_id: string | null;
   notes: string | null;
 }
+
+const FIELD_OPTIONS: { value: DateFilterField; label: string }[] = [
+  { value: 'due_date', label: 'Vencimento' },
+  { value: 'created_at', label: 'Criação' },
+  { value: 'payment_date', label: 'Pagamento' },
+];
 
 const Payables = () => {
   const { toast } = useToast();
@@ -69,13 +77,27 @@ const Payables = () => {
     open: false,
     item: null
   });
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | null>(() => {
+    const now = new Date();
+    return { from: startOfMonth(now), to: endOfMonth(now) };
+  });
+  const [filterField, setFilterField] = useState<DateFilterField>('due_date');
 
   const fetchPayables = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    
+    let query = supabase
       .from('payables')
       .select('*')
       .order('due_date', { ascending: true });
+
+    if (dateRange) {
+      query = query
+        .gte(filterField, format(dateRange.from, 'yyyy-MM-dd'))
+        .lte(filterField, format(dateRange.to, 'yyyy-MM-dd'));
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       toast({
@@ -91,7 +113,7 @@ const Payables = () => {
 
   useEffect(() => {
     fetchPayables();
-  }, []);
+  }, [dateRange, filterField]);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -149,6 +171,16 @@ const Payables = () => {
           </Link>
         </Button>
       </div>
+
+      {/* Date Filter */}
+      <DateRangeFilter
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
+        filterField={filterField}
+        onFilterFieldChange={setFilterField}
+        showFieldSelector
+        fieldOptions={FIELD_OPTIONS}
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4">
