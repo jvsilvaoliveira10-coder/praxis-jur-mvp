@@ -14,6 +14,198 @@ export type Database = {
   }
   public: {
     Tables: {
+      case_activities: {
+        Row: {
+          activity_type: Database["public"]["Enums"]["case_activity_type"]
+          case_id: string
+          created_at: string
+          description: string
+          from_stage_id: string | null
+          id: string
+          metadata: Json | null
+          to_stage_id: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: Database["public"]["Enums"]["case_activity_type"]
+          case_id: string
+          created_at?: string
+          description: string
+          from_stage_id?: string | null
+          id?: string
+          metadata?: Json | null
+          to_stage_id?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: Database["public"]["Enums"]["case_activity_type"]
+          case_id?: string
+          created_at?: string
+          description?: string
+          from_stage_id?: string | null
+          id?: string
+          metadata?: Json | null
+          to_stage_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_activities_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_activities_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "case_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_activities_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "case_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_pipeline: {
+        Row: {
+          assigned_to: string | null
+          case_id: string
+          due_date: string | null
+          entered_at: string
+          id: string
+          notes: string | null
+          priority: Database["public"]["Enums"]["case_priority"] | null
+          stage_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          case_id: string
+          due_date?: string | null
+          entered_at?: string
+          id?: string
+          notes?: string | null
+          priority?: Database["public"]["Enums"]["case_priority"] | null
+          stage_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          case_id?: string
+          due_date?: string | null
+          entered_at?: string
+          id?: string
+          notes?: string | null
+          priority?: Database["public"]["Enums"]["case_priority"] | null
+          stage_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_pipeline_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: true
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_pipeline_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "case_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_stages: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean | null
+          is_final: boolean | null
+          name: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          is_final?: boolean | null
+          name: string
+          position?: number
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          is_final?: boolean | null
+          name?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      case_tasks: {
+        Row: {
+          case_id: string
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          is_completed: boolean | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          case_id: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_completed?: boolean | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_completed?: boolean | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_tasks_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cases: {
         Row: {
           action_type: Database["public"]["Enums"]["action_type"]
@@ -1321,6 +1513,14 @@ export type Database = {
         | "obrigacao_de_fazer"
         | "cobranca"
         | "indenizacao_danos_morais"
+      case_activity_type:
+        | "stage_change"
+        | "note"
+        | "document"
+        | "deadline"
+        | "task"
+        | "created"
+      case_priority: "baixa" | "media" | "alta" | "urgente"
       client_type: "pessoa_fisica" | "pessoa_juridica"
       code_type:
         | "CF"
@@ -1515,6 +1715,15 @@ export const Constants = {
         "cobranca",
         "indenizacao_danos_morais",
       ],
+      case_activity_type: [
+        "stage_change",
+        "note",
+        "document",
+        "deadline",
+        "task",
+        "created",
+      ],
+      case_priority: ["baixa", "media", "alta", "urgente"],
       client_type: ["pessoa_fisica", "pessoa_juridica"],
       code_type: [
         "CF",

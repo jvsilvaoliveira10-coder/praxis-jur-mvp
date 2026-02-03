@@ -22,6 +22,7 @@ import {
   FileSignature,
   Settings,
   BarChart3,
+  Kanban,
   LucideIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -68,6 +69,7 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
         { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { to: '/clients', icon: Users, label: 'Clientes' },
         { to: '/cases', icon: FolderOpen, label: 'Processos' },
+        { to: '/pipeline', icon: Kanban, label: 'Gestão de Processos' },
         { to: '/petitions', icon: FileText, label: 'Petições' },
         { to: '/templates', icon: BookTemplate, label: 'Modelos' },
         { to: '/jurisprudence', icon: Search, label: 'Jurisprudência' },
