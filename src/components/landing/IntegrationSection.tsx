@@ -89,11 +89,11 @@ export function IntegrationSection() {
               </div>
 
               {/* Produção Jurídica - Top */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 flex flex-col items-center">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 flex flex-col items-center z-20">
                 <div className="w-16 h-16 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-2">
                   <FileText className="w-7 h-7 text-primary" />
                 </div>
-                <span className="text-sm font-medium text-foreground text-center">Produção<br/>Jurídica</span>
+                <span className="text-sm font-medium text-foreground text-center bg-background px-2">Produção<br/>Jurídica</span>
               </div>
 
               {/* Gestão de Processos - Bottom Left */}
