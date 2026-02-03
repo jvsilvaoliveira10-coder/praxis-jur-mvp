@@ -1,329 +1,209 @@
 
-# Plano: Sistema de Onboarding e Configuracoes do Escritorio
+# Plano: Header Profissional para Área Interna
 
-## Visao Geral
+## O Problema
 
-Vou implementar um sistema completo com duas partes:
-1. **Onboarding Wizard** - Popup progressivo apos o cadastro para coletar dados do escritorio
-2. **Pagina de Configuracoes** - Onde o usuario pode editar esses dados posteriormente
+A área superior do aplicativo (circulada em vermelho na imagem) está vazia e sem propósito. Atualmente o layout é:
 
----
+```text
++--------------------+--------------------------------------------------+
+| PRÁXIS AI          |                                           🔔     |
+| Hub Jurídico       |    [ÁREA VAZIA - MUITO GRANDE E AMADORA]         |
++--------------------+--------------------------------------------------+
+| Sidebar            |  Conteúdo da página                              |
+```
 
-## Analise da Situacao Atual
-
-### Banco de Dados
-A tabela `profiles` atual e muito simples:
-- `id`, `user_id`, `name`, `email`, `role`, `created_at`, `updated_at`
-
-Nao existe storage bucket para logos.
-
-### Fluxo de Autenticacao
-- Apos signup, usuario e redirecionado direto para `/dashboard`
-- Nao ha nenhuma verificacao de "perfil completo"
+Isso dá uma impressão **muito amadora** porque:
+1. Há uma área enorme sem conteúdo
+2. A separação visual entre sidebar escuro e conteúdo branco é brusca
+3. Não há contexto ou informações úteis para o usuário
+4. Parece que algo está faltando
 
 ---
 
-## Estrutura de Dados Proposta
+## Solução Proposta
 
-### Nova Tabela: `law_firm_settings`
+Criar um **Header Profissional** que aproveita esse espaço com informações úteis e contextuais:
 
-Dados do escritorio/advogado que serao coletados:
+```text
++--------------------+--------------------------------------------------+
+| PRÁXIS AI          | Dashboard               [Barra de Busca]    🔔 👤|
+| Hub Jurídico       |                                                  |
++--------------------+--------------------------------------------------+
+```
 
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| `id` | uuid | Primary key |
-| `user_id` | uuid | FK para auth.users |
-| `firm_name` | text | Nome do escritorio |
-| `lawyer_name` | text | Nome do advogado titular |
-| `oab_number` | text | Numero da OAB |
-| `oab_state` | text | Estado da OAB (SP, RJ, etc) |
-| `logo_url` | text | URL do logo (storage) |
-| `phone` | text | Telefone principal |
-| `whatsapp` | text | WhatsApp do escritorio |
-| `email` | text | Email de contato |
-| `website` | text | Site do escritorio |
-| **Endereco** | | |
-| `address_street` | text | Logradouro |
-| `address_number` | text | Numero |
-| `address_complement` | text | Complemento |
-| `address_neighborhood` | text | Bairro |
-| `address_city` | text | Cidade |
-| `address_state` | text | Estado |
-| `address_zip` | text | CEP |
-| **Estrutura do Escritorio** | | |
-| `firm_type` | enum | solo, partnership, firm |
-| `lawyers_count` | integer | Quantidade de advogados |
-| `interns_count` | integer | Quantidade de estagiarios |
-| `staff_count` | integer | Funcionarios administrativos |
-| `clients_range` | enum | 1-10, 11-50, 51-200, 200+ |
-| `cases_monthly_avg` | integer | Media de processos por mes |
-| **Areas de Atuacao** | | |
-| `practice_areas` | text[] | Array de areas (Civel, Criminal, Trabalhista, etc) |
-| `main_courts` | text[] | Tribunais mais usados |
-| **Preferencias** | | |
-| `onboarding_completed` | boolean | Se completou o onboarding |
-| `onboarding_step` | integer | Etapa atual do onboarding (para retomar) |
-| `created_at` | timestamp | |
-| `updated_at` | timestamp | |
+### Opções de Design
 
-### Storage Bucket: `firm-logos`
-Para armazenar os logos dos escritorios.
+**Opção A - Header Contextual (Recomendado)**
+- Nome da página atual (Dashboard, Clientes, etc.)
+- Breadcrumb quando em subpáginas
+- Busca global
+- Notificações
+- Avatar do usuário com dropdown
+
+**Opção B - Header Compacto**
+- Só busca + notificações + avatar
+- Sem título (confia no título dentro da página)
+
+**Opção C - Remover Header**
+- Eliminar completamente a barra
+- Mover notificações para a sidebar ou outro lugar
 
 ---
 
-## Onboarding Wizard
+## Minha Recomendação: Header Contextual (Opção A)
 
-### Design do Fluxo
+### Layout Visual Proposto
 
 ```text
 +------------------------------------------------------------------+
-|                                                                  |
-|   [====--------------------] Etapa 1 de 5                        |
-|                                                                  |
-|   Bem-vindo ao Praxis AI!                                        |
-|   Vamos configurar seu escritorio em poucos minutos.             |
-|                                                                  |
-|   +----------------------------------------------------------+   |
-|   |                                                          |   |
-|   |   ETAPA ATUAL: Dados do Advogado                         |   |
-|   |                                                          |   |
-|   |   Nome Completo: [____________________________]          |   |
-|   |   OAB: [_______] - [SP v]                                |   |
-|   |   Telefone: [____________________________]               |   |
-|   |   WhatsApp: [____________________________]               |   |
-|   |                                                          |   |
-|   +----------------------------------------------------------+   |
-|                                                                  |
-|   [Pular por agora]                        [Continuar ->]        |
-|                                                                  |
+|  📍 Dashboard                      🔍 [Buscar clientes, processos...] 🔔  JL  |
 +------------------------------------------------------------------+
 ```
 
-### Etapas do Wizard
+Ou com breadcrumb:
 
-**Etapa 1: Dados do Advogado**
-- Nome completo
-- Numero OAB + Estado
-- Telefone
-- WhatsApp
+```text
++------------------------------------------------------------------+
+|  Clientes > Dr. João Silva         🔍 [Buscar...]           🔔  JL  |
++------------------------------------------------------------------+
+```
 
-**Etapa 2: Escritorio**
-- Nome do escritorio
-- Logo (upload)
-- Email comercial
-- Website (opcional)
+### Elementos do Header
 
-**Etapa 3: Endereco**
-- CEP (com busca automatica)
-- Logradouro, numero, complemento
-- Bairro, cidade, estado
-
-**Etapa 4: Estrutura**
-- Tipo de escritorio (Solo / Associado / Sociedade)
-- Quantos advogados
-- Quantos estagiarios
-- Quantos funcionarios
-- Faixa de clientes ativos
-
-**Etapa 5: Areas de Atuacao**
-- Checkbox com areas principais
-- Tribunais mais utilizados
-- Media de novos processos por mes
-
-### Comportamento
-- Apos signup, verifica se `onboarding_completed = false`
-- Se nao completou, abre o wizard automaticamente
-- Dados salvos a cada etapa (pode retomar depois)
-- Botao "Pular" disponivel (completa mais tarde)
-- Ao finalizar, redireciona para Dashboard com toast de boas-vindas
+| Elemento | Descrição | Funcionalidade |
+|----------|-----------|----------------|
+| **Título da Página** | Nome da página atual | Ajuda na orientação |
+| **Breadcrumb** | Caminho de navegação | Quando em subpáginas |
+| **Busca Global** | Campo de busca | Buscar clientes, processos, petições |
+| **Notificações** | Sininho (já existe) | Alertas e notificações |
+| **Avatar do Usuário** | Iniciais ou foto | Dropdown com perfil, config e sair |
 
 ---
 
-## Pagina de Configuracoes
+## Detalhes de Implementação
 
-Nova pagina `/configuracoes` com abas:
+### 1. Novo Componente: `TopHeader.tsx`
 
-### Tab 1: Meu Perfil
-- Dados pessoais do usuario
-- OAB
-- Alterar senha
+Criar um componente reutilizável com:
+- Título dinâmico baseado na rota
+- Breadcrumb opcional
+- Busca global (pode ser implementada depois)
+- Integração com NotificationBell
+- Avatar do usuário com menu dropdown
 
-### Tab 2: Escritorio
-- Logo
-- Nome do escritorio
-- Contatos (telefone, email, WhatsApp, site)
-- Endereco completo
+### 2. Modificar: `MainLayout.tsx`
 
-### Tab 3: Estrutura
-- Tipo de escritorio
-- Quantidade de colaboradores
-- Areas de atuacao
-- Tribunais
+Substituir a div simples pelo novo `TopHeader`:
 
-### Tab 4: Assinatura
-- Plano atual
-- Link para Stripe (futuro)
+```tsx
+// ANTES (amador)
+<div className="flex justify-end p-4 border-b">
+  <NotificationBell />
+</div>
+
+// DEPOIS (profissional)
+<TopHeader />
+```
+
+### 3. Mapeamento de Títulos por Rota
+
+| Rota | Título |
+|------|--------|
+| `/dashboard` | Dashboard |
+| `/clients` | Clientes |
+| `/clients/:id` | Detalhes do Cliente |
+| `/cases` | Processos |
+| `/pipeline` | Gestão de Processos |
+| `/petitions` | Petições |
+| `/templates` | Modelos |
+| `/jurisprudence` | Jurisprudência |
+| `/tracking` | Acompanhamento |
+| `/agenda` | Agenda |
+| `/relatorios` | Relatórios |
+| `/financeiro` | Painel Financeiro |
+| `/financeiro/receber` | Contas a Receber |
+| `/financeiro/pagar` | Contas a Pagar |
+| `/financeiro/extrato` | Extrato |
+| `/financeiro/contratos` | Contratos |
+| `/financeiro/relatorios` | Relatórios Financeiros |
+| `/configuracoes` | Configurações |
 
 ---
 
-## Dados Sugeridos para Coletar (Adicionais)
+## Design Visual
 
-Baseado em sistemas juridicos profissionais:
+### Header Desktop
 
-1. **Identificacao Profissional**
-   - Nome completo
-   - OAB (numero + estado)
-   - CPF (para documentos)
-   - Email profissional
+```text
++------------------------------------------------------------------+
+|  [Icone] Dashboard                                                |
+|                                                                   |
+|  [🔍 Buscar clientes, processos, petições...]     🔔    [JL ▾]   |
++------------------------------------------------------------------+
+```
 
-2. **Escritorio**
-   - Nome fantasia
-   - CNPJ (opcional)
-   - Logo
-   - Cores da marca (futuro: para PDFs personalizados)
-
-3. **Contatos**
-   - Telefone fixo
-   - WhatsApp
-   - Email comercial
-   - Site
-   - LinkedIn (opcional)
-
-4. **Endereco Comercial**
-   - Endereco completo
-   - CEP (com auto-complete de endereco)
-
-5. **Estrutura**
-   - Tipo: Solo / Associados / Sociedade de Advogados
-   - Numero de advogados
-   - Numero de estagiarios
-   - Numero de funcionarios administrativos
-   - Faixa de clientes ativos
-
-6. **Perfil de Atuacao**
-   - Areas principais (multiselect):
-     - Civel
-     - Criminal
-     - Trabalhista
-     - Tributario
-     - Empresarial
-     - Familia e Sucessoes
-     - Previdenciario
-     - Ambiental
-     - Digital/LGPD
-     - Outro
-   - Tribunais mais usados (multiselect)
-   - Volume mensal de processos
-
-7. **Dados para Documentos** (bonus)
-   - Texto de assinatura padrao
-   - Conta bancaria para honorarios
+### Elementos:
+- **Altura**: 64px (h-16) - compacto mas confortável
+- **Background**: Mesmo do conteúdo (bg-background)
+- **Borda inferior**: Sutil (border-b border-border)
+- **Avatar**: Iniciais do nome em círculo colorido
+- **Dropdown do Avatar**: Meu Perfil, Configurações, Sair
 
 ---
 
 ## Arquivos a Criar/Modificar
 
-### Novos Arquivos
+### Novo Arquivo
+**`src/components/layout/TopHeader.tsx`**
 
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/components/onboarding/OnboardingWizard.tsx` | Componente principal do wizard |
-| `src/components/onboarding/steps/LawyerDataStep.tsx` | Etapa 1 |
-| `src/components/onboarding/steps/FirmDataStep.tsx` | Etapa 2 |
-| `src/components/onboarding/steps/AddressStep.tsx` | Etapa 3 |
-| `src/components/onboarding/steps/StructureStep.tsx` | Etapa 4 |
-| `src/components/onboarding/steps/PracticeAreasStep.tsx` | Etapa 5 |
-| `src/components/onboarding/OnboardingProgress.tsx` | Barra de progresso |
-| `src/pages/Settings.tsx` | Pagina de configuracoes geral |
-| `src/hooks/useFirmSettings.ts` | Hook para buscar/atualizar configuracoes |
+Componente com:
+- Hook useLocation para detectar rota
+- Mapeamento de rotas para títulos
+- Integração com NotificationBell
+- Avatar dropdown com menu
+- Busca global (placeholder inicial)
 
-### Arquivos a Modificar
+### Arquivo a Modificar
+**`src/components/layout/MainLayout.tsx`**
 
-| Arquivo | Mudancas |
-|---------|----------|
-| `src/App.tsx` | Adicionar rota `/configuracoes` |
-| `src/components/layout/MainLayout.tsx` | Adicionar verificacao de onboarding |
-| `src/components/layout/Sidebar.tsx` | Adicionar link para Configuracoes |
-| `src/contexts/AuthContext.tsx` | Adicionar `firmSettings` ao contexto |
-
-### Migracao de Banco
-
-1. Criar enum `firm_type` (solo, partnership, firm)
-2. Criar enum `clients_range` (1-10, 11-50, 51-200, 200+)
-3. Criar tabela `law_firm_settings`
-4. Criar bucket `firm-logos`
-5. RLS policies para a tabela
+Substituir linhas 101-103 pelo componente TopHeader
 
 ---
 
-## Fluxo Tecnico
+## Avatar Dropdown Menu
 
-```text
-Usuario faz signup
-        |
-        v
-Auth redireciona para /dashboard
-        |
-        v
-MainLayout verifica firmSettings.onboarding_completed
-        |
-   [false?] -----> Abre OnboardingWizard (modal)
-        |                    |
-        |                    v
-        |            Usuario completa wizard
-        |                    |
-        |                    v
-        |            Atualiza onboarding_completed = true
-        |                    |
-   [true]<-------------------+
-        |
-        v
-Dashboard normal
-```
+Opções do menu do usuário:
+
+| Opção | Ação | Ícone |
+|-------|------|-------|
+| Meu Perfil | Vai para /configuracoes | User |
+| Configurações | Vai para /configuracoes | Settings |
+| Sair | Faz logout | LogOut |
 
 ---
 
-## Interface do Wizard
+## Benefícios da Mudança
 
-O wizard sera um Dialog em tela cheia (ou quase) com:
-
-- Header com logo Praxis AI
-- Barra de progresso visual (5 etapas)
-- Titulo da etapa atual
-- Conteudo do formulario
-- Footer com "Pular" e "Continuar"
-- Animacao de transicao entre etapas
-
-### Responsividade
-- Desktop: Dialog centralizado 600px
-- Mobile: Tela cheia com scroll
-
----
-
-## Seguranca
-
-- RLS: Usuario so acessa suas proprias configuracoes
-- Storage: Bucket com politica de upload apenas para usuario autenticado
-- Validacao de OAB (formato valido)
-- Sanitizacao de inputs
-
----
-
-## Ordem de Implementacao
-
-1. **Migracao**: Criar tabela e storage
-2. **Hook**: `useFirmSettings` para CRUD
-3. **Wizard**: Componente base + etapas
-4. **Integracao**: MainLayout verifica onboarding
-5. **Pagina Settings**: Configuracoes editaveis
-6. **Sidebar**: Link para /configuracoes
-7. **Testes**: Verificar fluxo completo
+1. **Visual Profissional** - Aproveitamento inteligente do espaço
+2. **Orientação** - Usuário sempre sabe onde está
+3. **Acesso Rápido** - Perfil e configurações a 1 clique
+4. **Consistência** - Header padrão em todas as páginas
+5. **Escalável** - Fácil adicionar busca global no futuro
 
 ---
 
 ## Resultado Esperado
 
-1. **Novos usuarios** - Experiencia guiada de onboarding profissional
-2. **Usuarios existentes** - Podem acessar /configuracoes e preencher dados
-3. **Dados completos** - Sistema tem informacoes para personalizar PDFs, petitions, etc
-4. **UX Premium** - Wizard bonito e progressivo como apps modernos
+Antes:
+```text
+[Sidebar escuro] | [Área vazia gigante com só um sininho no canto]
+```
+
+Depois:
+```text
+[Sidebar escuro] | [Header com título + busca + notif + avatar]
+                 | [Conteúdo da página]
+```
+
+A área deixa de parecer "esquecida" e passa a ter propósito claro, transmitindo profissionalismo.
