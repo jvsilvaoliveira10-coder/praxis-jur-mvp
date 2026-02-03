@@ -36,8 +36,7 @@ export function HeroSection() {
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-foreground leading-tight animate-fade-in"
             style={{ animationDelay: '100ms' }}
           >
-            Petições jurídicas em{' '}
-            <span className="text-primary">minutos</span>, não em horas
+            Seu escritório <span className="text-primary">completo</span> em uma só plataforma
           </h1>
 
           {/* Subtitle */}
@@ -45,8 +44,8 @@ export function HeroSection() {
             className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-in"
             style={{ animationDelay: '200ms' }}
           >
-            Plataforma inteligente para advogados brasileiros. Gere petições com IA, 
-            organize modelos e acompanhe processos automaticamente.
+            Hub 360° para advogados brasileiros. Gere petições com IA, gerencie processos 
+            como projetos, controle suas finanças e tenha visão total do seu negócio.
           </p>
 
           {/* CTAs */}
@@ -76,15 +75,15 @@ export function HeroSection() {
             style={{ animationDelay: '400ms' }}
           >
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
+              <div className="w-2 h-2 rounded-full bg-primary" />
+              <span className="text-sm">Gestão jurídica + financeira integrada</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary" />
               <span className="text-sm">100% adaptado ao foro brasileiro</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-sm">Dados protegidos e seguros</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
+              <div className="w-2 h-2 rounded-full bg-primary" />
               <span className="text-sm">Sem cartão de crédito</span>
             </div>
           </div>

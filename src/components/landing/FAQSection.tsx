@@ -32,6 +32,22 @@ const faqs = [
     question: 'Preciso instalar algum software?',
     answer: 'Não. A plataforma funciona 100% online, diretamente no seu navegador. Basta acessar pelo computador, tablet ou celular. Seus dados ficam sincronizados e disponíveis de qualquer lugar.',
   },
+  {
+    question: 'A plataforma substitui meu software financeiro?',
+    answer: 'O módulo financeiro do Práxis AI foi desenvolvido especificamente para escritórios de advocacia, com funcionalidades como controle de honorários, custas processuais, contratos recorrentes e DRE. Para a maioria dos advogados autônomos e pequenos escritórios, ele é suficiente.',
+  },
+  {
+    question: 'Como funciona a gestão de processos estilo Kanban?',
+    answer: 'Você visualiza todos os seus processos em um quadro com colunas representando cada etapa (Consulta Inicial, Documentação, Protocolado, etc.). Basta arrastar o card do processo para a próxima etapa. O sistema registra automaticamente o histórico de movimentações e você pode adicionar checklists e prazos.',
+  },
+  {
+    question: 'Posso ver quanto lucro cada cliente me gera?',
+    answer: 'Sim! O módulo de relatórios permite analisar receitas e custos por cliente e por processo, mostrando o ROI de cada relacionamento. Isso ajuda a identificar clientes rentáveis e processos que dão prejuízo.',
+  },
+  {
+    question: 'Os módulos funcionam de forma integrada?',
+    answer: 'Sim! Ao cadastrar um cliente, você já pode vincular honorários. Ao acompanhar um processo no pipeline, você vê as custas lançadas e o saldo financeiro. Ao gerar uma petição, a tarefa no checklist é marcada como concluída. Tudo conectado.',
+  },
 ];
 
 export function FAQSection() {

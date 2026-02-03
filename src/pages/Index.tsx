@@ -5,8 +5,11 @@ import { LandingHeader } from '@/components/landing/LandingHeader';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { ProblemSection } from '@/components/landing/ProblemSection';
 import { FeaturesSection } from '@/components/landing/FeaturesSection';
+import { ProcessManagementSection } from '@/components/landing/ProcessManagementSection';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { AISection } from '@/components/landing/AISection';
+import { FinanceSection } from '@/components/landing/FinanceSection';
+import { IntegrationSection } from '@/components/landing/IntegrationSection';
 import { SecuritySection } from '@/components/landing/SecuritySection';
 import { TargetAudienceSection } from '@/components/landing/TargetAudienceSection';
 import { FAQSection } from '@/components/landing/FAQSection';
@@ -35,8 +38,11 @@ const Index = () => {
         <HeroSection />
         <ProblemSection />
         <FeaturesSection />
+        <ProcessManagementSection />
         <HowItWorksSection />
         <AISection />
+        <FinanceSection />
+        <IntegrationSection />
         <SecuritySection />
         <TargetAudienceSection />
         <FAQSection />
