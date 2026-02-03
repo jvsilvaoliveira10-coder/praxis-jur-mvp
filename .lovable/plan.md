@@ -1,199 +1,248 @@
 
-# Plano: Landing Page Imersiva e Fluida
+# Plano: Filtros de Data Profissionais no Modulo Financeiro
 
-## Visão Geral
+## Visao Geral
 
-Vou transformar a landing page de uma sequência de seções separadas para uma experiência visual contínua e imersiva, eliminando a sensação de "blocos empilhados" e criando um fluxo narrativo natural.
-
----
-
-## Problemas Atuais
-
-1. **Espaçamento exagerado**: Cada seção usa `py-20` (160px total entre seções)
-2. **Separação visual abrupta**: Backgrounds alternam entre cores distintas (`bg-muted/30`, `bg-card`, `bg-green-500/5`)
-3. **Sem transições**: Não há elementos visuais conectando uma seção à outra
-4. **Hierarquia visual quebrada**: Cada seção parece uma página independente
+Vou implementar filtros de data consistentes e profissionais em todas as ferramentas financeiras do sistema, permitindo analises aprofundadas por periodo em cada componente. O objetivo e transformar o modulo financeiro em uma ferramenta de gestao profissional completa.
 
 ---
 
-## Solução Proposta
+## Analise da Situacao Atual
 
-### 1. Redução do Espaçamento Vertical
+### Componentes COM filtro de data implementado:
+| Componente | Tipo de Filtro | Localizacao |
+|------------|----------------|-------------|
+| FinanceDashboard | Select simples (7d/30d/90d/year/all) | Dashboard principal |
+| DREReport | ReportFilters completo | Relatorios |
+| CashFlowReport | ReportFilters completo | Relatorios |
+| ClientAnalysisReport | ReportFilters completo | Relatorios |
 
-Vou criar uma hierarquia de espaçamentos mais natural:
+### Componentes SEM filtro de data (precisam implementacao):
+| Componente | Problema | Pagina |
+|------------|----------|--------|
+| **Transactions.tsx** | Carrega ultimas 100 transacoes sem filtro de periodo | /financeiro/extrato |
+| **Receivables.tsx** | Lista todas as contas a receber sem filtro de periodo | /financeiro/receber |
+| **Payables.tsx** | Lista todas as contas a pagar sem filtro de periodo | /financeiro/pagar |
+| **FeeContracts.tsx** | Lista todos os contratos sem filtro por vigencia | /financeiro/contratos |
+| **OverdueReport.tsx** | Nao tem filtro de periodo - sempre mostra tudo | Relatorios |
 
-| Tipo de Seção | Antes | Depois |
-|---------------|-------|--------|
-| Seção principal | `py-20` | `py-12 sm:py-16` |
-| Seção com mockup interativo | `py-20` | `py-10 sm:py-14` |
-| Seção de transição (How it Works) | `py-20` | `py-8 sm:py-12` |
-| CTA final | `py-20` | `py-14 sm:py-20` |
+### Componentes de Dashboard que usam dados fixos:
+| Componente | Problema |
+|------------|----------|
+| TopClientsChart | Usa dateRange do dashboard mas sem controle proprio |
+| CategoryDistributionChart | Usa dateRange do dashboard mas sem controle proprio |
+| UpcomingBills | Fixo em 7 dias |
+| RecentTransactions | Fixo em ultimas 5 |
 
-### 2. Unificação de Backgrounds
+---
 
-Em vez de alternar cores, vou usar um sistema de degradês contínuos:
+## Solucao Proposta
 
-```text
-+---------------------------------------------+
-|  Background base (bg-background)            |
-|  ┌─────────────────────────────────────────┐|
-|  │ Gradientes sutis que fluem entre seções ││
-|  │                                         ││
-|  │  ~~~~~~ (ondas decorativas) ~~~~~~      ││
-|  │                                         ││
-|  └─────────────────────────────────────────┘|
-+---------------------------------------------+
-```
+### 1. Criar Componente de Filtro Reutilizavel
 
-**Técnica**: Remover backgrounds sólidos e usar:
-- Gradientes CSS que fluem através das seções
-- Elementos decorativos (SVG waves, blur circles) como divisores suaves
-- Opacidade reduzida em elementos de fundo
-
-### 3. Elementos de Conexão Visual
-
-Adicionar "bridges" visuais entre seções:
-
-- **Ondas SVG suaves** entre seções principais (não linhas retas)
-- **Círculos de blur decorativos** que cruzam limites de seções
-- **Gradientes de transição** que "vazam" de uma seção para outra
-
-### 4. Agrupamento Temático
-
-Agrupar seções relacionadas para criar "capítulos" fluidos:
+Criar um componente `DateRangeFilter` aprimorado baseado no `ReportFilters` existente, porem mais compacto para uso em listagens:
 
 ```text
-╔════════════════════════════════════════════╗
-║  CAPÍTULO 1: Introdução                    ║
-║  ├── Hero                                  ║
-║  └── Problem (espaço mínimo, mesma cor)    ║
-╠════════════════════════════════════════════╣
-║  CAPÍTULO 2: Funcionalidades               ║
-║  ├── Features (tabs)                       ║
-║  ├── ProcessManagement (Kanban)            ║
-║  ├── AISection                             ║
-║  ├── HowItWorks                            ║
-║  └── FinanceSection                        ║
-╠════════════════════════════════════════════╣
-║  CAPÍTULO 3: Integração & Confiança        ║
-║  ├── Integration                           ║
-║  ├── Security                              ║
-║  └── TargetAudience                        ║
-╠════════════════════════════════════════════╣
-║  CAPÍTULO 4: Conversão                     ║
-║  ├── FAQ                                   ║
-║  └── CTA                                   ║
-╚════════════════════════════════════════════╝
++----------------------------------------------------------+
+| [v Periodo: Este mes] | [01/02/2026 - 28/02/2026] [Limpar]|
++----------------------------------------------------------+
 ```
+
+**Presets disponiveis:**
+- Hoje
+- Ultimos 7 dias
+- Este mes
+- Mes anterior
+- Ultimos 3 meses
+- Este ano
+- Personalizado (Date Range Picker)
+
+### 2. Implementar Filtros por Pagina
+
+#### A. Transactions.tsx (Extrato)
+- Adicionar filtro de periodo para `transaction_date`
+- Filtrar queries Supabase por data
+- Atualizar totais dinamicamente
+
+#### B. Receivables.tsx (Contas a Receber)
+- Adicionar filtro de periodo para `due_date`
+- Opcao de filtrar por `created_at` ou `payment_date`
+- Cards de resumo refletem periodo selecionado
+
+#### C. Payables.tsx (Contas a Pagar)
+- Adicionar filtro de periodo para `due_date`
+- Mesma logica de Receivables
+
+#### D. FeeContracts.tsx (Contratos)
+- Adicionar filtro por vigencia
+- Filtrar contratos ativos no periodo selecionado
+
+#### E. OverdueReport.tsx (Inadimplencia)
+- Adicionar filtro de periodo
+- Filtrar por `due_date` dos titulos atrasados
+- Permitir analise historica de inadimplencia
 
 ---
 
 ## Arquivos a Modificar
 
-### 1. `src/index.css`
-- Adicionar classes CSS para transições suaves
-- Criar SVG waves como separadores
-- Definir gradientes de conexão
+### 1. Criar novo componente
+**`src/components/finance/DateRangeFilter.tsx`** (novo)
 
-### 2. `src/pages/Index.tsx`
-- Adicionar wrapper com gradiente contínuo
-- Incluir elementos decorativos entre seções
+Componente compacto de filtro de data para listagens, com:
+- Select de presets (Este mes, Mes anterior, etc.)
+- Date Range Picker
+- Botao limpar
+- Callback onChange
 
-### 3. Todas as Seções (10 arquivos)
-Modificar cada componente de seção:
+### 2. Modificar paginas de listagem
 
-| Arquivo | Mudanças |
+| Arquivo | Mudancas |
 |---------|----------|
-| `HeroSection.tsx` | Reduzir altura mínima, adicionar transição para próxima seção |
-| `ProblemSection.tsx` | `py-20` → `py-12`, remover `bg-muted/30` |
-| `FeaturesSection.tsx` | `py-20` → `py-12`, adicionar gradiente sutil |
-| `ProcessManagementSection.tsx` | `py-20` → `py-10`, background transparente |
-| `AISection.tsx` | `py-20` → `py-12`, manter gradiente sutil |
-| `HowItWorksSection.tsx` | `py-20` → `py-8`, remover `bg-muted/30` |
-| `FinanceSection.tsx` | `py-20` → `py-10`, suavizar `bg-green-500/5` |
-| `IntegrationSection.tsx` | `py-20` → `py-12`, remover `bg-card` sólido |
-| `SecuritySection.tsx` | `py-20` → `py-10`, remover `bg-muted/30` |
-| `TargetAudienceSection.tsx` | `py-20` → `py-10` |
-| `FAQSection.tsx` | `py-20` → `py-10`, remover `bg-muted/30` |
-| `CTASection.tsx` | Manter `py-20` (é o fechamento), gradiente mais suave |
-| `LandingFooter.tsx` | `py-12` → `py-8`, transição suave |
+| `src/pages/finance/Transactions.tsx` | + estado dateRange, + DateRangeFilter, + filtro na query |
+| `src/pages/finance/Receivables.tsx` | + estado dateRange, + DateRangeFilter, + filtro na query |
+| `src/pages/finance/Payables.tsx` | + estado dateRange, + DateRangeFilter, + filtro na query |
+| `src/pages/finance/FeeContracts.tsx` | + estado dateRange, + DateRangeFilter, + filtro na query |
+| `src/components/finance/reports/OverdueReport.tsx` | + ReportFilters, + filtro na query |
 
 ---
 
-## Técnicas Visuais a Implementar
+## Detalhes Tecnicos de Implementacao
 
-### A. SVG Wave Divider (CSS puro)
-Adicionar entre capítulos principais:
+### Interface DateRangeFilter
 
-```css
-.wave-divider {
-  height: 60px;
-  background: linear-gradient(to bottom, transparent, hsl(var(--muted)/0.3));
-  mask-image: url("data:image/svg+xml,...");
+```typescript
+interface DateRangeFilterProps {
+  dateRange: { from: Date; to: Date } | null;
+  onDateRangeChange: (range: { from: Date; to: Date } | null) => void;
+  filterField?: 'due_date' | 'transaction_date' | 'created_at' | 'payment_date';
+  onFilterFieldChange?: (field: string) => void;
+  showFieldSelector?: boolean;
+  compact?: boolean;
 }
 ```
 
-### B. Blur Circles que cruzam seções
-Elementos absolutos posicionados para criar continuidade:
+### Presets de Periodo
 
-```css
-.section-bridge {
-  position: absolute;
-  bottom: -50px;
-  width: 300px;
-  height: 100px;
-  background: radial-gradient(...);
-  filter: blur(60px);
+```typescript
+type PresetPeriod = 
+  | 'today' 
+  | 'week' 
+  | 'month' 
+  | 'last_month' 
+  | 'quarter' 
+  | 'year' 
+  | 'all' 
+  | 'custom';
+```
+
+### Exemplo de Query Filtrada (Transactions)
+
+```typescript
+// Antes
+const { data } = await supabase
+  .from('transactions')
+  .select('*')
+  .order('transaction_date', { ascending: false })
+  .limit(100);
+
+// Depois
+let query = supabase
+  .from('transactions')
+  .select('*')
+  .order('transaction_date', { ascending: false });
+
+if (dateRange) {
+  query = query
+    .gte('transaction_date', format(dateRange.from, 'yyyy-MM-dd'))
+    .lte('transaction_date', format(dateRange.to, 'yyyy-MM-dd'));
+} else {
+  query = query.limit(100);
 }
+
+const { data } = await query;
 ```
 
-### C. Gradiente Global no Container
-No Index.tsx, envolver tudo em um gradiente contínuo:
+---
 
-```tsx
-<main className="relative bg-gradient-to-b from-background via-muted/10 to-background">
-  {/* seções */}
-</main>
+## Layout dos Filtros por Pagina
+
+### Transactions.tsx
+```text
++------------------------------------------------------------------+
+| Extrato                                            [+ Novo Lanc] |
+| Visualize todas as movimentacoes financeiras                     |
++------------------------------------------------------------------+
+| [v Periodo: Este mes] [01/02/2026 - 28/02/2026] [Limpar]         |
++------------------------------------------------------------------+
+| Cards: Entradas | Saidas | Saldo do Periodo                      |
++------------------------------------------------------------------+
+| [Buscar...] [v Tipo: Todos]                                      |
+| Tabela de transacoes filtradas                                   |
++------------------------------------------------------------------+
 ```
+
+### Receivables.tsx / Payables.tsx
+```text
++------------------------------------------------------------------+
+| Contas a Receber                                   [+ Nova Rec]  |
+| Gerencie seus recebiveis e honorarios                            |
++------------------------------------------------------------------+
+| [v Periodo: Este mes] [v Filtrar por: Vencimento] [01/02 - 28/02]|
++------------------------------------------------------------------+
+| Cards: Pendente | Atrasado                                       |
++------------------------------------------------------------------+
+| [Buscar...] [v Status: Todos]                                    |
+| Tabela filtrada                                                  |
++------------------------------------------------------------------+
+```
+
+### OverdueReport.tsx
+```text
++------------------------------------------------------------------+
+| Inadimplencia                                      [PDF] [CSV]   |
++------------------------------------------------------------------+
+| [v Periodo] [01/01/2026 - 28/02/2026] [Vencidos no periodo]      |
++------------------------------------------------------------------+
+| Cards Aging: 1-15 dias | 16-30 dias | 31-60 dias | >60 dias      |
++------------------------------------------------------------------+
+| Tabela de titulos atrasados filtrados por periodo                |
++------------------------------------------------------------------+
+```
+
+---
+
+## Melhorias Adicionais
+
+### 1. Persistencia de Filtros
+- Salvar ultimo filtro usado em localStorage
+- Restaurar ao reabrir a pagina
+
+### 2. URL Query Parameters
+- Permitir compartilhar links com filtros aplicados
+- Ex: `/financeiro/receber?from=2026-01-01&to=2026-01-31`
+
+### 3. Exportacao com Filtros
+- Exportar PDF/CSV respeitando o periodo selecionado
+- Incluir periodo no cabecalho do relatorio
+
+---
+
+## Ordem de Implementacao
+
+1. **Criar DateRangeFilter.tsx** - Componente base reutilizavel
+2. **Transactions.tsx** - Primeira implementacao (mais simples)
+3. **Receivables.tsx** - Com seletor de campo de data
+4. **Payables.tsx** - Clonar logica de Receivables
+5. **FeeContracts.tsx** - Filtro por vigencia
+6. **OverdueReport.tsx** - Adicionar ReportFilters
 
 ---
 
 ## Resultados Esperados
 
-1. **-40% espaçamento vertical** → página mais compacta
-2. **Fluxo visual contínuo** → não parece seções separadas
-3. **Hierarquia clara** → "capítulos" agrupados
-4. **Imersão** → página única e fluida
-
----
-
-## Detalhes Técnicos
-
-### Espaçamento Final por Seção
-
-```text
-Hero:            min-h-[85vh] → min-h-[80vh]
-ProblemSection:  py-20       → py-10 sm:py-12
-FeaturesSection: py-20       → py-10 sm:py-14
-ProcessMgmt:     py-20       → py-8 sm:py-10
-AISection:       py-20       → py-10 sm:py-12
-HowItWorks:      py-20       → py-6 sm:py-8
-FinanceSection:  py-20       → py-8 sm:py-10
-Integration:     py-20       → py-10 sm:py-12
-Security:        py-20       → py-8 sm:py-10
-TargetAudience:  py-20       → py-8 sm:py-10
-FAQSection:      py-20       → py-8 sm:py-10
-CTASection:      py-20       → py-12 sm:py-16
-Footer:          py-12       → py-6 sm:py-8
-```
-
-### Backgrounds Unificados
-
-```text
-Antes:
-  bg-background → bg-muted/30 → bg-background → bg-muted/30...
-
-Depois:
-  Gradiente contínuo com variações sutis de opacidade
-  via CSS: bg-gradient-to-b from-background via-muted/5 to-background
-```
+1. **Analises profissionais** - Usuario pode analisar qualquer periodo especifico
+2. **Consistencia visual** - Mesmo componente de filtro em todas as paginas
+3. **Performance** - Queries filtradas retornam menos dados
+4. **Relatorios precisos** - Exportacoes respeitam periodo selecionado
+5. **UX profissional** - Presets rapidos + date picker para flexibilidade
