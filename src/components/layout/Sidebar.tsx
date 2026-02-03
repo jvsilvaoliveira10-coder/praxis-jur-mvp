@@ -89,9 +89,13 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
         { to: '/financeiro/extrato', icon: Receipt, label: 'Extrato' },
         { to: '/financeiro/contratos', icon: FileSignature, label: 'Contratos' },
         { to: '/financeiro/relatorios', icon: BarChart3, label: 'Relatórios' },
-        { to: '/financeiro/config', icon: Settings, label: 'Configurações' },
+        { to: '/financeiro/config', icon: Settings, label: 'Configurações Fin.' },
       ],
     },
+  ];
+
+  const bottomLinks: NavItem[] = [
+    { to: '/configuracoes', icon: Settings, label: 'Configurações' },
   ];
 
   const isActive = (path: string) => {
@@ -214,6 +218,11 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-2 overflow-y-auto">
           {categories.map(category => renderCategory(category))}
+          
+          {/* Bottom links */}
+          <div className="pt-2 mt-2 border-t border-sidebar-border">
+            {bottomLinks.map(item => renderNavItem(item))}
+          </div>
         </nav>
 
         {/* User info */}
@@ -261,6 +270,11 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-2 overflow-y-auto">
         {categories.map(category => renderCategory(category, isCollapsed))}
+        
+        {/* Bottom links */}
+        <div className="pt-2 mt-2 border-t border-sidebar-border">
+          {bottomLinks.map(item => renderNavItem(item, isCollapsed))}
+        </div>
       </nav>
 
       {/* User info */}

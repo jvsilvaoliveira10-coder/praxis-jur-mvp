@@ -40,6 +40,9 @@ import FinanceReports from "./pages/finance/FinanceReports";
 // Legal Reports
 import LegalReports from "./pages/LegalReports";
 
+// Settings
+import Settings from "./pages/Settings";
+
 // Layout
 import MainLayout from "./components/layout/MainLayout";
 
@@ -80,6 +83,7 @@ const App = () => (
               <Route path="/pipeline" element={<Pipeline />} />
               <Route path="/pipeline/settings" element={<PipelineSettings />} />
               <Route path="/relatorios" element={<LegalReports />} />
+              <Route path="/configuracoes" element={<Settings />} />
               
               {/* Finance routes */}
               <Route path="/financeiro" element={<FinanceDashboard />} />
