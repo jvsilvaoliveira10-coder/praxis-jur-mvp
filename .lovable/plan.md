@@ -1,190 +1,295 @@
 
 
-# Plano: Header com Destaque e Sidebar Polida
+# Plano: Formulário de Onboarding Premium
 
-## Problemas a Resolver
+## Problemas Identificados
 
-### 1. TopHeader sem Destaque
-Atualmente o header usa `bg-background/95` (branco), mesma cor do conteúdo. Precisa de uma cor de destaque.
+### 1. Dois Botoes X de Fechar
+O `DialogContent` do Radix possui um botao X padrao (linha 45-48 de dialog.tsx), e o `OnboardingWizard.tsx` adiciona outro X customizado (linhas 236-238). Resultado: dois botoes X sobrepostos.
 
-### 2. Botão de Recolher em Cima da Scrollbar
-O botão está posicionado em `absolute -right-3 top-20`, que conflita com a barra de rolagem quando o sidebar tem muito conteúdo.
-
-### 3. Scrollbar Visível no Sidebar
-A barra de rolagem está aparecendo e deixando o visual menos limpo.
+### 2. Design Amador
+O formulario atual tem varios problemas visuais:
+- Sem hierarquia visual clara
+- Inputs basicos sem tratamento premium
+- Falta de espacamento e respiro
+- Progress bar simples demais
+- Sem efeitos de transicao entre etapas
+- Cards de selecao muito simples
+- Falta de gradientes e sombras sutis
 
 ---
 
-## Soluções Propostas
+## Solucao: Redesign Premium Completo
 
-### 1. Header com Cor de Destaque
+### Conceito Visual
 
-Mudar o TopHeader para usar uma variação mais suave do azul do sidebar:
-
-**Opção: Azul Claro Profissional**
-- Usar um tom de azul mais claro que o sidebar, mas que ainda faça parte da paleta
-- Criar uma variável CSS nova: `--header-background`
-- Texto em contraste apropriado
-
-Visual:
+**Antes (Amador)**:
 ```text
-+---------------------------+----------------------------------------+
-|  [Sidebar Navy]           |  [Header Azul Claro]                  |
-|  #1e2a4a                   |  #2a3f5f (mais claro)                 |
-+---------------------------+----------------------------------------+
-|                           |  [Conteúdo Branco]                    |
++----------------------------------+
+| Logo  Titulo              X   X  |  <- Dois X!
++----------------------------------+
+| (o)---(o)---(o)---(o)---(5)      |  <- Progress simples
++----------------------------------+
+| [Icone circular]                 |
+| Titulo                           |
+| [Input basico]                   |
+| [Input basico]                   |
++----------------------------------+
+| Pular    [Voltar] [Continuar]    |
++----------------------------------+
 ```
 
-### 2. Reposicionar Botão de Recolher
-
-Mover o botão de colapsar para **dentro** da área do header do sidebar, ao lado do logo:
-
+**Depois (Premium)**:
 ```text
-ANTES:
-[Logo Práxis AI        ]   (botão flutuando no meio, por cima da scrollbar)
-[Menu items             ]
-[                      •]  <- botão aqui conflitando
-
-DEPOIS:
-[Logo Práxis AI    [<]]    <- botão no header, junto do logo
-[Menu items            ]
-[                       ]
++------------------------------------------+
+| [Sidebar Escuro]  |  [Area Principal]    |
+|                   |                       |
+| Logo Praxis       |  Dados do Advogado   |
+|                   |                       |
+| 1 Advogado   [*]  |  Preencha suas       |
+| 2 Escritorio [ ]  |  informacoes         |
+| 3 Endereco   [ ]  |  profissionais       |
+| 4 Estrutura  [ ]  |                       |
+| 5 Areas      [ ]  |  [Inputs Elegantes]  |
+|                   |                       |
+| Pular por agora   |     [Continuar ->]   |
++------------------------------------------+
 ```
 
-### 3. Esconder Scrollbar do Sidebar
+---
 
-Adicionar CSS para esconder a scrollbar mas manter a funcionalidade de scroll:
+## Estrutura do Novo Design
+
+### Layout Principal
+
+**Formato: Dialog Split-Screen**
+- Largura maior: `max-w-4xl` (896px)
+- Altura fixa: `h-[600px]`
+- Duas colunas:
+  - **Esquerda (280px)**: Sidebar escuro com navegacao vertical
+  - **Direita (flex-1)**: Conteudo do formulario
+
+### Sidebar Esquerdo (Premium)
+
+| Elemento | Descricao |
+|----------|-----------|
+| **Logo** | Praxis AI com tagline |
+| **Progress Vertical** | Steps em lista com indicadores |
+| **Botao Pular** | Link discreto no rodape |
+
+Design do Progress:
+```text
+[1] Advogado         <- Atual (highlight)
+    |
+[*] Escritorio       <- Completo (check)
+    |
+[ ] Endereco         <- Pendente (cinza)
+    |
+[ ] Estrutura
+    |
+[ ] Areas
+```
+
+### Area Principal (Direita)
+
+| Secao | Conteudo |
+|-------|----------|
+| **Header** | Titulo grande + subtitulo |
+| **Formulario** | Inputs com labels flutuantes, icones sutis |
+| **Footer** | Botoes Voltar/Continuar alinhados a direita |
+
+---
+
+## Detalhes de Design Premium
+
+### Cores e Gradientes
 
 ```css
-/* Esconde scrollbar mas mantém scroll */
-.scrollbar-hidden::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-hidden {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+/* Sidebar */
+background: linear-gradient(180deg, hsl(222 47% 15%) 0%, hsl(222 47% 12%) 100%);
+
+/* Botao Continuar */
+background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(222 80% 45%) 100%);
+
+/* Cards de selecao selecionados */
+background: linear-gradient(135deg, hsl(var(--primary)/0.1) 0%, hsl(var(--primary)/0.05) 100%);
+border: 2px solid hsl(var(--primary));
 ```
 
----
+### Inputs Premium
 
-## Mudancas Tecnicas
+- Bordas arredondadas (`rounded-xl`)
+- Foco com anel colorido (`focus:ring-2 focus:ring-primary/20`)
+- Labels com animacao de flutuacao
+- Icones a esquerda integrados
+- Altura maior para conforto (`h-12`)
 
-### Arquivo 1: `src/index.css`
+### Transicoes entre Steps
 
-Adicionar novas variaveis CSS e classe utilitaria:
+- Animacao de slide suave ao trocar etapa
+- Fade in/out do conteudo
+- Progress bar com transicao animada
 
-```css
-:root {
-  /* Header com tom mais claro que sidebar */
-  --header-background: 222 40% 25%;
-  --header-foreground: 210 20% 95%;
-}
-
-/* Classe para esconder scrollbar */
-.scrollbar-hidden::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-hidden {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-```
-
-### Arquivo 2: `src/components/layout/TopHeader.tsx`
-
-Mudancas na linha 87:
-
-```tsx
-// ANTES
-<header className="sticky top-0 z-40 h-[72px] border-b border-border bg-background/95 backdrop-blur ...">
-
-// DEPOIS
-<header className="sticky top-0 z-40 h-[72px] border-b border-sidebar-border bg-[hsl(222,40%,25%)] text-white ...">
-```
-
-Tambem ajustar cores dos elementos internos para contrastar com o fundo escuro:
-- Titulo: texto branco
-- Busca: fundo com transparencia, texto claro
-- Icones: brancos
-
-### Arquivo 3: `src/components/layout/Sidebar.tsx`
-
-**Mudanca 1**: Mover botao de recolher para dentro do header (linha 258-268):
-
-```tsx
-<div className="h-[72px] px-4 flex items-center justify-between border-b border-sidebar-border">
-  <div className="flex items-center gap-3">
-    <img src="/favicon.svg" alt="Práxis AI" className="w-10 h-10" />
-    {!isCollapsed && (
-      <div className="overflow-hidden">
-        <h1 className="font-serif font-bold text-lg leading-tight">Práxis AI</h1>
-        <p className="text-xs text-sidebar-foreground/70">Hub Jurídico Inteligente</p>
-      </div>
-    )}
-  </div>
-  {/* Botão de recolher movido para cá */}
-  <Button
-    variant="ghost"
-    size="icon"
-    className="w-8 h-8 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-    onClick={() => setCollapsed(!collapsed)}
-  >
-    {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-  </Button>
-</div>
-```
-
-**Mudanca 2**: Remover o botao absoluto antigo (linhas 301-313)
-
-**Mudanca 3**: Adicionar classe para esconder scrollbar na nav (linha 271):
-
-```tsx
-<nav className="flex-1 p-3 space-y-2 overflow-y-auto scrollbar-hidden">
-```
-
----
-
-## Paleta de Cores Resultante
-
-| Elemento | Cor HSL | Hex Aproximado |
-|----------|---------|----------------|
-| Sidebar | 222 47% 15% | #1a2540 |
-| Header | 222 40% 25% | #2e3f5c |
-| Conteudo | 210 20% 98% | #f8f9fb |
-
-O header fica visivelmente mais claro que o sidebar, criando uma hierarquia visual, mas ainda mantendo a paleta profissional navy/azul.
-
----
-
-## Resultado Visual Esperado
+### Cards de Selecao (Tipo de Escritorio, Areas)
 
 ```text
-+---------------------------+----------------------------------------+
-|  [Navy Escuro]            |  [Azul Medio - destaca]               |
-|  Logo Práxis    [<]       |  Dashboard  [Busca...]   🔔  [JL]     |
-+---------------------------+----------------------------------------+
-|  [Menu sem scrollbar]     |  [Conteudo branco]                    |
-|  Jurídico v               |                                       |
-|    Dashboard              |                                       |
-|    Clientes               |                                       |
-|    ...                    |                                       |
-+---------------------------+----------------------------------------+
++-----------------------------------+
+| [Icone em circulo com gradiente]  |
+| Advogado Solo                     |
+| Atuo individualmente              |
+|                     [Radio/Check] |
++-----------------------------------+
 ```
 
-**Beneficios**:
-1. Header com destaque visual - nao se confunde com o conteudo
-2. Botao de recolher em lugar logico (no header)
-3. Sidebar limpo sem scrollbar visivel
-4. Visual profissional e coeso
+- Borda que muda de cor ao selecionar
+- Background com gradiente sutil
+- Hover com elevacao (shadow)
 
 ---
 
 ## Arquivos a Modificar
 
-| Arquivo | Mudancas |
-|---------|----------|
-| `src/index.css` | Adicionar variaveis CSS e classe scrollbar-hidden |
-| `src/components/layout/TopHeader.tsx` | Mudar background para azul, ajustar cores de texto |
-| `src/components/layout/Sidebar.tsx` | Mover botao de recolher para header, esconder scrollbar |
+### 1. `src/components/ui/dialog.tsx`
+
+**Mudanca**: Adicionar prop `hideCloseButton` ao DialogContent
+
+```tsx
+interface DialogContentProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
+  hideCloseButton?: boolean;
+}
+
+const DialogContent = React.forwardRef<..., DialogContentProps>(
+  ({ className, children, hideCloseButton = false, ...props }, ref) => (
+    // ...
+    {!hideCloseButton && (
+      <DialogPrimitive.Close className="...">
+        <X className="h-4 w-4" />
+      </DialogPrimitive.Close>
+    )}
+  )
+);
+```
+
+### 2. `src/components/onboarding/OnboardingWizard.tsx`
+
+**Redesign completo** com:
+- Layout split-screen (sidebar + conteudo)
+- Remover botao X duplicado (usar o do Dialog com hideCloseButton=true)
+- Adicionar animacoes de transicao
+- Estilizacao premium
+
+### 3. `src/components/onboarding/OnboardingProgress.tsx`
+
+**Redesign** para:
+- Layout vertical (lista)
+- Indicadores circulares com numeros/checks
+- Linhas conectoras verticais
+- Highlight no step atual
+
+### 4. Steps Individuais (LawyerDataStep, FirmDataStep, etc.)
+
+**Melhorias em cada step**:
+- Remover icone/titulo central (vai para o header principal)
+- Inputs com altura maior e estilo premium
+- Cards de selecao com gradientes
+- Espacamento maior entre elementos
+
+---
+
+## Componentes Novos a Criar
+
+### `src/components/onboarding/OnboardingSidebar.tsx`
+
+Sidebar esquerdo com:
+- Logo
+- Progress vertical
+- Link "Pular por agora"
+
+### `src/components/onboarding/OnboardingStepContent.tsx`
+
+Wrapper para cada step com:
+- Header (titulo + descricao)
+- Area de scroll para conteudo
+- Footer com botoes
+
+---
+
+## Fluxo de Navegacao Atualizado
+
+```text
+Usuario abre app pela primeira vez
+        |
+        v
+[Dialog Premium abre]
+        |
+        v
+Step 1: Dados do Advogado
+        |
+        v [Continuar]
+Step 2: Dados do Escritorio
+        |
+        v [Continuar]
+Step 3: Endereco Comercial
+        |
+        v [Continuar]
+Step 4: Estrutura do Escritorio
+        |
+        v [Continuar]
+Step 5: Areas de Atuacao
+        |
+        v [Finalizar]
+[Toast de sucesso]
+[Redireciona para Dashboard]
+```
+
+---
+
+## Animacoes
+
+| Elemento | Animacao |
+|----------|----------|
+| **Entrada do Dialog** | Fade + scale suave |
+| **Transicao de Step** | Slide horizontal (esquerda/direita) |
+| **Progress indicator** | Transicao de cor suave |
+| **Inputs** | Focus ring com expand |
+| **Botoes** | Hover com lift (translateY) |
+
+Implementacao via CSS/Tailwind:
+```css
+/* Transicao de step */
+.step-enter {
+  opacity: 0;
+  transform: translateX(20px);
+}
+.step-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: all 300ms ease-out;
+}
+```
+
+---
+
+## Resultado Visual Esperado
+
+O novo formulario tera:
+
+1. **Aparencia Premium** - Gradientes, sombras sutis, espacamento generoso
+2. **Navegacao Clara** - Sidebar mostra progresso e permite visualizar todas as etapas
+3. **Experiencia Fluida** - Animacoes suaves entre steps
+4. **Um unico X** - Problema dos dois botoes resolvido
+5. **Mobile Friendly** - Layout responsivo que empilha em telas pequenas
+6. **Profissionalismo** - Transmite confianca desde o primeiro contato
+
+---
+
+## Ordem de Implementacao
+
+1. Modificar `dialog.tsx` para suportar `hideCloseButton`
+2. Criar novo `OnboardingSidebar.tsx`
+3. Redesenhar `OnboardingProgress.tsx` para layout vertical
+4. Refatorar `OnboardingWizard.tsx` com layout split-screen
+5. Atualizar cada Step com estilo premium
+6. Adicionar animacoes de transicao
+7. Testar responsividade
 
