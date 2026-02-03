@@ -1,4 +1,4 @@
-import { Clock, FolderOpen, RefreshCw } from 'lucide-react';
+import { Clock, FolderOpen, RefreshCw, Calculator } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useInView } from '@/hooks/useInView';
 import { cn } from '@/lib/utils';
@@ -7,17 +7,22 @@ const problems = [
   {
     icon: Clock,
     title: 'Tempo perdido',
-    description: 'Horas redigindo peças repetitivas que poderiam ser automatizadas, comprometendo a produtividade do escritório.',
+    description: 'Horas redigindo peças repetitivas que poderiam ser automatizadas, comprometendo a produtividade.',
   },
   {
     icon: FolderOpen,
     title: 'Desorganização',
-    description: 'Modelos espalhados em pastas, e-mails e HDs externos. Dificuldade para encontrar e padronizar documentos.',
+    description: 'Modelos espalhados em pastas, e-mails e HDs externos. Dificuldade para padronizar documentos.',
   },
   {
     icon: RefreshCw,
     title: 'Acompanhamento manual',
-    description: 'Consultas diárias aos portais dos tribunais para verificar movimentações, gastando tempo precioso.',
+    description: 'Consultas diárias aos portais dos tribunais para verificar movimentações processuais.',
+  },
+  {
+    icon: Calculator,
+    title: 'Controle financeiro precário',
+    description: 'Planilhas espalhadas, inadimplência não monitorada e falta de visão sobre a saúde financeira.',
   },
 ];
 
@@ -46,7 +51,7 @@ export function ProblemSection() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
           {problems.map((problem, index) => (
             <Card 
               key={problem.title}

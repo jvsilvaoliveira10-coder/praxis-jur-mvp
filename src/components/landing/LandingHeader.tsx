@@ -6,8 +6,8 @@ import { cn } from '@/lib/utils';
 
 const navLinks = [
   { label: 'Funcionalidades', href: '#funcionalidades' },
-  { label: 'Como Funciona', href: '#como-funciona' },
-  { label: 'Segurança', href: '#seguranca' },
+  { label: 'Gestão de Processos', href: '#gestao-processos' },
+  { label: 'Financeiro', href: '#financeiro' },
   { label: 'FAQ', href: '#faq' },
 ];
 

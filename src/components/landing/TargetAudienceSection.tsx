@@ -8,19 +8,34 @@ const audiences = [
     icon: User,
     title: 'Advogados Autônomos',
     description: 'Profissionais que atuam sozinhos e precisam de agilidade para atender demandas variadas sem comprometer a qualidade.',
-    benefits: ['Mais tempo para captar clientes', 'Redução de custos operacionais', 'Maior competitividade'],
+    benefits: [
+      'Mais tempo para captar clientes', 
+      'Controle financeiro sem planilhas', 
+      'Visão clara de cada processo',
+      'Maior competitividade'
+    ],
   },
   {
     icon: Users,
     title: 'Pequenos Escritórios',
     description: 'Equipes de 2 a 10 advogados que buscam padronização de linguagem e organização do conhecimento interno.',
-    benefits: ['Padronização de documentos', 'Onboarding acelerado', 'Gestão centralizada'],
+    benefits: [
+      'Padronização de documentos', 
+      'Pipeline visual para toda equipe', 
+      'Dashboard financeiro compartilhado',
+      'Gestão centralizada'
+    ],
   },
   {
     icon: Briefcase,
     title: 'Advogados de Volume',
     description: 'Profissionais que trabalham com demandas repetitivas e precisam escalar sua produção sem perder qualidade.',
-    benefits: ['Escala sem aumento de equipe', 'Menor custo por peça', 'Consistência na produção'],
+    benefits: [
+      'Escala sem aumento de equipe', 
+      'Identificação de gargalos', 
+      'Relatórios de rentabilidade',
+      'Consistência na produção'
+    ],
   },
 ];
 

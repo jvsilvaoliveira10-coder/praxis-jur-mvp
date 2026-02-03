@@ -39,7 +39,7 @@ export function LandingFooter() {
           {/* Bottom text */}
           <div className="mt-8 pt-8 border-t text-center">
             <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
-              Práxis AI é uma plataforma de produtividade para advogados.
+              Práxis AI é a plataforma completa para advogados: produção jurídica, gestão de processos e controle financeiro em um só lugar.
               As petições geradas devem ser revisadas pelo profissional responsável. 
               A utilização da plataforma não substitui o trabalho e a responsabilidade do advogado.
             </p>
