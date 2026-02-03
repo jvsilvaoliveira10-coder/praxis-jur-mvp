@@ -49,8 +49,8 @@ const ReceivableForm = () => {
     amount: '',
     due_date: '',
     receivable_type: 'honorario_contratual',
-    client_id: '',
-    case_id: '',
+    client_id: 'none',
+    case_id: 'none',
     recurrence: 'unico',
     notes: '',
   });
@@ -88,8 +88,8 @@ const ReceivableForm = () => {
             amount: String(data.amount) || '',
             due_date: data.due_date || '',
             receivable_type: data.receivable_type || 'honorario_contratual',
-            client_id: data.client_id || '',
-            case_id: data.case_id || '',
+            client_id: data.client_id || 'none',
+            case_id: data.case_id || 'none',
             recurrence: data.recurrence || 'unico',
             notes: data.notes || '',
           });
@@ -136,8 +136,8 @@ const ReceivableForm = () => {
       amount: parseFloat(form.amount.replace(',', '.')) || 0,
       due_date: form.due_date,
       receivable_type: form.receivable_type as 'honorario_contratual' | 'honorario_exito' | 'consulta' | 'acordo' | 'reembolso' | 'outros',
-      client_id: form.client_id || null,
-      case_id: form.case_id || null,
+      client_id: form.client_id && form.client_id !== 'none' ? form.client_id : null,
+      case_id: form.case_id && form.case_id !== 'none' ? form.case_id : null,
       recurrence: form.recurrence as 'unico' | 'semanal' | 'mensal' | 'trimestral' | 'anual',
       notes: form.notes || null,
       status: 'pendente' as const,
@@ -266,7 +266,7 @@ const ReceivableForm = () => {
                     <SelectValue placeholder="Selecione um cliente..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {clients.map((client) => (
                       <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
                     ))}
@@ -281,7 +281,7 @@ const ReceivableForm = () => {
                     <SelectValue placeholder="Selecione um processo..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {filteredCases.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.process_number || c.opposing_party}

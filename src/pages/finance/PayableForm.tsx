@@ -43,7 +43,7 @@ const PayableForm = () => {
     due_date: '',
     payable_type: 'outros',
     supplier_name: '',
-    case_id: '',
+    case_id: 'none',
     barcode: '',
     recurrence: 'unico',
     notes: '',
@@ -76,7 +76,7 @@ const PayableForm = () => {
             due_date: data.due_date || '',
             payable_type: data.payable_type || 'outros',
             supplier_name: data.supplier_name || '',
-            case_id: data.case_id || '',
+            case_id: data.case_id || 'none',
             barcode: data.barcode || '',
             recurrence: data.recurrence || 'unico',
             notes: data.notes || '',
@@ -121,7 +121,7 @@ const PayableForm = () => {
       due_date: form.due_date,
       payable_type: form.payable_type as 'custas_processuais' | 'aluguel' | 'software' | 'impostos' | 'funcionarios' | 'prolabore' | 'fornecedor' | 'outros',
       supplier_name: form.supplier_name || null,
-      case_id: form.case_id || null,
+      case_id: form.case_id && form.case_id !== 'none' ? form.case_id : null,
       barcode: form.barcode || null,
       recurrence: form.recurrence as 'unico' | 'semanal' | 'mensal' | 'trimestral' | 'anual',
       notes: form.notes || null,
@@ -261,7 +261,7 @@ const PayableForm = () => {
                     <SelectValue placeholder="Selecione um processo..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {cases.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.process_number || c.opposing_party}
