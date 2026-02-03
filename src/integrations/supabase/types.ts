@@ -145,6 +145,36 @@ export type Database = {
         }
         Relationships: []
       }
+      cost_centers: {
+        Row: {
+          code: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          user_id: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          user_id: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       deadlines: {
         Row: {
           case_id: string
@@ -197,6 +227,167 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fee_contracts: {
+        Row: {
+          auto_generate_receivables: boolean
+          billing_day: number | null
+          case_id: string | null
+          client_id: string
+          contract_name: string
+          contract_type: Database["public"]["Enums"]["contract_type"]
+          created_at: string
+          end_date: string | null
+          id: string
+          is_active: boolean
+          monthly_amount: number | null
+          notes: string | null
+          per_act_amount: number | null
+          start_date: string
+          success_fee_percentage: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_generate_receivables?: boolean
+          billing_day?: number | null
+          case_id?: string | null
+          client_id: string
+          contract_name: string
+          contract_type?: Database["public"]["Enums"]["contract_type"]
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          monthly_amount?: number | null
+          notes?: string | null
+          per_act_amount?: number | null
+          start_date: string
+          success_fee_percentage?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_generate_receivables?: boolean
+          billing_day?: number | null
+          case_id?: string | null
+          client_id?: string
+          contract_name?: string
+          contract_type?: Database["public"]["Enums"]["contract_type"]
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          monthly_amount?: number | null
+          notes?: string | null
+          per_act_amount?: number | null
+          start_date?: string
+          success_fee_percentage?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_contracts_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_accounts: {
+        Row: {
+          account_type: Database["public"]["Enums"]["account_type"]
+          bank_name: string | null
+          color: string | null
+          created_at: string
+          current_balance: number
+          id: string
+          initial_balance: number
+          is_active: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_type?: Database["public"]["Enums"]["account_type"]
+          bank_name?: string | null
+          color?: string | null
+          created_at?: string
+          current_balance?: number
+          id?: string
+          initial_balance?: number
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_type?: Database["public"]["Enums"]["account_type"]
+          bank_name?: string | null
+          color?: string | null
+          created_at?: string
+          current_balance?: number
+          id?: string
+          initial_balance?: number
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      financial_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          is_system: boolean
+          name: string
+          parent_id: string | null
+          type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_system?: boolean
+          name: string
+          parent_id?: string | null
+          type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_system?: boolean
+          name?: string
+          parent_id?: string | null
+          type?: Database["public"]["Enums"]["transaction_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
             referencedColumns: ["id"]
           },
         ]
@@ -452,6 +643,100 @@ export type Database = {
           },
         ]
       }
+      payables: {
+        Row: {
+          amount: number
+          amount_paid: number
+          barcode: string | null
+          case_id: string | null
+          category_id: string | null
+          created_at: string
+          description: string
+          due_date: string
+          id: string
+          installment_number: number | null
+          installments_total: number | null
+          notes: string | null
+          parent_payable_id: string | null
+          payable_type: Database["public"]["Enums"]["payable_type"]
+          payment_date: string | null
+          recurrence: Database["public"]["Enums"]["recurrence_type"]
+          recurrence_end_date: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          supplier_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          amount_paid?: number
+          barcode?: string | null
+          case_id?: string | null
+          category_id?: string | null
+          created_at?: string
+          description: string
+          due_date: string
+          id?: string
+          installment_number?: number | null
+          installments_total?: number | null
+          notes?: string | null
+          parent_payable_id?: string | null
+          payable_type?: Database["public"]["Enums"]["payable_type"]
+          payment_date?: string | null
+          recurrence?: Database["public"]["Enums"]["recurrence_type"]
+          recurrence_end_date?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          supplier_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          amount_paid?: number
+          barcode?: string | null
+          case_id?: string | null
+          category_id?: string | null
+          created_at?: string
+          description?: string
+          due_date?: string
+          id?: string
+          installment_number?: number | null
+          installments_total?: number | null
+          notes?: string | null
+          parent_payable_id?: string | null
+          payable_type?: Database["public"]["Enums"]["payable_type"]
+          payment_date?: string | null
+          recurrence?: Database["public"]["Enums"]["recurrence_type"]
+          recurrence_end_date?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          supplier_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payables_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payables_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payables_parent_payable_id_fkey"
+            columns: ["parent_payable_id"]
+            isOneToOne: false
+            referencedRelation: "payables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       petition_jurisprudence: {
         Row: {
           created_at: string
@@ -650,6 +935,104 @@ export type Database = {
         }
         Relationships: []
       }
+      receivables: {
+        Row: {
+          amount: number
+          amount_paid: number
+          case_id: string | null
+          category_id: string | null
+          client_id: string | null
+          created_at: string
+          description: string
+          due_date: string
+          id: string
+          installment_number: number | null
+          installments_total: number | null
+          notes: string | null
+          parent_receivable_id: string | null
+          payment_date: string | null
+          receivable_type: Database["public"]["Enums"]["receivable_type"]
+          recurrence: Database["public"]["Enums"]["recurrence_type"]
+          recurrence_end_date: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          amount_paid?: number
+          case_id?: string | null
+          category_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          description: string
+          due_date: string
+          id?: string
+          installment_number?: number | null
+          installments_total?: number | null
+          notes?: string | null
+          parent_receivable_id?: string | null
+          payment_date?: string | null
+          receivable_type?: Database["public"]["Enums"]["receivable_type"]
+          recurrence?: Database["public"]["Enums"]["recurrence_type"]
+          recurrence_end_date?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          amount_paid?: number
+          case_id?: string | null
+          category_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          description?: string
+          due_date?: string
+          id?: string
+          installment_number?: number | null
+          installments_total?: number | null
+          notes?: string | null
+          parent_receivable_id?: string | null
+          payment_date?: string | null
+          receivable_type?: Database["public"]["Enums"]["receivable_type"]
+          recurrence?: Database["public"]["Enums"]["recurrence_type"]
+          recurrence_end_date?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receivables_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receivables_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receivables_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receivables_parent_receivable_id_fkey"
+            columns: ["parent_receivable_id"]
+            isOneToOne: false
+            referencedRelation: "receivables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_jurisprudence: {
         Row: {
           created_at: string
@@ -825,6 +1208,89 @@ export type Database = {
           },
         ]
       }
+      transactions: {
+        Row: {
+          account_id: string | null
+          amount: number
+          category_id: string | null
+          created_at: string
+          description: string
+          id: string
+          is_confirmed: boolean
+          notes: string | null
+          payable_id: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          receivable_id: string | null
+          transaction_date: string
+          type: Database["public"]["Enums"]["transaction_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          category_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          is_confirmed?: boolean
+          notes?: string | null
+          payable_id?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          receivable_id?: string | null
+          transaction_date: string
+          type: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_confirmed?: boolean
+          notes?: string | null
+          payable_id?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          receivable_id?: string | null
+          transaction_date?: string
+          type?: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "financial_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_payable_id_fkey"
+            columns: ["payable_id"]
+            isOneToOne: false
+            referencedRelation: "payables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_receivable_id_fkey"
+            columns: ["receivable_id"]
+            isOneToOne: false
+            referencedRelation: "receivables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -850,6 +1316,7 @@ export type Database = {
       }
     }
     Enums: {
+      account_type: "banco" | "caixa" | "carteira_digital"
       action_type:
         | "obrigacao_de_fazer"
         | "cobranca"
@@ -865,6 +1332,7 @@ export type Database = {
         | "CPP"
         | "LEI"
         | "DECRETO"
+      contract_type: "mensal_fixo" | "por_ato" | "exito" | "misto"
       court_type: "STF" | "STJ" | "TST" | "TSE"
       deadline_type: "prazo_processual" | "audiencia" | "compromisso"
       marital_status:
@@ -874,6 +1342,24 @@ export type Database = {
         | "viuvo"
         | "uniao_estavel"
         | "separado"
+      payable_type:
+        | "custas_processuais"
+        | "aluguel"
+        | "software"
+        | "impostos"
+        | "funcionarios"
+        | "prolabore"
+        | "fornecedor"
+        | "outros"
+      payment_method:
+        | "pix"
+        | "boleto"
+        | "cartao_credito"
+        | "cartao_debito"
+        | "transferencia"
+        | "dinheiro"
+        | "cheque"
+      payment_status: "pendente" | "pago" | "atrasado" | "cancelado" | "parcial"
       petition_type: "peticao_inicial" | "contestacao" | "peticao_simples"
       piece_type:
         | "peticao_inicial"
@@ -885,7 +1371,16 @@ export type Database = {
         | "embargos"
         | "manifestacao"
         | "outros"
+      receivable_type:
+        | "honorario_contratual"
+        | "honorario_exito"
+        | "consulta"
+        | "acordo"
+        | "reembolso"
+        | "outros"
+      recurrence_type: "unico" | "semanal" | "mensal" | "trimestral" | "anual"
       sumula_status: "VIGENTE" | "CANCELADA" | "REVISADA"
+      transaction_type: "receita" | "despesa"
       user_role: "admin" | "advogado"
     }
     CompositeTypes: {
@@ -1014,6 +1509,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_type: ["banco", "caixa", "carteira_digital"],
       action_type: [
         "obrigacao_de_fazer",
         "cobranca",
@@ -1031,6 +1527,7 @@ export const Constants = {
         "LEI",
         "DECRETO",
       ],
+      contract_type: ["mensal_fixo", "por_ato", "exito", "misto"],
       court_type: ["STF", "STJ", "TST", "TSE"],
       deadline_type: ["prazo_processual", "audiencia", "compromisso"],
       marital_status: [
@@ -1041,6 +1538,26 @@ export const Constants = {
         "uniao_estavel",
         "separado",
       ],
+      payable_type: [
+        "custas_processuais",
+        "aluguel",
+        "software",
+        "impostos",
+        "funcionarios",
+        "prolabore",
+        "fornecedor",
+        "outros",
+      ],
+      payment_method: [
+        "pix",
+        "boleto",
+        "cartao_credito",
+        "cartao_debito",
+        "transferencia",
+        "dinheiro",
+        "cheque",
+      ],
+      payment_status: ["pendente", "pago", "atrasado", "cancelado", "parcial"],
       petition_type: ["peticao_inicial", "contestacao", "peticao_simples"],
       piece_type: [
         "peticao_inicial",
@@ -1053,7 +1570,17 @@ export const Constants = {
         "manifestacao",
         "outros",
       ],
+      receivable_type: [
+        "honorario_contratual",
+        "honorario_exito",
+        "consulta",
+        "acordo",
+        "reembolso",
+        "outros",
+      ],
+      recurrence_type: ["unico", "semanal", "mensal", "trimestral", "anual"],
       sumula_status: ["VIGENTE", "CANCELADA", "REVISADA"],
+      transaction_type: ["receita", "despesa"],
       user_role: ["admin", "advogado"],
     },
   },

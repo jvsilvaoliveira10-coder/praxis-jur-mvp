@@ -13,7 +13,8 @@ import {
   CalendarDays,
   BookTemplate,
   Search,
-  Radar
+  Radar,
+  Wallet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -41,9 +42,15 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
     { to: '/jurisprudence', icon: Search, label: 'Jurisprudência' },
     { to: '/tracking', icon: Radar, label: 'Acompanhamento' },
     { to: '/agenda', icon: CalendarDays, label: 'Agenda' },
+    { to: '/financeiro', icon: Wallet, label: 'Financeiro' },
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    if (path === '/financeiro') {
+      return location.pathname.startsWith('/financeiro');
+    }
+    return location.pathname === path;
+  };
 
   const handleNavClick = () => {
     if (onNavigate) {
