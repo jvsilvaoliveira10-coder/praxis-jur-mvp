@@ -203,17 +203,17 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
   // Mobile sidebar (inside Sheet - no fixed positioning)
   if (isMobile) {
     return (
-      <div className="h-full bg-sidebar text-sidebar-foreground flex flex-col">
-        {/* Logo */}
-        <div className="p-4 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <img src="/favicon.svg" alt="Práxis AI" className="w-10 h-10" />
-            <div className="overflow-hidden">
-              <h1 className="font-serif font-bold text-lg leading-tight">Práxis AI</h1>
-              <p className="text-xs text-sidebar-foreground/70">Hub Jurídico Inteligente</p>
-            </div>
+    <div className="h-full bg-sidebar text-sidebar-foreground flex flex-col">
+      {/* Logo - altura fixa de 72px para alinhar com TopHeader */}
+      <div className="h-[72px] px-4 flex items-center border-b border-sidebar-border">
+        <div className="flex items-center gap-3">
+          <img src="/favicon.svg" alt="Práxis AI" className="w-10 h-10" />
+          <div className="overflow-hidden">
+            <h1 className="font-serif font-bold text-lg leading-tight">Práxis AI</h1>
+            <p className="text-xs text-sidebar-foreground/70">Hub Jurídico Inteligente</p>
           </div>
         </div>
+      </div>
 
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-2 overflow-y-auto">
@@ -254,8 +254,8 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
         isCollapsed ? "w-16" : "w-64"
       )}
     >
-      {/* Logo */}
-      <div className="p-4 border-b border-sidebar-border">
+      {/* Logo - altura fixa de 72px para alinhar com TopHeader */}
+      <div className="h-[72px] px-4 flex items-center border-b border-sidebar-border">
         <div className="flex items-center gap-3">
           <img src="/favicon.svg" alt="Práxis AI" className="w-10 h-10" />
           {!isCollapsed && (
