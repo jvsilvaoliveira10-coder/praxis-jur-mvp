@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { 
   Wallet, 
   Receipt, 
@@ -7,13 +8,16 @@ import {
   FileSpreadsheet,
   ArrowRight,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  MousePointerClick
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useInView } from '@/hooks/useInView';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { ConfettiEffect } from './kanban-demo/ConfettiEffect';
 
 const benefits = [
   {
@@ -43,38 +47,42 @@ const benefits = [
 ];
 
 // Mockup data for financial dashboard
-const mockupMetrics = [
+const initialMetrics = [
   { 
+    id: 'receita',
     label: 'Receita do Mês', 
-    value: 'R$ 45.000', 
-    change: '+15.2%', 
+    value: 45000, 
+    change: 15.2, 
     positive: true,
     icon: ArrowUpRight,
     bgColor: 'bg-green-500/10',
     textColor: 'text-green-600'
   },
   { 
+    id: 'despesas',
     label: 'Despesas do Mês', 
-    value: 'R$ 18.000', 
-    change: '+3.5%', 
+    value: 18000, 
+    change: 3.5, 
     positive: false,
     icon: ArrowDownRight,
     bgColor: 'bg-destructive/10',
     textColor: 'text-destructive'
   },
   { 
+    id: 'lucro',
     label: 'Lucro Líquido', 
-    value: 'R$ 27.000', 
-    change: '+28.4%', 
+    value: 27000, 
+    change: 28.4, 
     positive: true,
     icon: ArrowUpRight,
     bgColor: 'bg-green-500/10',
     textColor: 'text-green-600'
   },
   { 
+    id: 'saldo',
     label: 'Saldo Total', 
-    value: 'R$ 85.000', 
-    change: '+12.1%', 
+    value: 85000, 
+    change: 12.1, 
     positive: true,
     icon: ArrowUpRight,
     bgColor: 'bg-primary/10',
@@ -82,24 +90,109 @@ const mockupMetrics = [
   },
 ];
 
-// Mini chart bars
-const chartBars = [
-  { height: 40, revenue: true },
-  { height: 25, revenue: false },
-  { height: 55, revenue: true },
-  { height: 30, revenue: false },
-  { height: 70, revenue: true },
-  { height: 35, revenue: false },
-  { height: 60, revenue: true },
-  { height: 28, revenue: false },
-  { height: 80, revenue: true },
-  { height: 40, revenue: false },
-  { height: 75, revenue: true },
-  { height: 32, revenue: false },
+// Mini chart bars - revenues and expenses alternating
+const generateChartBars = () => [
+  { height: 40, isRevenue: true, month: 0 },
+  { height: 25, isRevenue: false, month: 0 },
+  { height: 55, isRevenue: true, month: 1 },
+  { height: 30, isRevenue: false, month: 1 },
+  { height: 70, isRevenue: true, month: 2 },
+  { height: 35, isRevenue: false, month: 2 },
+  { height: 60, isRevenue: true, month: 3 },
+  { height: 28, isRevenue: false, month: 3 },
+  { height: 80, isRevenue: true, month: 4 },
+  { height: 40, isRevenue: false, month: 4 },
+  { height: 75, isRevenue: true, month: 5 },
+  { height: 32, isRevenue: false, month: 5 },
 ];
 
 export function FinanceSection() {
   const { ref, isInView } = useInView({ threshold: 0.2 });
+  const { toast } = useToast();
+  const [metrics, setMetrics] = useState(initialMetrics);
+  const [chartBars, setChartBars] = useState(generateChartBars);
+  const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [interactionCount, setInteractionCount] = useState(0);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const handleMetricClick = useCallback((metricId: string) => {
+    setSelectedMetric(prev => prev === metricId ? null : metricId);
+    
+    // Simulate adding a value
+    setMetrics(prev => prev.map(metric => {
+      if (metric.id === metricId) {
+        const increase = Math.floor(Math.random() * 5000) + 1000;
+        const newValue = metric.id === 'despesas' 
+          ? metric.value + increase 
+          : metric.value + increase;
+        
+        return {
+          ...metric,
+          value: newValue,
+          change: metric.change + (Math.random() * 2),
+        };
+      }
+      return metric;
+    }));
+
+    // Recalculate lucro
+    setMetrics(prev => {
+      const receita = prev.find(m => m.id === 'receita')?.value || 0;
+      const despesas = prev.find(m => m.id === 'despesas')?.value || 0;
+      return prev.map(metric => {
+        if (metric.id === 'lucro') {
+          return { ...metric, value: receita - despesas };
+        }
+        if (metric.id === 'saldo') {
+          return { ...metric, value: metric.value + Math.floor(Math.random() * 2000) };
+        }
+        return metric;
+      });
+    });
+
+    setInteractionCount(prev => prev + 1);
+    
+    const metric = metrics.find(m => m.id === metricId);
+    toast({
+      title: `📊 ${metric?.label}`,
+      description: "Valor atualizado! Clique novamente para simular mais.",
+    });
+
+    // Show confetti on 3rd interaction
+    if (interactionCount === 2) {
+      setShowConfetti(true);
+      toast({
+        title: "🎉 Você está pegando o jeito!",
+        description: "Assim funciona o controle financeiro em tempo real.",
+      });
+    }
+  }, [metrics, toast, interactionCount]);
+
+  const handleBarClick = useCallback((index: number) => {
+    setChartBars(prev => prev.map((bar, i) => {
+      if (i === index) {
+        const newHeight = Math.min(95, bar.height + Math.floor(Math.random() * 15) + 5);
+        return { ...bar, height: newHeight };
+      }
+      return bar;
+    }));
+
+    const bar = chartBars[index];
+    toast({
+      title: bar.isRevenue ? "💰 Receita aumentou!" : "📉 Despesa registrada",
+      description: bar.isRevenue 
+        ? "Novo pagamento de honorários recebido" 
+        : "Custo operacional lançado",
+    });
+  }, [chartBars, toast]);
 
   return (
     <section id="financeiro" className="py-20 bg-green-500/5 scroll-mt-16">
@@ -172,49 +265,51 @@ export function FinanceSection() {
               </Button>
             </div>
 
-            {/* Mockup do Dashboard */}
+            {/* Interactive Dashboard Mockup */}
             <div 
               className={cn(
                 'order-1 lg:order-2 transition-all duration-700 delay-300',
                 isInView ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
               )}
             >
-              <div className="bg-card border rounded-xl p-4 shadow-lg">
+              <div className="bg-card border rounded-xl p-4 shadow-lg relative">
+                <ConfettiEffect show={showConfetti} onComplete={() => setShowConfetti(false)} />
+                
                 {/* Metrics Grid */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  {mockupMetrics.map((metric, index) => (
-                    <div 
-                      key={index}
+                  {metrics.map((metric) => (
+                    <button
+                      key={metric.id}
+                      onClick={() => handleMetricClick(metric.id)}
                       className={cn(
-                        'rounded-lg p-3 border',
-                        metric.bgColor
+                        'rounded-lg p-3 border text-left transition-all duration-200 hover:scale-105 cursor-pointer',
+                        metric.bgColor,
+                        selectedMetric === metric.id && 'ring-2 ring-primary'
                       )}
                     >
                       <p className="text-xs text-muted-foreground mb-1">{metric.label}</p>
-                      <p className="text-lg font-bold text-foreground">{metric.value}</p>
+                      <p className="text-lg font-bold text-foreground">{formatCurrency(metric.value)}</p>
                       <div className={cn('flex items-center gap-1 text-xs', metric.textColor)}>
                         <metric.icon className="w-3 h-3" />
-                        <span>{metric.change}</span>
+                        <span>+{metric.change.toFixed(1)}%</span>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
 
-                {/* Mini Chart */}
+                {/* Interactive Chart */}
                 <div className="bg-muted/30 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground mb-3">Receitas vs Despesas</p>
+                  <p className="text-xs text-muted-foreground mb-3">Receitas vs Despesas (clique nas barras)</p>
                   <div className="flex items-end justify-between gap-1 h-20">
                     {chartBars.map((bar, index) => (
-                      <div 
+                      <button
                         key={index}
+                        onClick={() => handleBarClick(index)}
                         className={cn(
-                          'flex-1 rounded-t transition-all duration-500',
-                          bar.revenue ? 'bg-green-500' : 'bg-destructive/60'
+                          'flex-1 rounded-t transition-all duration-300 hover:opacity-80 cursor-pointer',
+                          bar.isRevenue ? 'bg-green-500 hover:bg-green-400' : 'bg-destructive/60 hover:bg-destructive/50'
                         )}
-                        style={{ 
-                          height: `${bar.height}%`,
-                          transitionDelay: `${index * 50}ms`
-                        }}
+                        style={{ height: `${bar.height}%` }}
                       />
                     ))}
                   </div>
@@ -235,6 +330,12 @@ export function FinanceSection() {
                     <div className="w-2 h-2 rounded-full bg-destructive/60" />
                     <span>Despesas</span>
                   </div>
+                </div>
+
+                {/* Instruction */}
+                <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg py-2">
+                  <MousePointerClick className="w-4 h-4" />
+                  <span>Experimente! Clique nos cards e barras</span>
                 </div>
               </div>
             </div>
