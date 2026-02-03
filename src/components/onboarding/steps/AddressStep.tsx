@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MapPin, Loader2 } from 'lucide-react';
+import { MapPin, Loader2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface AddressStepProps {
@@ -66,114 +66,127 @@ const AddressStep = ({ data, onChange }: AddressStepProps) => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-          <MapPin className="w-8 h-8 text-primary" />
+    <div className="space-y-6 max-w-lg">
+      {/* CEP */}
+      <div className="space-y-2">
+        <Label htmlFor="address_zip" className="text-sm font-medium flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-muted-foreground" />
+          CEP
+        </Label>
+        <div className="flex gap-3">
+          <Input
+            id="address_zip"
+            placeholder="00000-000"
+            value={data.address_zip}
+            onChange={(e) => handleCEPChange(e.target.value)}
+            maxLength={9}
+            className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors flex-1"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={searchCEP}
+            disabled={loadingCep || data.address_zip.replace(/\D/g, '').length !== 8}
+            className="h-12 px-4 rounded-xl"
+          >
+            {loadingCep ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Search className="w-4 h-4" />
+            )}
+          </Button>
         </div>
-        <h2 className="text-xl font-semibold text-foreground">Endereço Comercial</h2>
-        <p className="text-muted-foreground mt-1">
-          Informe a localização do seu escritório
-        </p>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex gap-2">
-          <div className="flex-1 space-y-2">
-            <Label htmlFor="address_zip">CEP</Label>
-            <Input
-              id="address_zip"
-              placeholder="00000-000"
-              value={data.address_zip}
-              onChange={(e) => handleCEPChange(e.target.value)}
-              maxLength={9}
-            />
-          </div>
-          <div className="flex items-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={searchCEP}
-              disabled={loadingCep || data.address_zip.replace(/\D/g, '').length !== 8}
-            >
-              {loadingCep ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                'Buscar'
-              )}
-            </Button>
-          </div>
-        </div>
+      {/* Street */}
+      <div className="space-y-2">
+        <Label htmlFor="address_street" className="text-sm font-medium text-muted-foreground">
+          Logradouro
+        </Label>
+        <Input
+          id="address_street"
+          placeholder="Rua, Avenida, etc."
+          value={data.address_street}
+          onChange={(e) => onChange('address_street', e.target.value)}
+          className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
+        />
+      </div>
 
+      {/* Number & Complement */}
+      <div className="grid grid-cols-3 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="address_street">Logradouro</Label>
+          <Label htmlFor="address_number" className="text-sm font-medium text-muted-foreground">
+            Número
+          </Label>
           <Input
-            id="address_street"
-            placeholder="Rua, Avenida, etc."
-            value={data.address_street}
-            onChange={(e) => onChange('address_street', e.target.value)}
+            id="address_number"
+            placeholder="123"
+            value={data.address_number}
+            onChange={(e) => onChange('address_number', e.target.value)}
+            className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
           />
         </div>
-
-        <div className="grid grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="address_number">Número</Label>
-            <Input
-              id="address_number"
-              placeholder="123"
-              value={data.address_number}
-              onChange={(e) => onChange('address_number', e.target.value)}
-            />
-          </div>
-          <div className="col-span-2 space-y-2">
-            <Label htmlFor="address_complement">Complemento</Label>
-            <Input
-              id="address_complement"
-              placeholder="Sala 101, Bloco A"
-              value={data.address_complement}
-              onChange={(e) => onChange('address_complement', e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="address_neighborhood">Bairro</Label>
+        <div className="col-span-2 space-y-2">
+          <Label htmlFor="address_complement" className="text-sm font-medium text-muted-foreground">
+            Complemento
+          </Label>
           <Input
-            id="address_neighborhood"
-            placeholder="Centro"
-            value={data.address_neighborhood}
-            onChange={(e) => onChange('address_neighborhood', e.target.value)}
+            id="address_complement"
+            placeholder="Sala 101, Bloco A"
+            value={data.address_complement}
+            onChange={(e) => onChange('address_complement', e.target.value)}
+            className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
           />
         </div>
+      </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div className="col-span-2 space-y-2">
-            <Label htmlFor="address_city">Cidade</Label>
-            <Input
-              id="address_city"
-              placeholder="São Paulo"
-              value={data.address_city}
-              onChange={(e) => onChange('address_city', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="address_state">Estado</Label>
-            <Select
-              value={data.address_state}
-              onValueChange={(value) => onChange('address_state', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="UF" />
-              </SelectTrigger>
-              <SelectContent>
-                {brazilianStates.map((state) => (
-                  <SelectItem key={state} value={state}>
-                    {state}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      {/* Neighborhood */}
+      <div className="space-y-2">
+        <Label htmlFor="address_neighborhood" className="text-sm font-medium text-muted-foreground">
+          Bairro
+        </Label>
+        <Input
+          id="address_neighborhood"
+          placeholder="Centro"
+          value={data.address_neighborhood}
+          onChange={(e) => onChange('address_neighborhood', e.target.value)}
+          className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
+        />
+      </div>
+
+      {/* City & State */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="col-span-2 space-y-2">
+          <Label htmlFor="address_city" className="text-sm font-medium text-muted-foreground">
+            Cidade
+          </Label>
+          <Input
+            id="address_city"
+            placeholder="São Paulo"
+            value={data.address_city}
+            onChange={(e) => onChange('address_city', e.target.value)}
+            className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="address_state" className="text-sm font-medium text-muted-foreground">
+            Estado
+          </Label>
+          <Select
+            value={data.address_state}
+            onValueChange={(value) => onChange('address_state', value)}
+          >
+            <SelectTrigger className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors">
+              <SelectValue placeholder="UF" />
+            </SelectTrigger>
+            <SelectContent>
+              {brazilianStates.map((state) => (
+                <SelectItem key={state} value={state}>
+                  {state}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </div>

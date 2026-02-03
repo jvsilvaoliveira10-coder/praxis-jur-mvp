@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building2, Upload, Mail, Globe, X } from 'lucide-react';
+import { Building2, Upload, Mail, Globe, X, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDropzone } from 'react-dropzone';
 import { cn } from '@/lib/utils';
@@ -62,117 +62,123 @@ const FirmDataStep = ({ data, onChange, onLogoUpload }: FirmDataStepProps) => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Building2 className="w-8 h-8 text-primary" />
-        </div>
-        <h2 className="text-xl font-semibold text-foreground">Dados do Escritório</h2>
-        <p className="text-muted-foreground mt-1">
-          Configure a identidade do seu escritório
-        </p>
+    <div className="space-y-6 max-w-lg">
+      {/* Logo Upload */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium flex items-center gap-2">
+          <ImageIcon className="w-4 h-4 text-muted-foreground" />
+          Logo do Escritório
+        </Label>
+        {previewUrl ? (
+          <div className="relative inline-block">
+            <div className="w-28 h-28 rounded-2xl border-2 border-border overflow-hidden bg-muted/50 shadow-sm">
+              <img
+                src={previewUrl}
+                alt="Logo preview"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="destructive"
+              size="icon"
+              className="absolute -top-2 -right-2 w-7 h-7 rounded-full shadow-lg"
+              onClick={removeLogo}
+            >
+              <X className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        ) : (
+          <div
+            {...getRootProps()}
+            className={cn(
+              "border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-200",
+              isDragActive 
+                ? "border-primary bg-primary/5 scale-[1.02]" 
+                : "border-border/50 hover:border-primary/50 hover:bg-muted/30"
+            )}
+          >
+            <input {...getInputProps()} />
+            <div className="w-14 h-14 rounded-xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
+              <Upload className="w-6 h-6 text-muted-foreground" />
+            </div>
+            {uploading ? (
+              <p className="text-sm text-muted-foreground">Enviando...</p>
+            ) : isDragActive ? (
+              <p className="text-sm text-primary font-medium">Solte a imagem aqui</p>
+            ) : (
+              <>
+                <p className="text-sm text-foreground font-medium">
+                  Arraste uma imagem ou clique para selecionar
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  PNG, JPG, SVG ou WebP (máx. 5MB)
+                </p>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
-      <div className="space-y-4">
-        {/* Logo Upload */}
-        <div className="space-y-2">
-          <Label>Logo do Escritório</Label>
-          {previewUrl ? (
-            <div className="relative inline-block">
-              <div className="w-32 h-32 rounded-lg border-2 border-border overflow-hidden bg-muted">
-                <img
-                  src={previewUrl}
-                  alt="Logo preview"
-                  className="w-full h-full object-contain"
-                />
-              </div>
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                className="absolute -top-2 -right-2 w-6 h-6"
-                onClick={removeLogo}
-              >
-                <X className="w-3 h-3" />
-              </Button>
-            </div>
-          ) : (
-            <div
-              {...getRootProps()}
-              className={cn(
-                "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
-                isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"
-              )}
-            >
-              <input {...getInputProps()} />
-              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-              {uploading ? (
-                <p className="text-sm text-muted-foreground">Enviando...</p>
-              ) : isDragActive ? (
-                <p className="text-sm text-primary">Solte a imagem aqui</p>
-              ) : (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    Arraste uma imagem ou clique para selecionar
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    PNG, JPG, SVG ou WebP (máx. 5MB)
-                  </p>
-                </>
-              )}
-            </div>
-          )}
-        </div>
+      {/* Firm Name */}
+      <div className="space-y-2">
+        <Label htmlFor="firm_name" className="text-sm font-medium flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-muted-foreground" />
+          Nome do Escritório
+        </Label>
+        <Input
+          id="firm_name"
+          placeholder="Silva & Associados Advocacia"
+          value={data.firm_name}
+          onChange={(e) => onChange('firm_name', e.target.value)}
+          className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
+        />
+      </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="firm_name">Nome do Escritório</Label>
-          <Input
-            id="firm_name"
-            placeholder="Silva & Associados Advocacia"
-            value={data.firm_name}
-            onChange={(e) => onChange('firm_name', e.target.value)}
-          />
-        </div>
+      {/* CNPJ */}
+      <div className="space-y-2">
+        <Label htmlFor="cnpj" className="text-sm font-medium text-muted-foreground">
+          CNPJ (opcional)
+        </Label>
+        <Input
+          id="cnpj"
+          placeholder="00.000.000/0001-00"
+          value={data.cnpj}
+          onChange={(e) => onChange('cnpj', formatCNPJ(e.target.value))}
+          maxLength={18}
+          className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
+        />
+      </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="cnpj">CNPJ (opcional)</Label>
-          <Input
-            id="cnpj"
-            placeholder="00.000.000/0001-00"
-            value={data.cnpj}
-            onChange={(e) => onChange('cnpj', formatCNPJ(e.target.value))}
-            maxLength={18}
-          />
-        </div>
+      {/* Email */}
+      <div className="space-y-2">
+        <Label htmlFor="email" className="text-sm font-medium flex items-center gap-2">
+          <Mail className="w-4 h-4 text-muted-foreground" />
+          E-mail Comercial
+        </Label>
+        <Input
+          id="email"
+          type="email"
+          placeholder="contato@escritorio.com.br"
+          value={data.email}
+          onChange={(e) => onChange('email', e.target.value)}
+          className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
+        />
+      </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="email">E-mail Comercial</Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              id="email"
-              type="email"
-              className="pl-10"
-              placeholder="contato@escritorio.com.br"
-              value={data.email}
-              onChange={(e) => onChange('email', e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="website">Website (opcional)</Label>
-          <div className="relative">
-            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              id="website"
-              className="pl-10"
-              placeholder="https://www.escritorio.com.br"
-              value={data.website}
-              onChange={(e) => onChange('website', e.target.value)}
-            />
-          </div>
-        </div>
+      {/* Website */}
+      <div className="space-y-2">
+        <Label htmlFor="website" className="text-sm font-medium flex items-center gap-2">
+          <Globe className="w-4 h-4 text-muted-foreground" />
+          Website (opcional)
+        </Label>
+        <Input
+          id="website"
+          placeholder="https://www.escritorio.com.br"
+          value={data.website}
+          onChange={(e) => onChange('website', e.target.value)}
+          className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
+        />
       </div>
     </div>
   );
