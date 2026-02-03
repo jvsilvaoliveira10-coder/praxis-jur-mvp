@@ -1,458 +1,545 @@
 
-# Plano Completo: Modulo Financeiro Funcional + Sidebar Reorganizado
+# Plano: Modulo Financeiro Profissional 360 + Central de Relatorios
+
+## Visao Geral
+
+Transformacao completa do modulo financeiro atual em uma ferramenta profissional de gestao financeira para escritorios de advocacia, com dashboard avancado, controles gerenciais completos, e duas centrais de relatorios: uma para o juridico e outra para o financeiro.
+
+---
 
 ## Diagnostico do Estado Atual
 
-### O que foi implementado
-- Dashboard financeiro com cards de estatisticas e graficos
-- Componentes visuais (FinanceStatsCard, CashFlowChart, RevenueExpenseChart, etc)
-- Tipos TypeScript completos (src/types/finance.ts)
-- Tabelas no banco de dados (receivables, payables, transactions, fee_contracts, financial_accounts, financial_categories, cost_centers)
-- RLS policies configuradas
+### O que ja existe e funciona
+- Dashboard com 4 cards de metricas (Receita, Despesa, Saldo, Atrasado)
+- 2 graficos basicos (Fluxo de Caixa e Receitas vs Despesas)
+- Lista de proximos vencimentos e transacoes recentes
+- CRUD de Contas a Receber com filtros e modal de recebimento
+- CRUD de Contas a Pagar com filtros e modal de pagamento
+- Extrato de transacoes com lancamento manual
+- Contratos de honorarios com listagem e formulario
+- Configuracoes (Contas Bancarias, Categorias, Centros de Custo)
+- Sidebar organizado em categorias (Juridico/Financeiro)
 
-### O que esta faltando
-1. **Rotas nao existem** - Apenas `/financeiro` esta configurado em App.tsx
-2. **Paginas nao existem** - Apenas FinanceDashboard.tsx foi criado
-3. **Formularios nao existem** - Nao ha CRUD para nenhuma entidade financeira
-4. **Sidebar esta linear** - Nao ha agrupamento por categorias pai
+### O que precisa ser melhorado
+1. **Dashboard basico demais** - precisa de mais metricas, indicadores e graficos
+2. **Sem relatorios** - nao ha DRE, analise por cliente, fluxo de caixa projetado
+3. **Sem integracao com juridico** - receitas/despesas nao conectadas a processos/clientes de forma visual
+4. **Sem alertas visuais** - inadimplencia nao destacada
+5. **Sem projecoes** - nao ha fluxo de caixa futuro
+6. **Sem comparativos** - nao ha analise periodo x periodo
 
 ---
 
-## Parte 1: Reorganizacao do Sidebar
+## Parte 1: Dashboard Financeiro Avancado
 
-### Nova Estrutura de Navegacao
+### Nova Estrutura de Cards (8 metricas)
 
 ```text
-+---------------------------+
-|  PRAXIS AI                |
-+---------------------------+
-|                           |
-|  [v] Juridico             |  <- Categoria pai colapsavel
-|     - Dashboard           |
-|     - Clientes            |
-|     - Processos           |
-|     - Peticoes            |
-|     - Modelos             |
-|     - Jurisprudencia      |
-|     - Acompanhamento      |
-|     - Agenda              |
-|                           |
-|  [v] Financeiro           |  <- Categoria pai colapsavel
-|     - Painel              |
-|     - Contas a Receber    |
-|     - Contas a Pagar      |
-|     - Extrato             |
-|     - Contratos           |
-|     - Configuracoes       |
-|                           |
-+---------------------------+
-|  Usuario                  |
-|  [Sair]                   |
-+---------------------------+
++------------+  +------------+  +------------+  +------------+
+|  Receita   |  |  Despesas  |  |  Lucro     |  |  Saldo     |
+|  do Mes    |  |  do Mes    |  |  Liquido   |  |  Total     |
+| R$ 45.000  |  | R$ 18.000  |  | R$ 27.000  |  | R$ 85.000  |
+|  +15.2%    |  |  +3.5%     |  |  +28.4%    |  |  +12.1%    |
++------------+  +------------+  +------------+  +------------+
+
++------------+  +------------+  +------------+  +------------+
+|  A Receber |  |  A Pagar   |  | Inadimplen |  | Honorarios |
+|  Pendente  |  |  Pendente  |  | cia (>30d) |  | Recorrente |
+| R$ 32.000  |  | R$ 8.500   |  | R$ 5.200   |  | R$ 28.000  |
+|  12 itens  |  |  5 itens   |  |  3 clientes|  |  8 ativos  |
++------------+  +------------+  +------------+  +------------+
 ```
 
-### Arquivos a Modificar
-- `src/components/layout/Sidebar.tsx` - Reescrever com categorias colapsaveis
+### Novos Graficos
 
-### Comportamento
-- Categorias iniciam abertas
-- Clique na categoria abre/fecha
-- Estado de aberto/fechado persiste durante a sessao
-- Indicador visual quando ha itens ativos dentro da categoria fechada
+1. **Fluxo de Caixa Projetado (12 meses)**
+   - Linha de receitas previstas (receivables pendentes)
+   - Linha de despesas previstas (payables pendentes)
+   - Area de saldo projetado
+   - Alerta visual quando saldo projetar negativo
 
----
+2. **Distribuicao por Categoria**
+   - Pizza de despesas por categoria
+   - Pizza de receitas por tipo (honorarios, consultas, etc)
 
-## Parte 2: Paginas Financeiras a Criar
+3. **Analise de Inadimplencia**
+   - Barra empilhada: 1-15 dias, 16-30 dias, 31-60 dias, >60 dias
+   - Lista de clientes inadimplentes com valores
 
-### 2.1 Contas a Receber
+4. **Comparativo Mensal**
+   - Barras lado a lado: mes atual vs mes anterior
+   - Indicador de crescimento/queda
 
-#### Listagem (`/financeiro/receber`)
-**Arquivo:** `src/pages/finance/Receivables.tsx`
+5. **Top 5 Clientes por Receita**
+   - Ranking com barra de progresso
+   - Valor total e percentual do faturamento
 
-**Funcionalidades:**
-- Tabela com todos os recebiveis do usuario
-- Filtros: status, periodo, cliente, tipo de recebivel
-- Busca por descricao
-- Indicadores visuais de status (cores)
-- Acoes: editar, excluir, marcar como pago
-- Totalizadores: total pendente, total atrasado
+6. **Evolucao do Patrimonio**
+   - Linha temporal do saldo total das contas
+   - Ultimos 12 meses
 
-**Colunas:**
-| Coluna | Descricao |
-|--------|-----------|
-| Descricao | Texto do recebivel |
-| Cliente | Nome do cliente (se vinculado) |
-| Tipo | honorario_contratual, consulta, etc |
-| Valor | Formatado em R$ |
-| Vencimento | Data formatada |
-| Status | Badge colorido |
-| Acoes | Editar, Excluir, Receber |
+### Alertas Visuais no Dashboard
 
-#### Formulario (`/financeiro/receber/novo` e `/financeiro/receber/:id/editar`)
-**Arquivo:** `src/pages/finance/ReceivableForm.tsx`
-
-**Campos:**
-- Descricao (obrigatorio)
-- Tipo de recebivel (select)
-- Valor (number, obrigatorio)
-- Data de vencimento (date picker, obrigatorio)
-- Cliente (select opcional, busca clientes existentes)
-- Processo (select opcional, filtra por cliente selecionado)
-- Categoria (select de financial_categories tipo receita)
-- Recorrencia (unico, mensal, trimestral, anual)
-- Data fim recorrencia (se recorrencia != unico)
-- Parcelamento (checkbox + numero de parcelas)
-- Observacoes (textarea)
+- **Alerta Vermelho**: Contas vencidas ha mais de 7 dias
+- **Alerta Amarelo**: Contas vencendo nos proximos 3 dias
+- **Alerta Azul**: Fluxo de caixa projetado negativo
+- **Alerta Verde**: Meta de receita atingida
 
 ---
 
-### 2.2 Contas a Pagar
+## Parte 2: Melhorias nas Listagens Existentes
 
-#### Listagem (`/financeiro/pagar`)
-**Arquivo:** `src/pages/finance/Payables.tsx`
+### Contas a Receber - Melhorias
 
-**Funcionalidades:**
-- Tabela com todos os pagaveis do usuario
-- Filtros: status, periodo, fornecedor, tipo
-- Busca por descricao ou fornecedor
-- Indicadores visuais de status
-- Acoes: editar, excluir, marcar como pago
+1. **Novos filtros**:
+   - Por periodo (data inicio/fim)
+   - Por valor (minimo/maximo)
+   - Por tipo de recebivel
+   - Por processo vinculado
 
-**Colunas:**
-| Coluna | Descricao |
-|--------|-----------|
-| Descricao | Texto da despesa |
-| Fornecedor | Nome do fornecedor |
-| Tipo | custas_processuais, aluguel, etc |
-| Valor | Formatado em R$ |
-| Vencimento | Data formatada |
-| Status | Badge colorido |
-| Acoes | Editar, Excluir, Pagar |
+2. **Agrupamento visual**:
+   - Agrupar por cliente
+   - Agrupar por mes de vencimento
+   - Agrupar por status
 
-#### Formulario (`/financeiro/pagar/novo` e `/financeiro/pagar/:id/editar`)
-**Arquivo:** `src/pages/finance/PayableForm.tsx`
+3. **Acoes em lote**:
+   - Selecionar multiplos e marcar como pagos
+   - Exportar selecionados para Excel/PDF
 
-**Campos:**
-- Descricao (obrigatorio)
-- Tipo de despesa (select)
-- Fornecedor/Credor (texto)
-- Valor (number, obrigatorio)
-- Data de vencimento (date picker, obrigatorio)
-- Processo (select opcional - para custas processuais)
-- Categoria (select de financial_categories tipo despesa)
-- Codigo de barras (texto para boletos)
-- Recorrencia (unico, mensal, trimestral, anual)
-- Observacoes (textarea)
+4. **Indicadores na linha**:
+   - Dias de atraso (badge vermelho)
+   - Processo vinculado (link clicavel)
+   - Cliente vinculado (link clicavel)
 
----
+### Contas a Pagar - Melhorias
 
-### 2.3 Extrato/Transacoes
+1. **Calendario de pagamentos**:
+   - Visualizacao em calendario
+   - Cores por status
 
-#### Listagem (`/financeiro/extrato`)
-**Arquivo:** `src/pages/finance/Transactions.tsx`
+2. **Novos campos**:
+   - Anexar comprovante de pagamento
+   - Numero da nota fiscal
+   - Centro de custo obrigatorio para analise
 
-**Funcionalidades:**
-- Lista de todas as movimentacoes reais
-- Filtros: periodo, conta, tipo (receita/despesa)
-- Totalizadores: entradas, saidas, saldo do periodo
-- Indicador de transacao confirmada
-- Modal para novo lancamento manual
+3. **Alertas de vencimento**:
+   - Notificacao no dashboard
+   - Badge de "vence hoje" / "vencido"
 
-**Colunas:**
-| Coluna | Descricao |
-|--------|-----------|
-| Data | Data da transacao |
-| Descricao | Texto |
-| Tipo | Receita ou Despesa |
-| Conta | Conta bancaria |
-| Forma Pgto | PIX, boleto, etc |
-| Valor | Formatado com sinal |
-| Confirmado | Check se conciliado |
+### Extrato - Melhorias
 
-#### Modal de Lancamento
-**Arquivo:** `src/components/finance/TransactionModal.tsx`
+1. **Filtro por conta bancaria**
+2. **Conciliacao bancaria**:
+   - Marcar como conciliado
+   - Comparar com extrato importado (futuro)
 
-**Campos:**
-- Tipo (receita ou despesa)
-- Descricao
-- Valor
-- Data
-- Conta
-- Forma de pagamento
-- Vincular a recebivel/pagavel existente (opcional)
-- Observacoes
+3. **Totalizadores por periodo**:
+   - Saldo inicial
+   - Total de entradas
+   - Total de saidas
+   - Saldo final
 
 ---
 
-### 2.4 Contratos de Honorarios
+## Parte 3: Central de Relatorios Financeiros
 
-#### Listagem (`/financeiro/contratos`)
-**Arquivo:** `src/pages/finance/FeeContracts.tsx`
+### Nova Pagina: `/financeiro/relatorios`
 
-**Funcionalidades:**
-- Lista de contratos de honorarios
-- Filtros: ativos/inativos, cliente
-- Valor mensal recorrente total
-- Acoes: editar, desativar, gerar recebiveis
+**Arquivo**: `src/pages/finance/FinanceReports.tsx`
 
-**Colunas:**
-| Coluna | Descricao |
-|--------|-----------|
-| Nome | Nome do contrato |
-| Cliente | Nome do cliente |
-| Tipo | mensal_fixo, exito, por_ato |
-| Valor Mensal | Se aplicavel |
-| Dia Vencimento | 1-31 |
-| Status | Ativo/Inativo |
-| Acoes | Editar, Desativar |
+### Relatorios Disponiveis
 
-#### Formulario (`/financeiro/contratos/novo` e `/financeiro/contratos/:id/editar`)
-**Arquivo:** `src/pages/finance/FeeContractForm.tsx`
+#### 1. DRE Simplificado (Demonstrativo de Resultado)
+```text
++----------------------------------------+
+| RECEITA BRUTA                          |
+|   Honorarios Contratuais    R$ 35.000  |
+|   Honorarios de Exito       R$ 12.000  |
+|   Consultas                 R$  3.000  |
+| = RECEITA TOTAL             R$ 50.000  |
++----------------------------------------+
+| DEDUCOES                               |
+|   Impostos (ISS)            R$  2.500  |
+| = RECEITA LIQUIDA           R$ 47.500  |
++----------------------------------------+
+| DESPESAS OPERACIONAIS                  |
+|   Pessoal                   R$ 15.000  |
+|   Aluguel                   R$  5.000  |
+|   Software                  R$  1.200  |
+|   Custas Processuais        R$  3.800  |
+|   Outros                    R$  2.000  |
+| = TOTAL DESPESAS            R$ 27.000  |
++----------------------------------------+
+| = RESULTADO OPERACIONAL     R$ 20.500  |
++----------------------------------------+
+```
 
-**Campos:**
-- Nome do contrato (obrigatorio)
-- Cliente (select obrigatorio)
-- Processo (select opcional)
-- Tipo de contrato (mensal_fixo, por_ato, exito, misto)
-- Valor mensal (se tipo inclui mensalidade)
-- Percentual de exito (se tipo inclui exito)
-- Valor por ato (se tipo inclui por_ato)
-- Dia de vencimento (1-31)
-- Data inicio (obrigatorio)
-- Data fim (opcional)
-- Gerar recebiveis automaticamente (checkbox)
-- Observacoes
+#### 2. Fluxo de Caixa Realizado vs Projetado
+- Tabela mensal com valores realizados e previstos
+- Grafico comparativo
+- Desvio percentual
 
----
+#### 3. Analise por Cliente
+- Ranking de clientes por faturamento
+- Historico de pagamentos por cliente
+- Tempo medio de recebimento por cliente
+- Inadimplencia por cliente
 
-### 2.5 Configuracoes Financeiras
+#### 4. Analise por Processo
+- Receitas vinculadas ao processo
+- Custas processuais do processo
+- Saldo: receita - custas
+- ROI por processo
 
-#### Pagina (`/financeiro/config`)
-**Arquivo:** `src/pages/finance/FinanceSettings.tsx`
+#### 5. Relatorio de Inadimplencia
+- Lista de clientes com valores em atraso
+- Aging: 1-15, 16-30, 31-60, >60 dias
+- Valor total por faixa
+- Acoes sugeridas
 
-**Secoes em Tabs:**
+#### 6. Relatorio de Custas Processuais
+- Despesas por processo
+- Comparativo com receitas do mesmo processo
+- Processos mais custosos
 
-**Tab 1: Contas Bancarias**
-- Lista de contas
-- Botao adicionar
-- Editar inline ou modal
-- Campos: nome, tipo, banco, saldo inicial, cor, ativo
+#### 7. Receita Recorrente (MRR)
+- Contratos ativos com valor mensal
+- Projecao de receita recorrente
+- Churn (contratos encerrados)
 
-**Tab 2: Categorias**
-- Lista hierarquica (receitas e despesas)
-- Botao adicionar
-- Editar inline
-- Campos: nome, tipo, cor, icone
+#### 8. Comparativo de Periodos
+- Selecionar dois periodos
+- Comparar receitas, despesas, lucro
+- Variacao percentual
 
-**Tab 3: Centros de Custo**
-- Lista de centros
-- Botao adicionar
-- Campos: nome, codigo, descricao, ativo
+### Funcionalidades Comuns
 
----
-
-## Parte 3: Componentes Auxiliares
-
-### Modais de Acao Rapida
-
-#### QuickPaymentModal
-**Arquivo:** `src/components/finance/QuickPaymentModal.tsx`
-
-Para registrar recebimento/pagamento sem navegar:
-- Valor a pagar/receber
-- Conta destino
-- Forma de pagamento
-- Data do pagamento
-- Cria transacao e atualiza status
-
-#### QuickReceivableModal
-**Arquivo:** `src/components/finance/QuickReceivableModal.tsx`
-
-Criar recebivel rapidamente do dashboard:
-- Campos essenciais
-- Redirect para listagem apos salvar
-
-### Seletores
-
-#### ClientSelector
-**Arquivo:** `src/components/finance/ClientSelector.tsx`
-
-Combobox com busca para selecionar cliente
-
-#### CaseSelector
-**Arquivo:** `src/components/finance/CaseSelector.tsx`
-
-Combobox com busca, filtra por cliente se selecionado
-
-#### CategorySelector
-**Arquivo:** `src/components/finance/CategorySelector.tsx`
-
-Select com categorias agrupadas por tipo
+1. **Filtros por periodo**: Hoje, Semana, Mes, Trimestre, Ano, Personalizado
+2. **Exportacao**:
+   - PDF (usando jsPDF existente)
+   - CSV/Excel
+3. **Impressao direta**
+4. **Salvar como favorito**
 
 ---
 
-## Parte 4: Rotas a Adicionar
+## Parte 4: Central de Relatorios Juridicos
 
-**Arquivo:** `src/App.tsx`
+### Nova Pagina: `/relatorios`
+
+**Arquivo**: `src/pages/LegalReports.tsx`
+
+### Relatorios Disponiveis
+
+#### 1. Clientes Cadastrados
+- Lista de clientes por periodo
+- Tipo (PF/PJ)
+- Quantidade de processos por cliente
+
+#### 2. Processos por Periodo
+- Novos processos abertos
+- Processos por tipo de acao
+- Processos por tribunal
+- Processos por status
+
+#### 3. Producao de Peticoes
+- Peticoes geradas por periodo
+- Por tipo de peticao
+- Por processo
+- Por advogado (futuro multi-usuario)
+
+#### 4. Prazos e Audiencias
+- Agenda da semana/mes
+- Prazos cumpridos vs perdidos
+- Audiencias realizadas
+
+#### 5. Acompanhamento de Processos
+- Processos com movimentacao recente
+- Processos sem movimentacao (inativos)
+- Alertas de novos andamentos
+
+#### 6. Relatorio de Atendimentos
+- Clientes atendidos na semana
+- Consultas realizadas
+- Tempo medio de resposta
+
+#### 7. Desempenho Geral
+- Dashboard consolidado
+- Indicadores de produtividade
+- Metas vs realizado
+
+### Funcionalidades Comuns
+
+1. **Filtros por periodo**
+2. **Exportacao PDF/CSV**
+3. **Impressao direta**
+
+---
+
+## Parte 5: Integracao Financeiro + Juridico
+
+### Na Pagina de Cliente
+
+Adicionar aba "Financeiro" mostrando:
+- Total recebido do cliente
+- Valor em aberto
+- Historico de pagamentos
+- Contratos de honorarios vinculados
+- Botao "Criar Nova Receita" pre-preenchido
+
+### Na Pagina de Processo
+
+Adicionar aba "Custos" mostrando:
+- Custas processuais lancadas
+- Honorarios recebidos
+- Saldo do processo (receita - custo)
+- Botao "Adicionar Custo" pre-preenchido
+
+### No Dashboard Principal
+
+Adicionar card "Resumo Financeiro":
+- Receita do mes
+- Despesas do mes
+- Link para dashboard financeiro
+
+---
+
+## Parte 6: Componentes a Criar
+
+### Graficos Novos
+```text
+src/components/finance/charts/
+  - ProjectedCashFlowChart.tsx     (fluxo projetado 12 meses)
+  - CategoryDistributionChart.tsx  (pizza de categorias)
+  - OverdueAnalysisChart.tsx       (inadimplencia por faixa)
+  - MonthlyComparisonChart.tsx     (comparativo mensal)
+  - TopClientsChart.tsx            (ranking de clientes)
+  - BalanceEvolutionChart.tsx      (evolucao patrimonial)
+```
+
+### Cards Avancados
+```text
+src/components/finance/cards/
+  - FinanceMetricCard.tsx          (card com sparkline)
+  - AlertCard.tsx                  (alertas visuais)
+  - ClientRankingCard.tsx          (ranking com barras)
+  - OverdueClientsCard.tsx         (lista de inadimplentes)
+```
+
+### Relatorios
+```text
+src/components/finance/reports/
+  - DREReport.tsx                  (demonstrativo de resultado)
+  - CashFlowReport.tsx             (fluxo de caixa)
+  - ClientAnalysisReport.tsx       (analise por cliente)
+  - ProcessCostReport.tsx          (custos por processo)
+  - OverdueReport.tsx              (inadimplencia)
+  - ReportFilters.tsx              (filtros reutilizaveis)
+  - ReportExporter.tsx             (exportacao PDF/CSV)
+```
+
+### Relatorios Juridicos
+```text
+src/components/legal/reports/
+  - ClientsReport.tsx              (clientes cadastrados)
+  - CasesReport.tsx                (processos por periodo)
+  - PetitionsReport.tsx            (producao de peticoes)
+  - DeadlinesReport.tsx            (prazos e audiencias)
+  - PerformanceReport.tsx          (desempenho geral)
+```
+
+---
+
+## Parte 7: Paginas a Criar
+
+| Pagina | Rota | Descricao |
+|--------|------|-----------|
+| FinanceReports | /financeiro/relatorios | Central de relatorios financeiros |
+| LegalReports | /relatorios | Central de relatorios juridicos |
+
+---
+
+## Parte 8: Rotas a Adicionar
 
 ```text
-Novas rotas dentro do MainLayout:
+No Sidebar (Juridico):
+  - Relatorios (/relatorios) - novo item
 
-/financeiro                         -> FinanceDashboard (ja existe)
-/financeiro/receber                 -> Receivables
-/financeiro/receber/novo            -> ReceivableForm
-/financeiro/receber/:id/editar      -> ReceivableForm
-/financeiro/pagar                   -> Payables
-/financeiro/pagar/novo              -> PayableForm
-/financeiro/pagar/:id/editar        -> PayableForm
-/financeiro/extrato                 -> Transactions
-/financeiro/contratos               -> FeeContracts
-/financeiro/contratos/novo          -> FeeContractForm
-/financeiro/contratos/:id/editar    -> FeeContractForm
-/financeiro/config                  -> FinanceSettings
+No Sidebar (Financeiro):
+  - Relatorios (/financeiro/relatorios) - novo item
+
+Em App.tsx:
+  - /relatorios -> LegalReports
+  - /financeiro/relatorios -> FinanceReports
 ```
 
 ---
 
-## Parte 5: Arquivos a Criar
+## Parte 9: Melhorias de UX/UI
 
-### Paginas (14 arquivos)
+### Dashboard Financeiro
 
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/pages/finance/Receivables.tsx` | Listagem de contas a receber |
-| `src/pages/finance/ReceivableForm.tsx` | Formulario de recebivel |
-| `src/pages/finance/Payables.tsx` | Listagem de contas a pagar |
-| `src/pages/finance/PayableForm.tsx` | Formulario de despesa |
-| `src/pages/finance/Transactions.tsx` | Extrato/lancamentos |
-| `src/pages/finance/FeeContracts.tsx` | Listagem de contratos |
-| `src/pages/finance/FeeContractForm.tsx` | Formulario de contrato |
-| `src/pages/finance/FinanceSettings.tsx` | Configuracoes (contas, categorias) |
+1. **Layout responsivo melhorado**
+   - 4 cards na primeira linha (metricas principais)
+   - 4 cards na segunda linha (metricas secundarias)
+   - 2 graficos grandes (fluxo de caixa e comparativo)
+   - 2 graficos menores (categorias e inadimplencia)
+   - 2 listas (proximos vencimentos e top clientes)
 
-### Componentes (6 arquivos)
+2. **Filtro de periodo global**
+   - Dropdown no topo: Hoje, 7 dias, 30 dias, 90 dias, Ano, Personalizado
+   - Afeta todos os cards e graficos
 
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/components/finance/QuickPaymentModal.tsx` | Modal para pagar/receber rapido |
-| `src/components/finance/TransactionModal.tsx` | Modal para novo lancamento |
-| `src/components/finance/ClientSelector.tsx` | Combobox de clientes |
-| `src/components/finance/CaseSelector.tsx` | Combobox de processos |
-| `src/components/finance/CategorySelector.tsx` | Select de categorias |
-| `src/components/finance/FinanceFilters.tsx` | Filtros reutilizaveis |
+3. **Acoes rapidas flutuantes**
+   - Botao FAB com: Nova Receita, Nova Despesa, Novo Lancamento
 
-### Modificacoes (2 arquivos)
+### Alertas Inteligentes
 
-| Arquivo | Modificacao |
-|---------|-------------|
-| `src/App.tsx` | Adicionar todas as rotas financeiras |
-| `src/components/layout/Sidebar.tsx` | Reescrever com categorias colapsaveis |
+1. **Toast de aviso** ao entrar no dashboard se houver:
+   - Contas vencidas
+   - Fluxo de caixa projetado negativo
+
+2. **Badge de notificacao** no menu lateral:
+   - Numero de itens pendentes
 
 ---
 
-## Parte 6: Fluxos de Usuario
+## Parte 10: Exportacao de Relatorios
 
-### Fluxo: Registrar Nova Receita
-1. Usuario clica em "Nova Receita" no dashboard
-2. Navega para `/financeiro/receber/novo`
-3. Preenche formulario com dados
-4. Seleciona cliente (opcional)
-5. Clica em "Salvar"
-6. Recebivel criado com status "pendente"
-7. Redirect para listagem
+### PDF (usando jsPDF existente)
 
-### Fluxo: Receber Pagamento
-1. Na listagem de recebiveis, usuario clica em "Receber"
-2. Abre modal QuickPaymentModal
-3. Confirma valor, conta e forma de pagamento
-4. Sistema cria transacao vinculada
-5. Atualiza status do recebivel para "pago"
-6. Atualiza saldo da conta
+Criar utilitario melhorado:
+```text
+src/lib/pdf-report-export.ts
+  - generateDREPdf()
+  - generateCashFlowPdf()
+  - generateClientReportPdf()
+  - generateGenericTablePdf()
+```
 
-### Fluxo: Pagar Conta
-1. Na listagem de pagaveis, usuario clica em "Pagar"
-2. Abre modal QuickPaymentModal
-3. Confirma dados
-4. Sistema cria transacao de saida
-5. Atualiza status do pagavel para "pago"
-6. Atualiza saldo da conta (trigger existente)
+### CSV/Excel
+
+Criar utilitario:
+```text
+src/lib/csv-export.ts
+  - exportToCSV(data, filename)
+  - exportToExcel(data, filename) - usando biblioteca simples
+```
 
 ---
 
-## Parte 7: Fases de Implementacao
+## Parte 11: Fases de Implementacao
 
-### Fase 1: Sidebar Reorganizado
-1. Reescrever Sidebar.tsx com categorias colapsaveis
-2. Testar navegacao em desktop e mobile
+### Fase 1: Dashboard Avancado (Prioridade Alta)
+1. Criar novos cards de metricas (8 ao total)
+2. Criar grafico de fluxo de caixa projetado
+3. Criar grafico de distribuicao por categoria
+4. Criar card de inadimplencia
+5. Adicionar filtro de periodo global
+6. Melhorar layout responsivo
 
-### Fase 2: Rotas e Estrutura Base
-3. Adicionar todas as rotas em App.tsx
-4. Criar paginas placeholder para evitar erros 404
+### Fase 2: Melhorias nas Listagens (Prioridade Alta)
+7. Adicionar filtros avancados em Receivables
+8. Adicionar agrupamento visual
+9. Adicionar indicadores de atraso
+10. Adicionar acoes em lote
 
-### Fase 3: Contas a Receber (Core)
-5. Implementar Receivables.tsx (listagem)
-6. Implementar ReceivableForm.tsx (formulario)
-7. Testar CRUD completo
+### Fase 3: Central de Relatorios Financeiros (Prioridade Alta)
+11. Criar pagina FinanceReports
+12. Implementar DRE
+13. Implementar Fluxo de Caixa
+14. Implementar Analise por Cliente
+15. Adicionar exportacao PDF/CSV
 
-### Fase 4: Contas a Pagar (Core)
-8. Implementar Payables.tsx (listagem)
-9. Implementar PayableForm.tsx (formulario)
-10. Testar CRUD completo
+### Fase 4: Central de Relatorios Juridicos (Prioridade Media)
+16. Criar pagina LegalReports
+17. Implementar Relatorio de Clientes
+18. Implementar Relatorio de Processos
+19. Implementar Relatorio de Peticoes
+20. Adicionar exportacao PDF/CSV
 
-### Fase 5: Acoes de Pagamento
-11. Implementar QuickPaymentModal
-12. Integrar com listagens
-13. Testar fluxo de pagamento/recebimento
+### Fase 5: Integracoes (Prioridade Media)
+21. Adicionar aba Financeiro em Clientes
+22. Adicionar aba Custos em Processos
+23. Adicionar card financeiro no Dashboard juridico
 
-### Fase 6: Extrato
-14. Implementar Transactions.tsx
-15. Implementar TransactionModal
-16. Testar lancamentos manuais
+### Fase 6: Polimento (Prioridade Baixa)
+24. Alertas inteligentes
+25. Badges de notificacao
+26. Botoes de acao rapida (FAB)
+27. Testes end-to-end
 
-### Fase 7: Contratos de Honorarios
-17. Implementar FeeContracts.tsx
-18. Implementar FeeContractForm.tsx
-19. Testar criacao de contratos
+---
 
-### Fase 8: Configuracoes
-20. Implementar FinanceSettings.tsx com tabs
-21. CRUD de contas bancarias
-22. CRUD de categorias
-23. Testar configuracoes
+## Arquivos a Criar
+
+### Paginas (2)
+- `src/pages/finance/FinanceReports.tsx`
+- `src/pages/LegalReports.tsx`
+
+### Componentes de Graficos (6)
+- `src/components/finance/charts/ProjectedCashFlowChart.tsx`
+- `src/components/finance/charts/CategoryDistributionChart.tsx`
+- `src/components/finance/charts/OverdueAnalysisChart.tsx`
+- `src/components/finance/charts/MonthlyComparisonChart.tsx`
+- `src/components/finance/charts/TopClientsChart.tsx`
+- `src/components/finance/charts/BalanceEvolutionChart.tsx`
+
+### Componentes de Relatorios (8)
+- `src/components/finance/reports/DREReport.tsx`
+- `src/components/finance/reports/CashFlowReport.tsx`
+- `src/components/finance/reports/ClientAnalysisReport.tsx`
+- `src/components/finance/reports/OverdueReport.tsx`
+- `src/components/finance/reports/ReportFilters.tsx`
+- `src/components/finance/reports/ReportExporter.tsx`
+- `src/components/legal/reports/CasesReport.tsx`
+- `src/components/legal/reports/PetitionsReport.tsx`
+
+### Utilitarios (2)
+- `src/lib/pdf-report-export.ts`
+- `src/lib/csv-export.ts`
+
+### Modificacoes
+- `src/pages/finance/FinanceDashboard.tsx` - Dashboard avancado
+- `src/pages/finance/Receivables.tsx` - Filtros avancados
+- `src/pages/finance/Payables.tsx` - Filtros avancados
+- `src/components/layout/Sidebar.tsx` - Adicionar item Relatorios
+- `src/App.tsx` - Adicionar rotas de relatorios
 
 ---
 
 ## Consideracoes Tecnicas
 
-### Padrao de Codigo
-- Seguir estrutura de ClientForm.tsx para formularios
-- Seguir estrutura de Clients.tsx para listagens
-- Usar componentes shadcn/ui existentes
-- Validacao com Zod
-- Toast para feedback
+### Performance
+- Queries otimizadas com indices
+- Paginacao em relatorios grandes
+- Cache de metricas do dashboard (React Query)
+- Lazy loading de graficos pesados
 
 ### Seguranca
-- Todas as queries incluem user_id implicitamente via RLS
-- Validar dados antes de enviar ao banco
-- Nao expor IDs em URLs desnecessariamente
-
-### Performance
-- Paginacao em listagens com muitos registros
-- Loading states em todas as operacoes
-- Queries paralelas onde possivel
+- RLS em todas as queries
+- Validacao de periodo (nao permitir futuro distante)
+- Sanitizacao de dados em exportacoes
 
 ### Responsividade
-- Mobile: Cards ao inves de tabelas
-- Desktop: Tabelas com todas as colunas
-- Modais adaptaveis ao tamanho da tela
+- Mobile: Cards empilhados, graficos simplificados
+- Tablet: 2 colunas de cards
+- Desktop: Layout completo
+
+### Acessibilidade
+- Cores com contraste adequado
+- Tooltips descritivos
+- Labels em graficos
 
 ---
 
 ## Resultado Esperado
 
-1. **Sidebar organizado** - Duas categorias pai claras (Juridico e Financeiro)
-2. **CRUD completo** - Criar, ler, atualizar e excluir para todas as entidades
-3. **Fluxo de pagamento** - Registrar pagamentos e recebimentos facilmente
-4. **Contratos funcionais** - Gerenciar honorarios recorrentes
-5. **Configuracoes acessiveis** - Gerenciar contas e categorias
-6. **Zero erros 404** - Todas as rotas funcionando
-7. **MVP pronto para producao** - Modulo financeiro completo e utilizavel
+1. **Dashboard profissional** - 8+ metricas, 6+ graficos, alertas visuais
+2. **Controle 360** - Visao completa das financas do escritorio
+3. **Relatorios financeiros** - DRE, fluxo de caixa, analises por cliente/processo
+4. **Relatorios juridicos** - Producao, clientes, processos, prazos
+5. **Exportacao** - PDF e CSV para todos os relatorios
+6. **Integracao** - Financeiro conectado a clientes e processos
+7. **Alertas** - Notificacoes de vencimentos e inadimplencia
+8. **Ferramenta completa** - Tudo em um so lugar para o advogado
