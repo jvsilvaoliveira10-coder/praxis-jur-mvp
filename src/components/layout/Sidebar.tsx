@@ -21,6 +21,7 @@ import {
   Receipt,
   FileSignature,
   Settings,
+  BarChart3,
   LucideIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -72,6 +73,7 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
         { to: '/jurisprudence', icon: Search, label: 'Jurisprudência' },
         { to: '/tracking', icon: Radar, label: 'Acompanhamento' },
         { to: '/agenda', icon: CalendarDays, label: 'Agenda' },
+        { to: '/relatorios', icon: BarChart3, label: 'Relatórios' },
       ],
     },
     {
@@ -84,6 +86,7 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
         { to: '/financeiro/pagar', icon: ArrowUpCircle, label: 'Contas a Pagar' },
         { to: '/financeiro/extrato', icon: Receipt, label: 'Extrato' },
         { to: '/financeiro/contratos', icon: FileSignature, label: 'Contratos' },
+        { to: '/financeiro/relatorios', icon: BarChart3, label: 'Relatórios' },
         { to: '/financeiro/config', icon: Settings, label: 'Configurações' },
       ],
     },

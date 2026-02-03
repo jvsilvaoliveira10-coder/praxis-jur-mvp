@@ -33,6 +33,10 @@ import Transactions from "./pages/finance/Transactions";
 import FeeContracts from "./pages/finance/FeeContracts";
 import FeeContractForm from "./pages/finance/FeeContractForm";
 import FinanceSettings from "./pages/finance/FinanceSettings";
+import FinanceReports from "./pages/finance/FinanceReports";
+
+// Legal Reports
+import LegalReports from "./pages/LegalReports";
 
 // Layout
 import MainLayout from "./components/layout/MainLayout";
@@ -71,6 +75,7 @@ const App = () => (
               <Route path="/agenda/:id/edit" element={<DeadlineForm />} />
               <Route path="/jurisprudence" element={<Jurisprudence />} />
               <Route path="/tracking" element={<Tracking />} />
+              <Route path="/relatorios" element={<LegalReports />} />
               
               {/* Finance routes */}
               <Route path="/financeiro" element={<FinanceDashboard />} />
@@ -85,6 +90,7 @@ const App = () => (
               <Route path="/financeiro/contratos/novo" element={<FeeContractForm />} />
               <Route path="/financeiro/contratos/:id/editar" element={<FeeContractForm />} />
               <Route path="/financeiro/config" element={<FinanceSettings />} />
+              <Route path="/financeiro/relatorios" element={<FinanceReports />} />
             </Route>
             
             {/* Catch-all */}
