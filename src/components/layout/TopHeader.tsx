@@ -84,32 +84,32 @@ const TopHeader = () => {
   };
 
   return (
-    <header className="h-16 border-b border-border bg-background flex items-center justify-between px-6">
+    <header className="sticky top-0 z-40 h-[72px] border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 flex items-center justify-between px-4 md:px-6">
       {/* Left side - Page title and breadcrumb */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-0">
         {parentRoute && (
           <>
             <button
               onClick={() => navigate(parentRoute.path)}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
             >
               {parentRoute.title}
             </button>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground hidden sm:block flex-shrink-0" />
           </>
         )}
-        <h1 className="text-lg font-semibold text-foreground">{pageTitle}</h1>
+        <h1 className="text-base md:text-lg font-semibold text-foreground truncate">{pageTitle}</h1>
       </div>
 
       {/* Right side - Search, notifications, avatar */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
         {/* Global Search */}
-        <div className="relative hidden md:block">
+        <div className="relative hidden lg:block">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Buscar clientes, processos..."
-            className="pl-9 w-64 lg:w-80 h-9 bg-muted/50 border-0 focus-visible:ring-1"
+            className="pl-9 w-48 xl:w-72 h-9 bg-muted/50 border-0 focus-visible:ring-1"
           />
         </div>
 
