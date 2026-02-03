@@ -10,9 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, FileText, Briefcase } from 'lucide-react';
+import { Save, FileText, Briefcase, User, Gavel, Scale, Users } from 'lucide-react';
 import { z } from 'zod';
 import DocumentsTab from '@/components/documents/DocumentsTab';
+import PremiumFormHeader from '@/components/forms/PremiumFormHeader';
 
 const caseSchema = z.object({
   client_id: z.string().min(1, 'Selecione um cliente'),
@@ -139,62 +140,55 @@ const CaseForm = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-2xl">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/cases')}>
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-serif font-bold text-foreground">
-            {isEdit ? 'Editar Processo' : 'Novo Processo'}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {isEdit ? 'Atualize os dados do processo' : 'Cadastre um novo processo'}
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fade-in max-w-2xl mx-auto">
+      <PremiumFormHeader
+        icon={<Briefcase className="w-6 h-6 text-primary" />}
+        title={isEdit ? 'Editar Processo' : 'Novo Processo'}
+        subtitle={isEdit ? 'Atualize os dados do processo judicial' : 'Cadastre um novo processo judicial'}
+        backPath="/cases"
+      />
 
       {isEdit ? (
         <Tabs defaultValue="dados" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="dados" className="gap-2">
+          <TabsList className="grid w-full grid-cols-2 h-12 rounded-xl bg-muted/50">
+            <TabsTrigger value="dados" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Briefcase className="w-4 h-4" />
               Dados do Processo
             </TabsTrigger>
-            <TabsTrigger value="documentos" className="gap-2">
+            <TabsTrigger value="documentos" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <FileText className="w-4 h-4" />
               Documentos
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="dados" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Dados do Processo</CardTitle>
+          <TabsContent value="dados" className="mt-6">
+            <Card className="card-premium">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg">Dados do Processo</CardTitle>
                 <CardDescription>
                   Preencha as informações do processo judicial
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-5">
                   {renderFormFields()}
                 </form>
               </CardContent>
             </Card>
           </TabsContent>
-          <TabsContent value="documentos" className="mt-4">
+          <TabsContent value="documentos" className="mt-6">
             <DocumentsTab caseId={id} />
           </TabsContent>
         </Tabs>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Dados do Processo</CardTitle>
+        <Card className="card-premium">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Dados do Processo</CardTitle>
             <CardDescription>
               Preencha as informações do processo judicial
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {renderFormFields()}
             </form>
           </CardContent>
@@ -207,12 +201,15 @@ const CaseForm = () => {
     return (
       <>
         <div className="space-y-2">
-          <Label htmlFor="client_id">Cliente</Label>
+          <Label className="label-premium">
+            <User className="w-4 h-4 text-muted-foreground" />
+            Cliente <span className="text-destructive">*</span>
+          </Label>
           <Select 
             value={form.client_id} 
             onValueChange={(v) => setForm({ ...form, client_id: v })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="select-premium">
               <SelectValue placeholder="Selecione o cliente" />
             </SelectTrigger>
             <SelectContent>
@@ -227,7 +224,7 @@ const CaseForm = () => {
           {clients.length === 0 && (
             <p className="text-sm text-muted-foreground">
               Nenhum cliente cadastrado.{' '}
-              <Button variant="link" className="p-0 h-auto" onClick={() => navigate('/clients/new')}>
+              <Button variant="link" className="p-0 h-auto text-primary" onClick={() => navigate('/clients/new')}>
                 Cadastre um cliente primeiro.
               </Button>
             </p>
@@ -235,33 +232,44 @@ const CaseForm = () => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="process_number">Número do Processo (opcional)</Label>
+          <Label className="label-premium">
+            <FileText className="w-4 h-4 text-muted-foreground" />
+            Número do Processo <span className="text-muted-foreground text-xs">(opcional)</span>
+          </Label>
           <Input
             id="process_number"
             placeholder="0000000-00.0000.0.00.0000"
             value={form.process_number}
             onChange={(e) => setForm({ ...form, process_number: e.target.value })}
+            className="input-premium"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="court">Vara / Comarca</Label>
+          <Label className="label-premium">
+            <Gavel className="w-4 h-4 text-muted-foreground" />
+            Vara / Comarca <span className="text-destructive">*</span>
+          </Label>
           <Input
             id="court"
             placeholder="1ª Vara Cível - Comarca de São Paulo"
             value={form.court}
             onChange={(e) => setForm({ ...form, court: e.target.value })}
+            className="input-premium"
           />
           {errors.court && <p className="text-sm text-destructive">{errors.court}</p>}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="action_type">Tipo de Ação</Label>
+          <Label className="label-premium">
+            <Scale className="w-4 h-4 text-muted-foreground" />
+            Tipo de Ação <span className="text-destructive">*</span>
+          </Label>
           <Select 
             value={form.action_type} 
             onValueChange={(v) => setForm({ ...form, action_type: v as ActionType })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="select-premium">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -275,22 +283,35 @@ const CaseForm = () => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="opposing_party">Parte Contrária</Label>
+          <Label className="label-premium">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            Parte Contrária <span className="text-destructive">*</span>
+          </Label>
           <Input
             id="opposing_party"
             placeholder="Nome da parte contrária"
             value={form.opposing_party}
             onChange={(e) => setForm({ ...form, opposing_party: e.target.value })}
+            className="input-premium"
           />
           {errors.opposing_party && <p className="text-sm text-destructive">{errors.opposing_party}</p>}
         </div>
 
-        <div className="flex gap-3 pt-4">
-          <Button type="submit" disabled={loading || clients.length === 0}>
+        <div className="flex gap-3 pt-6">
+          <Button 
+            type="submit" 
+            disabled={loading || clients.length === 0}
+            className="btn-premium flex-1"
+          >
             <Save className="w-4 h-4 mr-2" />
-            {loading ? 'Salvando...' : 'Salvar'}
+            {loading ? 'Salvando...' : 'Salvar Processo'}
           </Button>
-          <Button type="button" variant="outline" onClick={() => navigate('/cases')}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => navigate('/cases')}
+            className="h-11 px-6 rounded-xl"
+          >
             Cancelar
           </Button>
         </div>
