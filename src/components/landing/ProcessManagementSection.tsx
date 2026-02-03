@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { 
   Kanban, 
   ListChecks, 
@@ -8,10 +9,23 @@ import {
   Flag
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { 
+  DndContext, 
+  DragEndEvent, 
+  DragOverlay,
+  DragStartEvent,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  TouchSensor,
+  closestCenter
+} from '@dnd-kit/core';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useInView } from '@/hooks/useInView';
 import { cn } from '@/lib/utils';
+import { KanbanColumn } from './kanban-demo/KanbanColumn';
+import { KanbanCard } from './kanban-demo/KanbanCard';
 
 const benefits = [
   {
@@ -40,45 +54,148 @@ const benefits = [
   },
 ];
 
-// Mockup data for Kanban board
-const mockupColumns = [
+export interface CardData {
+  id: string;
+  name: string;
+  priority: string;
+  priorityColor: string;
+}
+
+export interface ColumnData {
+  id: string;
+  name: string;
+  color: string;
+  cards: CardData[];
+}
+
+const initialColumns: ColumnData[] = [
   { 
+    id: 'consulta',
     name: 'Consulta', 
-    count: 3, 
     color: 'hsl(var(--primary))',
     cards: [
-      { name: 'Maria S.', priority: 'Alta', priorityColor: 'bg-destructive' },
-      { name: 'Carlos R.', priority: 'Média', priorityColor: 'bg-yellow-500' },
+      { id: 'card-1', name: 'Maria S.', priority: 'Alta', priorityColor: 'bg-destructive' },
+      { id: 'card-2', name: 'Carlos R.', priority: 'Média', priorityColor: 'bg-yellow-500' },
     ]
   },
   { 
+    id: 'documentacao',
     name: 'Documentação', 
-    count: 2, 
     color: 'hsl(199 89% 48%)',
     cards: [
-      { name: 'João P.', priority: 'Média', priorityColor: 'bg-yellow-500' },
+      { id: 'card-3', name: 'João P.', priority: 'Média', priorityColor: 'bg-yellow-500' },
     ]
   },
   { 
+    id: 'protocolado',
     name: 'Protocolado', 
-    count: 4, 
     color: 'hsl(142 76% 36%)',
     cards: [
-      { name: 'Empresa ABC', priority: 'Baixa', priorityColor: 'bg-muted-foreground' },
+      { id: 'card-4', name: 'Empresa ABC', priority: 'Baixa', priorityColor: 'bg-muted-foreground' },
     ]
   },
   { 
+    id: 'encerrado',
     name: 'Encerrado', 
-    count: 8, 
     color: 'hsl(var(--muted-foreground))',
     cards: [
-      { name: 'Pedro R.', priority: 'Baixa', priorityColor: 'bg-muted-foreground' },
+      { id: 'card-5', name: 'Pedro R.', priority: 'Baixa', priorityColor: 'bg-muted-foreground' },
     ]
   },
 ];
 
 export function ProcessManagementSection() {
   const { ref, isInView } = useInView({ threshold: 0.2 });
+  const [columns, setColumns] = useState<ColumnData[]>(initialColumns);
+  const [activeCard, setActiveCard] = useState<CardData | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 100,
+        tolerance: 5,
+      },
+    })
+  );
+
+  const findCardColumn = (cardId: string): string | null => {
+    for (const column of columns) {
+      if (column.cards.some(card => card.id === cardId)) {
+        return column.id;
+      }
+    }
+    return null;
+  };
+
+  const findCard = (cardId: string): CardData | null => {
+    for (const column of columns) {
+      const card = column.cards.find(c => c.id === cardId);
+      if (card) return card;
+    }
+    return null;
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const card = findCard(event.active.id as string);
+    setActiveCard(card);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveCard(null);
+
+    if (!over) return;
+
+    const activeCardId = active.id as string;
+    const overId = over.id as string;
+
+    // Find source column
+    const sourceColumnId = findCardColumn(activeCardId);
+    if (!sourceColumnId) return;
+
+    // Determine target column
+    let targetColumnId: string;
+    
+    // Check if dropped over a column
+    const isOverColumn = columns.some(col => col.id === overId);
+    if (isOverColumn) {
+      targetColumnId = overId;
+    } else {
+      // Dropped over a card - find its column
+      const cardColumn = findCardColumn(overId);
+      if (!cardColumn) return;
+      targetColumnId = cardColumn;
+    }
+
+    // If same column, do nothing for now
+    if (sourceColumnId === targetColumnId) return;
+
+    // Move card between columns
+    setColumns(prevColumns => {
+      const newColumns = prevColumns.map(col => ({
+        ...col,
+        cards: [...col.cards]
+      }));
+
+      const sourceCol = newColumns.find(c => c.id === sourceColumnId);
+      const targetCol = newColumns.find(c => c.id === targetColumnId);
+
+      if (!sourceCol || !targetCol) return prevColumns;
+
+      const cardIndex = sourceCol.cards.findIndex(c => c.id === activeCardId);
+      if (cardIndex === -1) return prevColumns;
+
+      const [movedCard] = sourceCol.cards.splice(cardIndex, 1);
+      targetCol.cards.push(movedCard);
+
+      return newColumns;
+    });
+  };
 
   return (
     <section id="gestao-processos" className="py-20 bg-muted/30 scroll-mt-16">
@@ -118,7 +235,7 @@ export function ProcessManagementSection() {
 
           {/* Content Grid */}
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Mockup do Kanban */}
+            {/* Interactive Kanban */}
             <div 
               className={cn(
                 'transition-all duration-700 delay-200',
@@ -126,58 +243,44 @@ export function ProcessManagementSection() {
               )}
             >
               <div className="bg-card border rounded-xl p-4 shadow-lg">
-                <div className="flex gap-3 overflow-x-auto pb-2">
-                  {mockupColumns.map((column, colIndex) => (
-                    <div 
-                      key={column.name}
-                      className="flex-shrink-0 w-36 bg-muted/50 rounded-lg p-2"
-                      style={{ animationDelay: `${colIndex * 100}ms` }}
-                    >
-                      {/* Column Header */}
-                      <div className="flex items-center justify-between mb-2 px-1">
-                        <div className="flex items-center gap-1.5">
-                          <div 
-                            className="w-2 h-2 rounded-full" 
-                            style={{ backgroundColor: column.color }}
-                          />
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                >
+                  <div className="flex gap-3 overflow-x-auto pb-2">
+                    {columns.map((column) => (
+                      <KanbanColumn 
+                        key={column.id} 
+                        column={column}
+                      />
+                    ))}
+                  </div>
+                  
+                  <DragOverlay>
+                    {activeCard && (
+                      <div className="bg-card border rounded-md p-2 shadow-lg rotate-3 opacity-90">
+                        <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-medium text-foreground truncate">
-                            {column.name}
+                            {activeCard.name}
                           </span>
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {column.count}
-                        </span>
+                        <div className={cn(
+                          'text-[10px] px-1.5 py-0.5 rounded-full w-fit text-white',
+                          activeCard.priorityColor
+                        )}>
+                          {activeCard.priority}
+                        </div>
                       </div>
-                      
-                      {/* Cards */}
-                      <div className="space-y-2">
-                        {column.cards.map((card, cardIndex) => (
-                          <div 
-                            key={cardIndex}
-                            className="bg-card border rounded-md p-2 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-medium text-foreground truncate">
-                                {card.name}
-                              </span>
-                            </div>
-                            <div className={cn(
-                              'text-[10px] px-1.5 py-0.5 rounded-full w-fit text-white',
-                              card.priorityColor
-                            )}>
-                              {card.priority}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    )}
+                  </DragOverlay>
+                </DndContext>
                 
-                {/* Drag indicator */}
-                <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                {/* Instruction */}
+                <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg py-2">
                   <GripVertical className="w-4 h-4" />
-                  <span>Arraste para mover entre etapas</span>
+                  <span>Experimente! Arraste os cards entre as colunas</span>
                 </div>
               </div>
             </div>
