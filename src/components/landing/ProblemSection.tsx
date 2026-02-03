@@ -30,7 +30,7 @@ export function ProblemSection() {
   const { ref, isInView } = useInView({ threshold: 0.2 });
 
   return (
-    <section className="py-20 bg-muted/30">
+    <section className="py-10 sm:py-12">
       <div className="container mx-auto px-4">
         <div ref={ref} className="max-w-3xl mx-auto text-center mb-12">
           <h2 

@@ -195,7 +195,7 @@ export function FinanceSection() {
   }, [chartBars, toast]);
 
   return (
-    <section id="financeiro" className="py-20 bg-green-500/5 scroll-mt-16">
+    <section id="financeiro" className="py-8 sm:py-10 scroll-mt-16">
       <div className="container mx-auto px-4">
         <div ref={ref} className="max-w-6xl mx-auto">
           {/* Header */}

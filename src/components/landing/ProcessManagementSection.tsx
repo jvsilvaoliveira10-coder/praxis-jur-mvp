@@ -205,7 +205,7 @@ export function ProcessManagementSection() {
   };
 
   return (
-    <section id="gestao-processos" className="py-20 bg-muted/30 scroll-mt-16">
+    <section id="gestao-processos" className="py-8 sm:py-10 scroll-mt-16">
       <div className="container mx-auto px-4">
         <div ref={ref} className="max-w-6xl mx-auto">
           {/* Header */}

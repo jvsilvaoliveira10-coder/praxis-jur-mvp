@@ -17,7 +17,7 @@ export function AISection() {
   const { ref, isInView } = useInView({ threshold: 0.2 });
 
   return (
-    <section className="py-20 relative overflow-hidden">
+    <section className="py-10 sm:py-12 relative overflow-hidden">
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-secondary/5" />
       
