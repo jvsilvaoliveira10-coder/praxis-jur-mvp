@@ -30,13 +30,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, FileText, Download, Wand2, BookTemplate, Info, Sparkles, Loader2 } from 'lucide-react';
+import { Save, FileText, Download, Wand2, BookTemplate, Info, Sparkles, Loader2, Briefcase, Type, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import PremiumFormHeader from '@/components/forms/PremiumFormHeader';
 
 const PetitionForm = () => {
   const { id } = useParams();
@@ -62,10 +63,9 @@ const PetitionForm = () => {
     opposingPartyQualification: '',
     content: '',
     template_id: '',
-    userContext: '', // Contextualização do advogado para a IA
+    userContext: '',
   });
 
-  // Fetch templates
   const { data: templates } = useQuery({
     queryKey: ['petition-templates-active'],
     queryFn: async () => {
@@ -81,9 +81,7 @@ const PetitionForm = () => {
     enabled: !!user,
   });
 
-  // Filter templates by petition type
   const filteredTemplates = templates?.filter(t => {
-    // Map petition_type to piece_type for filtering
     const pieceTypeMap: Record<PetitionType, PieceType> = {
       peticao_inicial: 'peticao_inicial',
       contestacao: 'contestacao',
@@ -154,7 +152,6 @@ const PetitionForm = () => {
       if (caseData) {
         setSelectedCase(caseData);
         if (!isEdit) {
-          // Set defaults when case is selected
           setForm(prev => ({
             ...prev,
             facts: getDefaultFacts(caseData.action_type),
@@ -167,7 +164,6 @@ const PetitionForm = () => {
     }
   }, [form.case_id, cases, isEdit]);
 
-  // Handle template selection
   useEffect(() => {
     if (form.template_id && templates) {
       const template = templates.find(t => t.id === form.template_id);
@@ -181,7 +177,7 @@ const PetitionForm = () => {
     setForm(prev => ({
       ...prev,
       petition_type: type,
-      template_id: '', // Reset template when type changes
+      template_id: '',
       title: selectedCase 
         ? `${PETITION_TYPE_LABELS[type]} - ${selectedCase.client.name}`
         : prev.title,
@@ -201,14 +197,12 @@ const PetitionForm = () => {
     let content: string;
 
     if (selectedTemplate) {
-      // Use the template content as base and replace placeholders
       content = applyTemplateToCase(selectedTemplate.content, selectedCase, form);
       toast({
         title: 'Petição gerada com modelo do escritório!',
         description: 'O modelo foi aplicado. Revise e faça os ajustes necessários.',
       });
     } else {
-      // Use default generation
       content = generatePetition({
         client: selectedCase.client,
         case: selectedCase,
@@ -228,7 +222,6 @@ const PetitionForm = () => {
     setActiveTab('editor');
   };
 
-  // AI Generation function
   const handleGenerateWithAI = async () => {
     if (!selectedCase) {
       toast({
@@ -254,7 +247,6 @@ const PetitionForm = () => {
     try {
       const client = selectedCase.client;
       
-      // Build client address
       const addressParts: string[] = [];
       if (client.address_street) {
         let line = client.address_street;
@@ -323,7 +315,6 @@ const PetitionForm = () => {
         throw new Error('Resposta sem corpo');
       }
 
-      // Stream the response
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let textBuffer = '';
@@ -335,7 +326,6 @@ const PetitionForm = () => {
 
         textBuffer += decoder.decode(value, { stream: true });
 
-        // Process line-by-line
         let newlineIndex: number;
         while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
           let line = textBuffer.slice(0, newlineIndex);
@@ -356,14 +346,12 @@ const PetitionForm = () => {
               setForm(prev => ({ ...prev, content: generatedContent }));
             }
           } catch {
-            // Incomplete JSON, put it back
             textBuffer = line + '\n' + textBuffer;
             break;
           }
         }
       }
 
-      // Process remaining buffer
       if (textBuffer.trim()) {
         for (let raw of textBuffer.split('\n')) {
           if (!raw) continue;
@@ -399,7 +387,6 @@ const PetitionForm = () => {
     }
   };
 
-  // Function to apply template placeholders
   const applyTemplateToCase = (
     templateContent: string, 
     caseData: Case & { client: Client },
@@ -407,7 +394,6 @@ const PetitionForm = () => {
   ): string => {
     const client = caseData.client;
     
-    // Define placeholders and their values
     const placeholders: Record<string, string> = {
       '[VARA/COMARCA]': caseData.court,
       '[NUMERO_PROCESSO]': caseData.process_number || '[NÚMERO DO PROCESSO]',
@@ -538,29 +524,22 @@ const PetitionForm = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/petitions')}>
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-serif font-bold text-foreground">
-              {isEdit ? 'Editar Petição' : 'Nova Petição'}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {isEdit ? 'Edite o conteúdo da petição' : 'Gere uma petição automaticamente'}
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-2">
+    <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <PremiumFormHeader
+          icon={<FileText className="w-6 h-6 text-primary" />}
+          title={isEdit ? 'Editar Petição' : 'Nova Petição'}
+          subtitle={isEdit ? 'Edite o conteúdo da petição' : 'Gere uma petição automaticamente com IA'}
+          backPath="/petitions"
+        />
+        <div className="flex gap-2 ml-auto">
           {form.content && (
-            <Button variant="outline" onClick={handleExportPDF}>
+            <Button variant="outline" onClick={handleExportPDF} className="h-11 rounded-xl">
               <Download className="w-4 h-4 mr-2" />
               Exportar PDF
             </Button>
           )}
-          <Button onClick={handleSave} disabled={loading || !form.content}>
+          <Button onClick={handleSave} disabled={loading || !form.content} className="btn-premium">
             <Save className="w-4 h-4 mr-2" />
             {loading ? 'Salvando...' : 'Salvar'}
           </Button>
@@ -568,34 +547,37 @@ const PetitionForm = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="form">
+        <TabsList className="h-12 rounded-xl bg-muted/50 p-1">
+          <TabsTrigger value="form" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm h-10 px-4">
             <FileText className="w-4 h-4 mr-2" />
             Formulário
           </TabsTrigger>
-          <TabsTrigger value="editor" disabled={!form.content && !isEdit}>
+          <TabsTrigger value="editor" disabled={!form.content && !isEdit} className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm h-10 px-4">
             <Wand2 className="w-4 h-4 mr-2" />
             Editor
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="form" className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Dados Básicos</CardTitle>
+        <TabsContent value="form" className="space-y-5 mt-6">
+          <div className="grid md:grid-cols-2 gap-5">
+            <Card className="card-premium">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg">Dados Básicos</CardTitle>
                 <CardDescription>
                   Selecione o processo e tipo de petição
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-5">
                 <div className="space-y-2">
-                  <Label>Processo</Label>
+                  <Label className="label-premium">
+                    <Briefcase className="w-4 h-4 text-muted-foreground" />
+                    Processo <span className="text-destructive">*</span>
+                  </Label>
                   <Select 
                     value={form.case_id} 
                     onValueChange={(v) => setForm({ ...form, case_id: v })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="select-premium">
                       <SelectValue placeholder="Selecione o processo" />
                     </SelectTrigger>
                     <SelectContent>
@@ -609,7 +591,7 @@ const PetitionForm = () => {
                   {cases.length === 0 && (
                     <p className="text-sm text-muted-foreground">
                       Nenhum processo cadastrado.{' '}
-                      <Button variant="link" className="p-0 h-auto" onClick={() => navigate('/cases/new')}>
+                      <Button variant="link" className="p-0 h-auto text-primary" onClick={() => navigate('/cases/new')}>
                         Cadastre um processo primeiro.
                       </Button>
                     </p>
@@ -617,12 +599,15 @@ const PetitionForm = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Tipo de Petição</Label>
+                  <Label className="label-premium">
+                    <Type className="w-4 h-4 text-muted-foreground" />
+                    Tipo de Petição
+                  </Label>
                   <Select 
                     value={form.petition_type} 
                     onValueChange={(v) => handlePetitionTypeChange(v as PetitionType)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="select-premium">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -636,22 +621,30 @@ const PetitionForm = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Título da Petição</Label>
+                  <Label className="label-premium">
+                    <FileText className="w-4 h-4 text-muted-foreground" />
+                    Título da Petição
+                  </Label>
                   <Input
                     value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
                     placeholder="Título para identificação"
+                    className="input-premium"
                   />
                 </div>
 
                 {form.petition_type === 'peticao_inicial' && (
                   <div className="space-y-2">
-                    <Label>Qualificação da Parte Contrária (opcional)</Label>
+                    <Label className="label-premium">
+                      <Users className="w-4 h-4 text-muted-foreground" />
+                      Qualificação da Parte Contrária <span className="text-muted-foreground text-xs">(opcional)</span>
+                    </Label>
                     <Textarea
                       value={form.opposingPartyQualification}
                       onChange={(e) => setForm({ ...form, opposingPartyQualification: e.target.value })}
                       placeholder="Ex: EMPRESA XYZ LTDA, inscrita no CNPJ sob nº..."
                       rows={3}
+                      className="textarea-premium"
                     />
                   </div>
                 )}
@@ -659,33 +652,33 @@ const PetitionForm = () => {
             </Card>
 
             {selectedCase && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Informações do Processo</CardTitle>
+              <Card className="card-premium">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg">Informações do Processo</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <div className="flex justify-between">
+                <CardContent className="space-y-3 text-sm">
+                  <div className="flex justify-between py-2 border-b border-border/50">
                     <span className="text-muted-foreground">Cliente:</span>
                     <span className="font-medium">{selectedCase.client.name}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between py-2 border-b border-border/50">
                     <span className="text-muted-foreground">Documento:</span>
                     <span className="font-medium">{selectedCase.client.document}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between py-2 border-b border-border/50">
                     <span className="text-muted-foreground">Vara/Comarca:</span>
                     <span className="font-medium">{selectedCase.court}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between py-2 border-b border-border/50">
                     <span className="text-muted-foreground">Tipo de Ação:</span>
                     <span className="font-medium">{ACTION_TYPE_LABELS[selectedCase.action_type]}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between py-2 border-b border-border/50">
                     <span className="text-muted-foreground">Parte Contrária:</span>
                     <span className="font-medium">{selectedCase.opposing_party}</span>
                   </div>
                   {selectedCase.process_number && (
-                    <div className="flex justify-between">
+                    <div className="flex justify-between py-2">
                       <span className="text-muted-foreground">Nº Processo:</span>
                       <span className="font-medium">{selectedCase.process_number}</span>
                     </div>
@@ -696,11 +689,11 @@ const PetitionForm = () => {
           </div>
 
           {/* Template Selection Card */}
-          <Card className="border-primary/20 bg-primary/5">
-            <CardHeader>
+          <Card className="card-premium border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+            <CardHeader className="pb-4">
               <div className="flex items-center gap-2">
                 <BookTemplate className="w-5 h-5 text-primary" />
-                <CardTitle>Modelo do Escritório</CardTitle>
+                <CardTitle className="text-lg">Modelo do Escritório</CardTitle>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground cursor-help" />
@@ -716,12 +709,12 @@ const PetitionForm = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Modelo de {PETITION_TYPE_LABELS[form.petition_type]}</Label>
+                <Label className="label-premium">Modelo de {PETITION_TYPE_LABELS[form.petition_type]}</Label>
                 <Select 
                   value={form.template_id || '__default__'} 
                   onValueChange={(v) => setForm({ ...form, template_id: v === '__default__' ? '' : v })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="select-premium">
                     <SelectValue placeholder="Selecione um modelo (opcional)" />
                   </SelectTrigger>
                   <SelectContent>
@@ -738,14 +731,14 @@ const PetitionForm = () => {
               {filteredTemplates.length === 0 && (
                 <p className="text-sm text-muted-foreground">
                   Nenhum modelo ativo para {PETITION_TYPE_LABELS[form.petition_type].toLowerCase()}.{' '}
-                  <Button variant="link" className="p-0 h-auto" onClick={() => navigate('/templates/new')}>
+                  <Button variant="link" className="p-0 h-auto text-primary" onClick={() => navigate('/templates/new')}>
                     Cadastrar modelo
                   </Button>
                 </p>
               )}
 
               {selectedTemplate && (
-                <div className="p-3 bg-background rounded-lg border">
+                <div className="p-4 bg-background rounded-xl border border-border/50">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium text-sm">{selectedTemplate.title}</span>
                     <Badge variant="outline">
@@ -761,38 +754,40 @@ const PetitionForm = () => {
           </Card>
 
           {/* AI Generation Card */}
-          <Card className="border-2 border-dashed border-primary/40 bg-gradient-to-br from-primary/5 to-primary/10">
-            <CardHeader>
+          <Card className="card-premium border-2 border-dashed border-primary/40 bg-gradient-to-br from-primary/5 via-primary/10 to-transparent">
+            <CardHeader className="pb-4">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
-                <CardTitle className="text-primary">Geração com IA</CardTitle>
+                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                </div>
+                <CardTitle className="text-lg text-primary">Geração com IA</CardTitle>
                 <Badge variant="secondary" className="text-xs">
                   Recomendado
                 </Badge>
               </div>
               <CardDescription>
-                Deixe a IA gerar uma petição completa com linguagem jurídica profissional, usando o modelo do escritório + dados do processo + sua contextualização
+                Deixe a IA gerar uma petição completa com linguagem jurídica profissional
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
+                <Label className="label-premium">
                   Contextualização do Caso
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                      <Info className="w-4 h-4 text-muted-foreground cursor-help ml-1" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-sm">
-                      <p>Descreva detalhes específicos do caso, como circunstâncias particulares, provas existentes, jurisprudência relevante, estratégia argumentativa, valores envolvidos, etc. Quanto mais contexto, melhor será a petição gerada.</p>
+                      <p>Descreva detalhes específicos do caso, como circunstâncias particulares, provas existentes, jurisprudência relevante, estratégia argumentativa, valores envolvidos, etc.</p>
                     </TooltipContent>
                   </Tooltip>
                 </Label>
                 <Textarea
                   value={form.userContext}
                   onChange={(e) => setForm({ ...form, userContext: e.target.value })}
-                  placeholder="Ex: Cliente comprou um veículo zero-km que apresentou defeito no motor após 3 meses de uso. Já foram 5 tentativas de reparo sem sucesso. Temos nota fiscal, ordens de serviço e laudo técnico comprovando o defeito de fabricação. Queremos a substituição do veículo ou restituição integral do valor pago (R$ 85.000,00), além de danos morais pela perda de tempo e frustração..."
+                  placeholder="Ex: Cliente comprou um veículo zero-km que apresentou defeito no motor após 3 meses de uso. Já foram 5 tentativas de reparo sem sucesso. Temos nota fiscal, ordens de serviço e laudo técnico comprovando o defeito de fabricação..."
                   rows={6}
-                  className="text-sm"
+                  className="textarea-premium text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
                   Quanto mais detalhes você fornecer, mais precisa e personalizada será a petição gerada pela IA.
@@ -801,7 +796,7 @@ const PetitionForm = () => {
 
               <Button 
                 onClick={handleGenerateWithAI} 
-                className="w-full bg-primary hover:bg-primary/90"
+                className="w-full btn-premium h-12"
                 disabled={!selectedCase || aiGenerating}
                 size="lg"
               >
@@ -820,55 +815,55 @@ const PetitionForm = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Conteúdo Manual da Petição</CardTitle>
+          <Card className="card-premium">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg">Conteúdo Manual da Petição</CardTitle>
               <CardDescription>
                 {selectedTemplate 
-                  ? 'O modelo selecionado será usado como base. Preencha os campos adicionais abaixo para geração manual (sem IA).'
-                  : 'Preencha os campos abaixo para geração manual (sem IA). Textos de exemplo são fornecidos como guia.'
+                  ? 'O modelo selecionado será usado como base. Preencha os campos adicionais abaixo para geração manual.'
+                  : 'Preencha os campos abaixo para geração manual (sem IA).'
                 }
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5">
               <div className="space-y-2">
-                <Label>Dos Fatos</Label>
+                <Label className="label-premium">Dos Fatos</Label>
                 <Textarea
                   value={form.facts}
                   onChange={(e) => setForm({ ...form, facts: e.target.value })}
                   placeholder="Descreva os fatos que fundamentam a petição..."
                   rows={8}
-                  className="font-mono text-sm"
+                  className="textarea-premium font-mono text-sm"
                 />
               </div>
 
               {form.petition_type !== 'peticao_simples' && (
                 <div className="space-y-2">
-                  <Label>Do Direito</Label>
+                  <Label className="label-premium">Do Direito</Label>
                   <Textarea
                     value={form.legalBasis}
                     onChange={(e) => setForm({ ...form, legalBasis: e.target.value })}
                     placeholder="Apresente os fundamentos jurídicos..."
                     rows={8}
-                    className="font-mono text-sm"
+                    className="textarea-premium font-mono text-sm"
                   />
                 </div>
               )}
 
               <div className="space-y-2">
-                <Label>Dos Pedidos</Label>
+                <Label className="label-premium">Dos Pedidos</Label>
                 <Textarea
                   value={form.requests}
                   onChange={(e) => setForm({ ...form, requests: e.target.value })}
                   placeholder="Liste os pedidos..."
                   rows={6}
-                  className="font-mono text-sm"
+                  className="textarea-premium font-mono text-sm"
                 />
               </div>
 
               <Button 
                 onClick={handleGenerate} 
-                className="w-full"
+                className="w-full h-11 rounded-xl"
                 variant="outline"
                 disabled={!selectedCase || aiGenerating}
               >
@@ -879,12 +874,12 @@ const PetitionForm = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="editor">
-          <Card>
-            <CardHeader>
+        <TabsContent value="editor" className="mt-6">
+          <Card className="card-premium">
+            <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Editor de Petição</CardTitle>
+                  <CardTitle className="text-lg">Editor de Petição</CardTitle>
                   <CardDescription>
                     Revise e edite o texto gerado. Você pode fazer alterações livremente.
                   </CardDescription>
@@ -901,7 +896,7 @@ const PetitionForm = () => {
               <Textarea
                 value={form.content}
                 onChange={(e) => setForm({ ...form, content: e.target.value })}
-                className="min-h-[600px] font-mono text-sm leading-relaxed scrollbar-legal"
+                className="min-h-[600px] font-mono text-sm leading-relaxed scrollbar-legal rounded-xl border-border/50"
                 placeholder={aiGenerating ? "A petição está sendo gerada pela IA..." : "O conteúdo da petição aparecerá aqui..."}
                 disabled={aiGenerating}
               />

@@ -174,4 +174,29 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Premium Form Utilities */
+  .input-premium {
+    @apply h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors;
+  }
+
+  .select-premium {
+    @apply h-12 rounded-xl border-border/50 bg-muted/30;
+  }
+
+  .textarea-premium {
+    @apply rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors min-h-[120px];
+  }
+
+  .btn-premium {
+    @apply h-11 px-6 bg-gradient-to-r from-primary to-[hsl(222,80%,45%)] hover:from-primary/90 hover:to-[hsl(222,80%,40%)] shadow-lg shadow-primary/25 text-primary-foreground;
+  }
+
+  .card-premium {
+    @apply shadow-sm border-border/50 rounded-xl;
+  }
+
+  .label-premium {
+    @apply text-sm font-medium flex items-center gap-2;
+  }
 }

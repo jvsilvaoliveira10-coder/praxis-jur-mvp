@@ -15,9 +15,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, Save, User, Building2, MapPin, UserCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, User, Building2, MapPin, UserCircle, Mail, Phone, FileText, Globe, Briefcase, CreditCard, Hash } from 'lucide-react';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
+import PremiumFormHeader from '@/components/forms/PremiumFormHeader';
+import { Check } from 'lucide-react';
 
 // Validation schemas
 const basePFSchema = z.object({
@@ -411,47 +413,62 @@ const ClientForm = () => {
   };
 
   const renderPFStep1 = () => (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+    <div className="grid gap-5 grid-cols-1 sm:grid-cols-2">
       <div className="sm:col-span-2 space-y-2">
-        <Label htmlFor="name">Nome Completo *</Label>
+        <Label className="label-premium">
+          <User className="w-4 h-4 text-muted-foreground" />
+          Nome Completo <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="name"
           placeholder="João da Silva"
           value={form.name}
           onChange={(e) => handleChange('name', e.target.value)}
+          className="input-premium"
         />
         {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="document">CPF *</Label>
+        <Label className="label-premium">
+          <CreditCard className="w-4 h-4 text-muted-foreground" />
+          CPF <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="document"
           placeholder="000.000.000-00"
           value={form.document}
           onChange={(e) => handleChange('document', e.target.value)}
+          className="input-premium"
         />
         {errors.document && <p className="text-sm text-destructive">{errors.document}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="nationality">Nacionalidade *</Label>
+        <Label className="label-premium">
+          <Globe className="w-4 h-4 text-muted-foreground" />
+          Nacionalidade <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="nationality"
           placeholder="brasileiro(a)"
           value={form.nationality}
           onChange={(e) => handleChange('nationality', e.target.value)}
+          className="input-premium"
         />
         {errors.nationality && <p className="text-sm text-destructive">{errors.nationality}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="marital_status">Estado Civil *</Label>
+        <Label className="label-premium">
+          <User className="w-4 h-4 text-muted-foreground" />
+          Estado Civil <span className="text-destructive">*</span>
+        </Label>
         <Select 
           value={form.marital_status} 
           onValueChange={(v) => handleChange('marital_status', v)}
         >
-          <SelectTrigger>
+          <SelectTrigger className="select-premium">
             <SelectValue placeholder="Selecione..." />
           </SelectTrigger>
           <SelectContent>
@@ -466,57 +483,77 @@ const ClientForm = () => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="profession">Profissão *</Label>
+        <Label className="label-premium">
+          <Briefcase className="w-4 h-4 text-muted-foreground" />
+          Profissão <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="profession"
           placeholder="Engenheiro"
           value={form.profession}
           onChange={(e) => handleChange('profession', e.target.value)}
+          className="input-premium"
         />
         {errors.profession && <p className="text-sm text-destructive">{errors.profession}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="rg">RG *</Label>
+        <Label className="label-premium">
+          <FileText className="w-4 h-4 text-muted-foreground" />
+          RG <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="rg"
           placeholder="00.000.000-0"
           value={form.rg}
           onChange={(e) => handleChange('rg', e.target.value)}
+          className="input-premium"
         />
         {errors.rg && <p className="text-sm text-destructive">{errors.rg}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="issuing_body">Órgão Expedidor *</Label>
+        <Label className="label-premium">
+          <Building2 className="w-4 h-4 text-muted-foreground" />
+          Órgão Expedidor <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="issuing_body"
           placeholder="SSP/SP"
           value={form.issuing_body}
           onChange={(e) => handleChange('issuing_body', e.target.value)}
+          className="input-premium"
         />
         {errors.issuing_body && <p className="text-sm text-destructive">{errors.issuing_body}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email">E-mail *</Label>
+        <Label className="label-premium">
+          <Mail className="w-4 h-4 text-muted-foreground" />
+          E-mail <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="email"
           type="email"
           placeholder="joao@email.com"
           value={form.email}
           onChange={(e) => handleChange('email', e.target.value)}
+          className="input-premium"
         />
         {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="phone">Telefone *</Label>
+        <Label className="label-premium">
+          <Phone className="w-4 h-4 text-muted-foreground" />
+          Telefone <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="phone"
           placeholder="(11) 99999-9999"
           value={form.phone}
           onChange={(e) => handleChange('phone', e.target.value)}
+          className="input-premium"
         />
         {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
       </div>
@@ -524,68 +561,92 @@ const ClientForm = () => {
   );
 
   const renderPJStep1 = () => (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+    <div className="grid gap-5 grid-cols-1 sm:grid-cols-2">
       <div className="sm:col-span-2 space-y-2">
-        <Label htmlFor="name">Razão Social *</Label>
+        <Label className="label-premium">
+          <Building2 className="w-4 h-4 text-muted-foreground" />
+          Razão Social <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="name"
           placeholder="Empresa LTDA"
           value={form.name}
           onChange={(e) => handleChange('name', e.target.value)}
+          className="input-premium"
         />
         {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="trade_name">Nome Fantasia</Label>
+        <Label className="label-premium">
+          <Building2 className="w-4 h-4 text-muted-foreground" />
+          Nome Fantasia
+        </Label>
         <Input
           id="trade_name"
           placeholder="Nome Fantasia"
           value={form.trade_name}
           onChange={(e) => handleChange('trade_name', e.target.value)}
+          className="input-premium"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="document">CNPJ *</Label>
+        <Label className="label-premium">
+          <CreditCard className="w-4 h-4 text-muted-foreground" />
+          CNPJ <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="document"
           placeholder="00.000.000/0000-00"
           value={form.document}
           onChange={(e) => handleChange('document', e.target.value)}
+          className="input-premium"
         />
         {errors.document && <p className="text-sm text-destructive">{errors.document}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="state_registration">Inscrição Estadual</Label>
+        <Label className="label-premium">
+          <Hash className="w-4 h-4 text-muted-foreground" />
+          Inscrição Estadual
+        </Label>
         <Input
           id="state_registration"
           placeholder="Opcional"
           value={form.state_registration}
           onChange={(e) => handleChange('state_registration', e.target.value)}
+          className="input-premium"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email">E-mail *</Label>
+        <Label className="label-premium">
+          <Mail className="w-4 h-4 text-muted-foreground" />
+          E-mail <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="email"
           type="email"
           placeholder="contato@empresa.com"
           value={form.email}
           onChange={(e) => handleChange('email', e.target.value)}
+          className="input-premium"
         />
         {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="phone">Telefone *</Label>
+        <Label className="label-premium">
+          <Phone className="w-4 h-4 text-muted-foreground" />
+          Telefone <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="phone"
           placeholder="(11) 99999-9999"
           value={form.phone}
           onChange={(e) => handleChange('phone', e.target.value)}
+          className="input-premium"
         />
         {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
       </div>
@@ -593,79 +654,106 @@ const ClientForm = () => {
   );
 
   const renderAddressStep = () => (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+    <div className="grid gap-5 grid-cols-1 sm:grid-cols-2">
       <div className="sm:col-span-2 space-y-2">
-        <Label htmlFor="address_street">Rua *</Label>
+        <Label className="label-premium">
+          <MapPin className="w-4 h-4 text-muted-foreground" />
+          Rua <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="address_street"
           placeholder="Av. Paulista"
           value={form.address_street}
           onChange={(e) => handleChange('address_street', e.target.value)}
+          className="input-premium"
         />
         {errors.address_street && <p className="text-sm text-destructive">{errors.address_street}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="address_number">Número *</Label>
+        <Label className="label-premium">
+          <Hash className="w-4 h-4 text-muted-foreground" />
+          Número <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="address_number"
           placeholder="1000"
           value={form.address_number}
           onChange={(e) => handleChange('address_number', e.target.value)}
+          className="input-premium"
         />
         {errors.address_number && <p className="text-sm text-destructive">{errors.address_number}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="address_complement">Complemento</Label>
+        <Label className="label-premium">
+          <Building2 className="w-4 h-4 text-muted-foreground" />
+          Complemento
+        </Label>
         <Input
           id="address_complement"
           placeholder="Apto 101"
           value={form.address_complement}
           onChange={(e) => handleChange('address_complement', e.target.value)}
+          className="input-premium"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="address_neighborhood">Bairro *</Label>
+        <Label className="label-premium">
+          <MapPin className="w-4 h-4 text-muted-foreground" />
+          Bairro <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="address_neighborhood"
           placeholder="Centro"
           value={form.address_neighborhood}
           onChange={(e) => handleChange('address_neighborhood', e.target.value)}
+          className="input-premium"
         />
         {errors.address_neighborhood && <p className="text-sm text-destructive">{errors.address_neighborhood}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="address_zip">CEP *</Label>
+        <Label className="label-premium">
+          <MapPin className="w-4 h-4 text-muted-foreground" />
+          CEP <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="address_zip"
           placeholder="00000-000"
           value={form.address_zip}
           onChange={(e) => handleChange('address_zip', e.target.value)}
+          className="input-premium"
         />
         {errors.address_zip && <p className="text-sm text-destructive">{errors.address_zip}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="address_city">Cidade *</Label>
+        <Label className="label-premium">
+          <Building2 className="w-4 h-4 text-muted-foreground" />
+          Cidade <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="address_city"
           placeholder="São Paulo"
           value={form.address_city}
           onChange={(e) => handleChange('address_city', e.target.value)}
+          className="input-premium"
         />
         {errors.address_city && <p className="text-sm text-destructive">{errors.address_city}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="address_state">Estado *</Label>
+        <Label className="label-premium">
+          <Globe className="w-4 h-4 text-muted-foreground" />
+          Estado <span className="text-destructive">*</span>
+        </Label>
         <Select 
           value={form.address_state} 
           onValueChange={(v) => handleChange('address_state', v)}
         >
-          <SelectTrigger>
+          <SelectTrigger className="select-premium">
             <SelectValue placeholder="Selecione..." />
           </SelectTrigger>
           <SelectContent>
@@ -682,36 +770,48 @@ const ClientForm = () => {
   );
 
   const renderLegalRepStep = () => (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+    <div className="grid gap-5 grid-cols-1 sm:grid-cols-2">
       <div className="sm:col-span-2 space-y-2">
-        <Label htmlFor="legal_rep_name">Nome do Representante Legal *</Label>
+        <Label className="label-premium">
+          <UserCircle className="w-4 h-4 text-muted-foreground" />
+          Nome do Representante Legal <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="legal_rep_name"
           placeholder="João da Silva"
           value={form.legal_rep_name}
           onChange={(e) => handleChange('legal_rep_name', e.target.value)}
+          className="input-premium"
         />
         {errors.legal_rep_name && <p className="text-sm text-destructive">{errors.legal_rep_name}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="legal_rep_cpf">CPF do Representante *</Label>
+        <Label className="label-premium">
+          <CreditCard className="w-4 h-4 text-muted-foreground" />
+          CPF do Representante <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="legal_rep_cpf"
           placeholder="000.000.000-00"
           value={form.legal_rep_cpf}
           onChange={(e) => handleChange('legal_rep_cpf', e.target.value)}
+          className="input-premium"
         />
         {errors.legal_rep_cpf && <p className="text-sm text-destructive">{errors.legal_rep_cpf}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="legal_rep_position">Cargo *</Label>
+        <Label className="label-premium">
+          <Briefcase className="w-4 h-4 text-muted-foreground" />
+          Cargo <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="legal_rep_position"
           placeholder="Sócio-Administrador"
           value={form.legal_rep_position}
           onChange={(e) => handleChange('legal_rep_position', e.target.value)}
+          className="input-premium"
         />
         {errors.legal_rep_position && <p className="text-sm text-destructive">{errors.legal_rep_position}</p>}
       </div>
@@ -731,23 +831,16 @@ const ClientForm = () => {
   const isLastStep = step === totalSteps;
 
   return (
-    <div className="space-y-4 sm:space-y-6 animate-fade-in max-w-3xl">
-      <div className="flex items-start gap-3 sm:gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/clients')} className="flex-shrink-0 mt-1">
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground">
-            {isEdit ? 'Editar Cliente' : 'Novo Cliente'}
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-            Preencha a qualificação completa do cliente
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fade-in max-w-3xl mx-auto">
+      <PremiumFormHeader
+        icon={form.type === 'pessoa_fisica' ? <User className="w-6 h-6 text-primary" /> : <Building2 className="w-6 h-6 text-primary" />}
+        title={isEdit ? 'Editar Cliente' : 'Novo Cliente'}
+        subtitle="Preencha a qualificação completa do cliente"
+        backPath="/clients"
+      />
 
-      {/* Step indicator */}
-      <div className="flex items-center justify-center gap-2">
+      {/* Premium Step Indicator */}
+      <div className="flex items-center justify-center gap-3">
         {steps.map((s, index) => {
           const Icon = s.icon;
           const isActive = step === s.id;
@@ -757,18 +850,25 @@ const ClientForm = () => {
             <div key={s.id} className="flex items-center">
               <div
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg transition-colors",
-                  isActive && "bg-primary text-primary-foreground",
-                  isCompleted && "bg-primary/20 text-primary",
-                  !isActive && !isCompleted && "bg-muted text-muted-foreground"
+                  "flex items-center gap-2 px-4 py-3 rounded-xl transition-all duration-200",
+                  isActive && "bg-primary text-primary-foreground shadow-lg shadow-primary/25",
+                  isCompleted && "bg-primary/10 text-primary",
+                  !isActive && !isCompleted && "bg-muted/50 text-muted-foreground"
                 )}
               >
-                <Icon className="w-4 h-4" />
+                <div className={cn(
+                  "w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium",
+                  isActive && "bg-primary-foreground/20",
+                  isCompleted && "bg-primary text-primary-foreground",
+                  !isActive && !isCompleted && "bg-muted"
+                )}>
+                  {isCompleted ? <Check className="w-4 h-4" /> : s.id}
+                </div>
                 <span className="text-sm font-medium hidden sm:inline">{s.title}</span>
               </div>
               {index < steps.length - 1 && (
                 <div className={cn(
-                  "w-8 h-0.5 mx-2",
+                  "w-12 h-1 mx-2 rounded-full transition-colors duration-200",
                   step > s.id ? "bg-primary" : "bg-muted"
                 )} />
               )}
@@ -777,20 +877,20 @@ const ClientForm = () => {
         })}
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+      <Card className="card-premium">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <CardTitle>{steps[step - 1].title}</CardTitle>
+              <CardTitle className="text-lg">{steps[step - 1].title}</CardTitle>
               <CardDescription>
                 Etapa {step} de {totalSteps}
               </CardDescription>
             </div>
             {step === 1 && (
-              <div className="space-y-2">
-                <Label>Tipo de Pessoa</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Tipo de Pessoa</Label>
                 <Select value={form.type} onValueChange={(v) => handleTypeChange(v as ClientType)}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-[180px] h-10 rounded-lg">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -809,23 +909,24 @@ const ClientForm = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {renderCurrentStep()}
 
-            <div className="flex justify-between pt-4">
+            <div className="flex justify-between pt-6 border-t border-border/50">
               <Button
                 type="button"
                 variant="outline"
                 onClick={step === 1 ? () => navigate('/clients') : handlePrev}
+                className="h-11 px-5 rounded-xl"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 {step === 1 ? 'Cancelar' : 'Anterior'}
               </Button>
 
               {isLastStep ? (
-                <Button type="submit" disabled={loading}>
+                <Button type="submit" disabled={loading} className="btn-premium">
                   <Save className="w-4 h-4 mr-2" />
-                  {loading ? 'Salvando...' : 'Salvar'}
+                  {loading ? 'Salvando...' : 'Salvar Cliente'}
                 </Button>
               ) : (
-                <Button type="button" onClick={handleNext}>
+                <Button type="button" onClick={handleNext} className="btn-premium">
                   Próximo
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
