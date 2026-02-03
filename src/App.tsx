@@ -21,6 +21,8 @@ import Agenda from "./pages/Agenda";
 import DeadlineForm from "./pages/DeadlineForm";
 import Jurisprudence from "./pages/Jurisprudence";
 import Tracking from "./pages/Tracking";
+import Pipeline from "./pages/Pipeline";
+import PipelineSettings from "./pages/PipelineSettings";
 import NotFound from "./pages/NotFound";
 
 // Finance Pages
@@ -75,6 +77,8 @@ const App = () => (
               <Route path="/agenda/:id/edit" element={<DeadlineForm />} />
               <Route path="/jurisprudence" element={<Jurisprudence />} />
               <Route path="/tracking" element={<Tracking />} />
+              <Route path="/pipeline" element={<Pipeline />} />
+              <Route path="/pipeline/settings" element={<PipelineSettings />} />
               <Route path="/relatorios" element={<LegalReports />} />
               
               {/* Finance routes */}
