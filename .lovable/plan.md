@@ -1,248 +1,329 @@
 
-# Plano: Filtros de Data Profissionais no Modulo Financeiro
+# Plano: Sistema de Onboarding e Configuracoes do Escritorio
 
 ## Visao Geral
 
-Vou implementar filtros de data consistentes e profissionais em todas as ferramentas financeiras do sistema, permitindo analises aprofundadas por periodo em cada componente. O objetivo e transformar o modulo financeiro em uma ferramenta de gestao profissional completa.
+Vou implementar um sistema completo com duas partes:
+1. **Onboarding Wizard** - Popup progressivo apos o cadastro para coletar dados do escritorio
+2. **Pagina de Configuracoes** - Onde o usuario pode editar esses dados posteriormente
 
 ---
 
 ## Analise da Situacao Atual
 
-### Componentes COM filtro de data implementado:
-| Componente | Tipo de Filtro | Localizacao |
-|------------|----------------|-------------|
-| FinanceDashboard | Select simples (7d/30d/90d/year/all) | Dashboard principal |
-| DREReport | ReportFilters completo | Relatorios |
-| CashFlowReport | ReportFilters completo | Relatorios |
-| ClientAnalysisReport | ReportFilters completo | Relatorios |
+### Banco de Dados
+A tabela `profiles` atual e muito simples:
+- `id`, `user_id`, `name`, `email`, `role`, `created_at`, `updated_at`
 
-### Componentes SEM filtro de data (precisam implementacao):
-| Componente | Problema | Pagina |
-|------------|----------|--------|
-| **Transactions.tsx** | Carrega ultimas 100 transacoes sem filtro de periodo | /financeiro/extrato |
-| **Receivables.tsx** | Lista todas as contas a receber sem filtro de periodo | /financeiro/receber |
-| **Payables.tsx** | Lista todas as contas a pagar sem filtro de periodo | /financeiro/pagar |
-| **FeeContracts.tsx** | Lista todos os contratos sem filtro por vigencia | /financeiro/contratos |
-| **OverdueReport.tsx** | Nao tem filtro de periodo - sempre mostra tudo | Relatorios |
+Nao existe storage bucket para logos.
 
-### Componentes de Dashboard que usam dados fixos:
-| Componente | Problema |
-|------------|----------|
-| TopClientsChart | Usa dateRange do dashboard mas sem controle proprio |
-| CategoryDistributionChart | Usa dateRange do dashboard mas sem controle proprio |
-| UpcomingBills | Fixo em 7 dias |
-| RecentTransactions | Fixo em ultimas 5 |
+### Fluxo de Autenticacao
+- Apos signup, usuario e redirecionado direto para `/dashboard`
+- Nao ha nenhuma verificacao de "perfil completo"
 
 ---
 
-## Solucao Proposta
+## Estrutura de Dados Proposta
 
-### 1. Criar Componente de Filtro Reutilizavel
+### Nova Tabela: `law_firm_settings`
 
-Criar um componente `DateRangeFilter` aprimorado baseado no `ReportFilters` existente, porem mais compacto para uso em listagens:
+Dados do escritorio/advogado que serao coletados:
+
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| `id` | uuid | Primary key |
+| `user_id` | uuid | FK para auth.users |
+| `firm_name` | text | Nome do escritorio |
+| `lawyer_name` | text | Nome do advogado titular |
+| `oab_number` | text | Numero da OAB |
+| `oab_state` | text | Estado da OAB (SP, RJ, etc) |
+| `logo_url` | text | URL do logo (storage) |
+| `phone` | text | Telefone principal |
+| `whatsapp` | text | WhatsApp do escritorio |
+| `email` | text | Email de contato |
+| `website` | text | Site do escritorio |
+| **Endereco** | | |
+| `address_street` | text | Logradouro |
+| `address_number` | text | Numero |
+| `address_complement` | text | Complemento |
+| `address_neighborhood` | text | Bairro |
+| `address_city` | text | Cidade |
+| `address_state` | text | Estado |
+| `address_zip` | text | CEP |
+| **Estrutura do Escritorio** | | |
+| `firm_type` | enum | solo, partnership, firm |
+| `lawyers_count` | integer | Quantidade de advogados |
+| `interns_count` | integer | Quantidade de estagiarios |
+| `staff_count` | integer | Funcionarios administrativos |
+| `clients_range` | enum | 1-10, 11-50, 51-200, 200+ |
+| `cases_monthly_avg` | integer | Media de processos por mes |
+| **Areas de Atuacao** | | |
+| `practice_areas` | text[] | Array de areas (Civel, Criminal, Trabalhista, etc) |
+| `main_courts` | text[] | Tribunais mais usados |
+| **Preferencias** | | |
+| `onboarding_completed` | boolean | Se completou o onboarding |
+| `onboarding_step` | integer | Etapa atual do onboarding (para retomar) |
+| `created_at` | timestamp | |
+| `updated_at` | timestamp | |
+
+### Storage Bucket: `firm-logos`
+Para armazenar os logos dos escritorios.
+
+---
+
+## Onboarding Wizard
+
+### Design do Fluxo
 
 ```text
-+----------------------------------------------------------+
-| [v Periodo: Este mes] | [01/02/2026 - 28/02/2026] [Limpar]|
-+----------------------------------------------------------+
++------------------------------------------------------------------+
+|                                                                  |
+|   [====--------------------] Etapa 1 de 5                        |
+|                                                                  |
+|   Bem-vindo ao Praxis AI!                                        |
+|   Vamos configurar seu escritorio em poucos minutos.             |
+|                                                                  |
+|   +----------------------------------------------------------+   |
+|   |                                                          |   |
+|   |   ETAPA ATUAL: Dados do Advogado                         |   |
+|   |                                                          |   |
+|   |   Nome Completo: [____________________________]          |   |
+|   |   OAB: [_______] - [SP v]                                |   |
+|   |   Telefone: [____________________________]               |   |
+|   |   WhatsApp: [____________________________]               |   |
+|   |                                                          |   |
+|   +----------------------------------------------------------+   |
+|                                                                  |
+|   [Pular por agora]                        [Continuar ->]        |
+|                                                                  |
++------------------------------------------------------------------+
 ```
 
-**Presets disponiveis:**
-- Hoje
-- Ultimos 7 dias
-- Este mes
-- Mes anterior
-- Ultimos 3 meses
-- Este ano
-- Personalizado (Date Range Picker)
+### Etapas do Wizard
 
-### 2. Implementar Filtros por Pagina
+**Etapa 1: Dados do Advogado**
+- Nome completo
+- Numero OAB + Estado
+- Telefone
+- WhatsApp
 
-#### A. Transactions.tsx (Extrato)
-- Adicionar filtro de periodo para `transaction_date`
-- Filtrar queries Supabase por data
-- Atualizar totais dinamicamente
+**Etapa 2: Escritorio**
+- Nome do escritorio
+- Logo (upload)
+- Email comercial
+- Website (opcional)
 
-#### B. Receivables.tsx (Contas a Receber)
-- Adicionar filtro de periodo para `due_date`
-- Opcao de filtrar por `created_at` ou `payment_date`
-- Cards de resumo refletem periodo selecionado
+**Etapa 3: Endereco**
+- CEP (com busca automatica)
+- Logradouro, numero, complemento
+- Bairro, cidade, estado
 
-#### C. Payables.tsx (Contas a Pagar)
-- Adicionar filtro de periodo para `due_date`
-- Mesma logica de Receivables
+**Etapa 4: Estrutura**
+- Tipo de escritorio (Solo / Associado / Sociedade)
+- Quantos advogados
+- Quantos estagiarios
+- Quantos funcionarios
+- Faixa de clientes ativos
 
-#### D. FeeContracts.tsx (Contratos)
-- Adicionar filtro por vigencia
-- Filtrar contratos ativos no periodo selecionado
+**Etapa 5: Areas de Atuacao**
+- Checkbox com areas principais
+- Tribunais mais utilizados
+- Media de novos processos por mes
 
-#### E. OverdueReport.tsx (Inadimplencia)
-- Adicionar filtro de periodo
-- Filtrar por `due_date` dos titulos atrasados
-- Permitir analise historica de inadimplencia
+### Comportamento
+- Apos signup, verifica se `onboarding_completed = false`
+- Se nao completou, abre o wizard automaticamente
+- Dados salvos a cada etapa (pode retomar depois)
+- Botao "Pular" disponivel (completa mais tarde)
+- Ao finalizar, redireciona para Dashboard com toast de boas-vindas
 
 ---
 
-## Arquivos a Modificar
+## Pagina de Configuracoes
 
-### 1. Criar novo componente
-**`src/components/finance/DateRangeFilter.tsx`** (novo)
+Nova pagina `/configuracoes` com abas:
 
-Componente compacto de filtro de data para listagens, com:
-- Select de presets (Este mes, Mes anterior, etc.)
-- Date Range Picker
-- Botao limpar
-- Callback onChange
+### Tab 1: Meu Perfil
+- Dados pessoais do usuario
+- OAB
+- Alterar senha
 
-### 2. Modificar paginas de listagem
+### Tab 2: Escritorio
+- Logo
+- Nome do escritorio
+- Contatos (telefone, email, WhatsApp, site)
+- Endereco completo
+
+### Tab 3: Estrutura
+- Tipo de escritorio
+- Quantidade de colaboradores
+- Areas de atuacao
+- Tribunais
+
+### Tab 4: Assinatura
+- Plano atual
+- Link para Stripe (futuro)
+
+---
+
+## Dados Sugeridos para Coletar (Adicionais)
+
+Baseado em sistemas juridicos profissionais:
+
+1. **Identificacao Profissional**
+   - Nome completo
+   - OAB (numero + estado)
+   - CPF (para documentos)
+   - Email profissional
+
+2. **Escritorio**
+   - Nome fantasia
+   - CNPJ (opcional)
+   - Logo
+   - Cores da marca (futuro: para PDFs personalizados)
+
+3. **Contatos**
+   - Telefone fixo
+   - WhatsApp
+   - Email comercial
+   - Site
+   - LinkedIn (opcional)
+
+4. **Endereco Comercial**
+   - Endereco completo
+   - CEP (com auto-complete de endereco)
+
+5. **Estrutura**
+   - Tipo: Solo / Associados / Sociedade de Advogados
+   - Numero de advogados
+   - Numero de estagiarios
+   - Numero de funcionarios administrativos
+   - Faixa de clientes ativos
+
+6. **Perfil de Atuacao**
+   - Areas principais (multiselect):
+     - Civel
+     - Criminal
+     - Trabalhista
+     - Tributario
+     - Empresarial
+     - Familia e Sucessoes
+     - Previdenciario
+     - Ambiental
+     - Digital/LGPD
+     - Outro
+   - Tribunais mais usados (multiselect)
+   - Volume mensal de processos
+
+7. **Dados para Documentos** (bonus)
+   - Texto de assinatura padrao
+   - Conta bancaria para honorarios
+
+---
+
+## Arquivos a Criar/Modificar
+
+### Novos Arquivos
+
+| Arquivo | Descricao |
+|---------|-----------|
+| `src/components/onboarding/OnboardingWizard.tsx` | Componente principal do wizard |
+| `src/components/onboarding/steps/LawyerDataStep.tsx` | Etapa 1 |
+| `src/components/onboarding/steps/FirmDataStep.tsx` | Etapa 2 |
+| `src/components/onboarding/steps/AddressStep.tsx` | Etapa 3 |
+| `src/components/onboarding/steps/StructureStep.tsx` | Etapa 4 |
+| `src/components/onboarding/steps/PracticeAreasStep.tsx` | Etapa 5 |
+| `src/components/onboarding/OnboardingProgress.tsx` | Barra de progresso |
+| `src/pages/Settings.tsx` | Pagina de configuracoes geral |
+| `src/hooks/useFirmSettings.ts` | Hook para buscar/atualizar configuracoes |
+
+### Arquivos a Modificar
 
 | Arquivo | Mudancas |
 |---------|----------|
-| `src/pages/finance/Transactions.tsx` | + estado dateRange, + DateRangeFilter, + filtro na query |
-| `src/pages/finance/Receivables.tsx` | + estado dateRange, + DateRangeFilter, + filtro na query |
-| `src/pages/finance/Payables.tsx` | + estado dateRange, + DateRangeFilter, + filtro na query |
-| `src/pages/finance/FeeContracts.tsx` | + estado dateRange, + DateRangeFilter, + filtro na query |
-| `src/components/finance/reports/OverdueReport.tsx` | + ReportFilters, + filtro na query |
+| `src/App.tsx` | Adicionar rota `/configuracoes` |
+| `src/components/layout/MainLayout.tsx` | Adicionar verificacao de onboarding |
+| `src/components/layout/Sidebar.tsx` | Adicionar link para Configuracoes |
+| `src/contexts/AuthContext.tsx` | Adicionar `firmSettings` ao contexto |
+
+### Migracao de Banco
+
+1. Criar enum `firm_type` (solo, partnership, firm)
+2. Criar enum `clients_range` (1-10, 11-50, 51-200, 200+)
+3. Criar tabela `law_firm_settings`
+4. Criar bucket `firm-logos`
+5. RLS policies para a tabela
 
 ---
 
-## Detalhes Tecnicos de Implementacao
+## Fluxo Tecnico
 
-### Interface DateRangeFilter
-
-```typescript
-interface DateRangeFilterProps {
-  dateRange: { from: Date; to: Date } | null;
-  onDateRangeChange: (range: { from: Date; to: Date } | null) => void;
-  filterField?: 'due_date' | 'transaction_date' | 'created_at' | 'payment_date';
-  onFilterFieldChange?: (field: string) => void;
-  showFieldSelector?: boolean;
-  compact?: boolean;
-}
-```
-
-### Presets de Periodo
-
-```typescript
-type PresetPeriod = 
-  | 'today' 
-  | 'week' 
-  | 'month' 
-  | 'last_month' 
-  | 'quarter' 
-  | 'year' 
-  | 'all' 
-  | 'custom';
-```
-
-### Exemplo de Query Filtrada (Transactions)
-
-```typescript
-// Antes
-const { data } = await supabase
-  .from('transactions')
-  .select('*')
-  .order('transaction_date', { ascending: false })
-  .limit(100);
-
-// Depois
-let query = supabase
-  .from('transactions')
-  .select('*')
-  .order('transaction_date', { ascending: false });
-
-if (dateRange) {
-  query = query
-    .gte('transaction_date', format(dateRange.from, 'yyyy-MM-dd'))
-    .lte('transaction_date', format(dateRange.to, 'yyyy-MM-dd'));
-} else {
-  query = query.limit(100);
-}
-
-const { data } = await query;
+```text
+Usuario faz signup
+        |
+        v
+Auth redireciona para /dashboard
+        |
+        v
+MainLayout verifica firmSettings.onboarding_completed
+        |
+   [false?] -----> Abre OnboardingWizard (modal)
+        |                    |
+        |                    v
+        |            Usuario completa wizard
+        |                    |
+        |                    v
+        |            Atualiza onboarding_completed = true
+        |                    |
+   [true]<-------------------+
+        |
+        v
+Dashboard normal
 ```
 
 ---
 
-## Layout dos Filtros por Pagina
+## Interface do Wizard
 
-### Transactions.tsx
-```text
-+------------------------------------------------------------------+
-| Extrato                                            [+ Novo Lanc] |
-| Visualize todas as movimentacoes financeiras                     |
-+------------------------------------------------------------------+
-| [v Periodo: Este mes] [01/02/2026 - 28/02/2026] [Limpar]         |
-+------------------------------------------------------------------+
-| Cards: Entradas | Saidas | Saldo do Periodo                      |
-+------------------------------------------------------------------+
-| [Buscar...] [v Tipo: Todos]                                      |
-| Tabela de transacoes filtradas                                   |
-+------------------------------------------------------------------+
-```
+O wizard sera um Dialog em tela cheia (ou quase) com:
 
-### Receivables.tsx / Payables.tsx
-```text
-+------------------------------------------------------------------+
-| Contas a Receber                                   [+ Nova Rec]  |
-| Gerencie seus recebiveis e honorarios                            |
-+------------------------------------------------------------------+
-| [v Periodo: Este mes] [v Filtrar por: Vencimento] [01/02 - 28/02]|
-+------------------------------------------------------------------+
-| Cards: Pendente | Atrasado                                       |
-+------------------------------------------------------------------+
-| [Buscar...] [v Status: Todos]                                    |
-| Tabela filtrada                                                  |
-+------------------------------------------------------------------+
-```
+- Header com logo Praxis AI
+- Barra de progresso visual (5 etapas)
+- Titulo da etapa atual
+- Conteudo do formulario
+- Footer com "Pular" e "Continuar"
+- Animacao de transicao entre etapas
 
-### OverdueReport.tsx
-```text
-+------------------------------------------------------------------+
-| Inadimplencia                                      [PDF] [CSV]   |
-+------------------------------------------------------------------+
-| [v Periodo] [01/01/2026 - 28/02/2026] [Vencidos no periodo]      |
-+------------------------------------------------------------------+
-| Cards Aging: 1-15 dias | 16-30 dias | 31-60 dias | >60 dias      |
-+------------------------------------------------------------------+
-| Tabela de titulos atrasados filtrados por periodo                |
-+------------------------------------------------------------------+
-```
+### Responsividade
+- Desktop: Dialog centralizado 600px
+- Mobile: Tela cheia com scroll
 
 ---
 
-## Melhorias Adicionais
+## Seguranca
 
-### 1. Persistencia de Filtros
-- Salvar ultimo filtro usado em localStorage
-- Restaurar ao reabrir a pagina
-
-### 2. URL Query Parameters
-- Permitir compartilhar links com filtros aplicados
-- Ex: `/financeiro/receber?from=2026-01-01&to=2026-01-31`
-
-### 3. Exportacao com Filtros
-- Exportar PDF/CSV respeitando o periodo selecionado
-- Incluir periodo no cabecalho do relatorio
+- RLS: Usuario so acessa suas proprias configuracoes
+- Storage: Bucket com politica de upload apenas para usuario autenticado
+- Validacao de OAB (formato valido)
+- Sanitizacao de inputs
 
 ---
 
 ## Ordem de Implementacao
 
-1. **Criar DateRangeFilter.tsx** - Componente base reutilizavel
-2. **Transactions.tsx** - Primeira implementacao (mais simples)
-3. **Receivables.tsx** - Com seletor de campo de data
-4. **Payables.tsx** - Clonar logica de Receivables
-5. **FeeContracts.tsx** - Filtro por vigencia
-6. **OverdueReport.tsx** - Adicionar ReportFilters
+1. **Migracao**: Criar tabela e storage
+2. **Hook**: `useFirmSettings` para CRUD
+3. **Wizard**: Componente base + etapas
+4. **Integracao**: MainLayout verifica onboarding
+5. **Pagina Settings**: Configuracoes editaveis
+6. **Sidebar**: Link para /configuracoes
+7. **Testes**: Verificar fluxo completo
 
 ---
 
-## Resultados Esperados
+## Resultado Esperado
 
-1. **Analises profissionais** - Usuario pode analisar qualquer periodo especifico
-2. **Consistencia visual** - Mesmo componente de filtro em todas as paginas
-3. **Performance** - Queries filtradas retornam menos dados
-4. **Relatorios precisos** - Exportacoes respeitam periodo selecionado
-5. **UX profissional** - Presets rapidos + date picker para flexibilidade
+1. **Novos usuarios** - Experiencia guiada de onboarding profissional
+2. **Usuarios existentes** - Podem acessar /configuracoes e preencher dados
+3. **Dados completos** - Sistema tem informacoes para personalizar PDFs, petitions, etc
+4. **UX Premium** - Wizard bonito e progressivo como apps modernos
