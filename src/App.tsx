@@ -25,6 +25,14 @@ import NotFound from "./pages/NotFound";
 
 // Finance Pages
 import FinanceDashboard from "./pages/finance/FinanceDashboard";
+import Receivables from "./pages/finance/Receivables";
+import ReceivableForm from "./pages/finance/ReceivableForm";
+import Payables from "./pages/finance/Payables";
+import PayableForm from "./pages/finance/PayableForm";
+import Transactions from "./pages/finance/Transactions";
+import FeeContracts from "./pages/finance/FeeContracts";
+import FeeContractForm from "./pages/finance/FeeContractForm";
+import FinanceSettings from "./pages/finance/FinanceSettings";
 
 // Layout
 import MainLayout from "./components/layout/MainLayout";
@@ -66,6 +74,17 @@ const App = () => (
               
               {/* Finance routes */}
               <Route path="/financeiro" element={<FinanceDashboard />} />
+              <Route path="/financeiro/receber" element={<Receivables />} />
+              <Route path="/financeiro/receber/novo" element={<ReceivableForm />} />
+              <Route path="/financeiro/receber/:id/editar" element={<ReceivableForm />} />
+              <Route path="/financeiro/pagar" element={<Payables />} />
+              <Route path="/financeiro/pagar/novo" element={<PayableForm />} />
+              <Route path="/financeiro/pagar/:id/editar" element={<PayableForm />} />
+              <Route path="/financeiro/extrato" element={<Transactions />} />
+              <Route path="/financeiro/contratos" element={<FeeContracts />} />
+              <Route path="/financeiro/contratos/novo" element={<FeeContractForm />} />
+              <Route path="/financeiro/contratos/:id/editar" element={<FeeContractForm />} />
+              <Route path="/financeiro/config" element={<FinanceSettings />} />
             </Route>
             
             {/* Catch-all */}

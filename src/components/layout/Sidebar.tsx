@@ -10,18 +10,39 @@ import {
   LayoutDashboard,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   CalendarDays,
   BookTemplate,
   Search,
   Radar,
-  Wallet
+  Wallet,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Receipt,
+  FileSignature,
+  Settings,
+  LucideIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface SidebarProps {
   onNavigate?: () => void;
+}
+
+interface NavItem {
+  to: string;
+  icon: LucideIcon;
+  label: string;
+}
+
+interface NavCategory {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  items: NavItem[];
 }
 
 const Sidebar = ({ onNavigate }: SidebarProps) => {
@@ -29,27 +50,61 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const isMobile = useIsMobile();
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
+    juridico: true,
+    financeiro: true,
+  });
 
   // On mobile, sidebar is always expanded (inside Sheet)
   const isCollapsed = isMobile ? false : collapsed;
 
-  const navItems = [
-    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/clients', icon: Users, label: 'Clientes' },
-    { to: '/cases', icon: FolderOpen, label: 'Processos' },
-    { to: '/petitions', icon: FileText, label: 'Petições' },
-    { to: '/templates', icon: BookTemplate, label: 'Modelos' },
-    { to: '/jurisprudence', icon: Search, label: 'Jurisprudência' },
-    { to: '/tracking', icon: Radar, label: 'Acompanhamento' },
-    { to: '/agenda', icon: CalendarDays, label: 'Agenda' },
-    { to: '/financeiro', icon: Wallet, label: 'Financeiro' },
+  const categories: NavCategory[] = [
+    {
+      id: 'juridico',
+      label: 'Jurídico',
+      icon: Scale,
+      items: [
+        { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        { to: '/clients', icon: Users, label: 'Clientes' },
+        { to: '/cases', icon: FolderOpen, label: 'Processos' },
+        { to: '/petitions', icon: FileText, label: 'Petições' },
+        { to: '/templates', icon: BookTemplate, label: 'Modelos' },
+        { to: '/jurisprudence', icon: Search, label: 'Jurisprudência' },
+        { to: '/tracking', icon: Radar, label: 'Acompanhamento' },
+        { to: '/agenda', icon: CalendarDays, label: 'Agenda' },
+      ],
+    },
+    {
+      id: 'financeiro',
+      label: 'Financeiro',
+      icon: Wallet,
+      items: [
+        { to: '/financeiro', icon: LayoutDashboard, label: 'Painel' },
+        { to: '/financeiro/receber', icon: ArrowDownCircle, label: 'Contas a Receber' },
+        { to: '/financeiro/pagar', icon: ArrowUpCircle, label: 'Contas a Pagar' },
+        { to: '/financeiro/extrato', icon: Receipt, label: 'Extrato' },
+        { to: '/financeiro/contratos', icon: FileSignature, label: 'Contratos' },
+        { to: '/financeiro/config', icon: Settings, label: 'Configurações' },
+      ],
+    },
   ];
 
   const isActive = (path: string) => {
     if (path === '/financeiro') {
-      return location.pathname.startsWith('/financeiro');
+      return location.pathname === '/financeiro';
     }
-    return location.pathname === path;
+    return location.pathname === path || location.pathname.startsWith(path + '/');
+  };
+
+  const isCategoryActive = (category: NavCategory) => {
+    return category.items.some(item => isActive(item.to));
+  };
+
+  const toggleCategory = (categoryId: string) => {
+    setOpenCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId],
+    }));
   };
 
   const handleNavClick = () => {
@@ -63,6 +118,77 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
     if (onNavigate) {
       onNavigate();
     }
+  };
+
+  const renderNavItem = (item: NavItem, inCollapsedSidebar: boolean = false) => (
+    <NavLink
+      key={item.to}
+      to={item.to}
+      onClick={handleNavClick}
+      className={cn(
+        "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
+        isActive(item.to)
+          ? "bg-sidebar-accent text-sidebar-primary font-medium"
+          : "hover:bg-sidebar-accent/50 text-sidebar-foreground/80 hover:text-sidebar-foreground",
+        inCollapsedSidebar && "justify-center px-2"
+      )}
+    >
+      <item.icon className="w-4 h-4 flex-shrink-0" />
+      {!inCollapsedSidebar && <span>{item.label}</span>}
+    </NavLink>
+  );
+
+  const renderCategory = (category: NavCategory, inCollapsedSidebar: boolean = false) => {
+    const isOpen = openCategories[category.id];
+    const hasActiveItem = isCategoryActive(category);
+
+    if (inCollapsedSidebar) {
+      // In collapsed mode, just show icons
+      return (
+        <div key={category.id} className="space-y-1">
+          <div className={cn(
+            "flex items-center justify-center p-2 rounded-lg",
+            hasActiveItem && "bg-sidebar-accent/30"
+          )}>
+            <category.icon className="w-5 h-5 text-sidebar-foreground/70" />
+          </div>
+          {category.items.map(item => renderNavItem(item, true))}
+        </div>
+      );
+    }
+
+    return (
+      <Collapsible
+        key={category.id}
+        open={isOpen}
+        onOpenChange={() => toggleCategory(category.id)}
+      >
+        <CollapsibleTrigger asChild>
+          <button
+            className={cn(
+              "flex items-center justify-between w-full px-3 py-2.5 rounded-lg transition-colors",
+              hasActiveItem
+                ? "bg-sidebar-accent/30 text-sidebar-foreground"
+                : "hover:bg-sidebar-accent/30 text-sidebar-foreground/80 hover:text-sidebar-foreground"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <category.icon className="w-5 h-5" />
+              <span className="font-medium">{category.label}</span>
+            </div>
+            <ChevronDown
+              className={cn(
+                "w-4 h-4 transition-transform",
+                isOpen && "rotate-180"
+              )}
+            />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pl-4 mt-1 space-y-0.5">
+          {category.items.map(item => renderNavItem(item))}
+        </CollapsibleContent>
+      </Collapsible>
+    );
   };
 
   // Mobile sidebar (inside Sheet - no fixed positioning)
@@ -81,23 +207,8 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={handleNavClick}
-              className={cn(
-                "flex items-center gap-3 px-3 py-3 rounded-lg transition-colors",
-                isActive(item.to)
-                  ? "bg-sidebar-accent text-sidebar-primary"
-                  : "hover:bg-sidebar-accent/50 text-sidebar-foreground/80 hover:text-sidebar-foreground"
-              )}
-            >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
-              <span className="font-medium">{item.label}</span>
-            </NavLink>
-          ))}
+        <nav className="flex-1 p-3 space-y-2 overflow-y-auto">
+          {categories.map(category => renderCategory(category))}
         </nav>
 
         {/* User info */}
@@ -143,22 +254,8 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-              isActive(item.to)
-                ? "bg-sidebar-accent text-sidebar-primary"
-                : "hover:bg-sidebar-accent/50 text-sidebar-foreground/80 hover:text-sidebar-foreground"
-            )}
-          >
-            <item.icon className="w-5 h-5 flex-shrink-0" />
-            {!isCollapsed && <span className="font-medium">{item.label}</span>}
-          </NavLink>
-        ))}
+      <nav className="flex-1 p-3 space-y-2 overflow-y-auto">
+        {categories.map(category => renderCategory(category, isCollapsed))}
       </nav>
 
       {/* User info */}
