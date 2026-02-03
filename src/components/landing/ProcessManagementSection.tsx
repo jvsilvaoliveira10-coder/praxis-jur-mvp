@@ -13,8 +13,6 @@ import { Link } from 'react-router-dom';
 import { 
   DndContext, 
   DragEndEvent, 
-  DragOverlay,
-  DragStartEvent,
   useSensor,
   useSensors,
   PointerSensor,
@@ -27,7 +25,6 @@ import { useInView } from '@/hooks/useInView';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { KanbanColumn } from './kanban-demo/KanbanColumn';
-import { KanbanCard } from './kanban-demo/KanbanCard';
 import { ConfettiEffect } from './kanban-demo/ConfettiEffect';
 
 const benefits = [
@@ -110,7 +107,6 @@ const initialColumns: ColumnData[] = [
 export function ProcessManagementSection() {
   const { ref, isInView } = useInView({ threshold: 0.2 });
   const [columns, setColumns] = useState<ColumnData[]>(initialColumns);
-  const [activeCard, setActiveCard] = useState<CardData | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const { toast } = useToast();
 
@@ -145,14 +141,8 @@ export function ProcessManagementSection() {
     return null;
   };
 
-  const handleDragStart = (event: DragStartEvent) => {
-    const card = findCard(event.active.id as string);
-    setActiveCard(card);
-  };
-
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveCard(null);
 
     if (!over) return;
 
@@ -264,7 +254,6 @@ export function ProcessManagementSection() {
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
-                  onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
                 >
                   <div className="flex gap-3 overflow-x-auto pb-2">
@@ -275,24 +264,6 @@ export function ProcessManagementSection() {
                       />
                     ))}
                   </div>
-                  
-                  <DragOverlay>
-                    {activeCard && (
-                      <div className="bg-card border rounded-md p-2 shadow-lg rotate-3 opacity-90">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-foreground truncate">
-                            {activeCard.name}
-                          </span>
-                        </div>
-                        <div className={cn(
-                          'text-[10px] px-1.5 py-0.5 rounded-full w-fit text-white',
-                          activeCard.priorityColor
-                        )}>
-                          {activeCard.priority}
-                        </div>
-                      </div>
-                    )}
-                  </DragOverlay>
                 </DndContext>
                 
                 {/* Instruction */}
