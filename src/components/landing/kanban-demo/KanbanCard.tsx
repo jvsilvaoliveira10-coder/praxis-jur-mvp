@@ -22,8 +22,8 @@ export function KanbanCard({ card }: KanbanCardProps) {
       {...listeners}
       {...attributes}
       className={cn(
-        'bg-card border rounded-md p-2 shadow-sm cursor-grab active:cursor-grabbing transition-all',
-        isDragging ? 'opacity-0' : 'hover:shadow-md'
+        'bg-card border rounded-md p-2 shadow-sm cursor-grab active:cursor-grabbing transition-all touch-none',
+        isDragging ? 'opacity-70 shadow-lg scale-105 ring-2 ring-primary/20' : 'hover:shadow-md'
       )}
     >
       <div className="flex items-center justify-between mb-1">
