@@ -84,32 +84,32 @@ const TopHeader = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 h-[72px] border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 flex items-center justify-between px-4 md:px-6">
+    <header className="sticky top-0 z-40 h-[72px] border-b border-sidebar-border bg-[hsl(var(--header-background))] text-[hsl(var(--header-foreground))] backdrop-blur flex items-center justify-between px-4 md:px-6">
       {/* Left side - Page title and breadcrumb */}
       <div className="flex items-center gap-2 min-w-0">
         {parentRoute && (
           <>
             <button
               onClick={() => navigate(parentRoute.path)}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
+              className="text-sm text-white/70 hover:text-white transition-colors hidden sm:block"
             >
               {parentRoute.title}
             </button>
-            <ChevronRight className="h-4 w-4 text-muted-foreground hidden sm:block flex-shrink-0" />
+            <ChevronRight className="h-4 w-4 text-white/50 hidden sm:block flex-shrink-0" />
           </>
         )}
-        <h1 className="text-base md:text-lg font-semibold text-foreground truncate">{pageTitle}</h1>
+        <h1 className="text-base md:text-lg font-semibold text-white truncate">{pageTitle}</h1>
       </div>
 
       {/* Right side - Search, notifications, avatar */}
       <div className="flex items-center gap-2 md:gap-4">
         {/* Global Search */}
         <div className="relative hidden lg:block">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50" />
           <Input
             type="search"
             placeholder="Buscar clientes, processos..."
-            className="pl-9 w-48 xl:w-72 h-9 bg-muted/50 border-0 focus-visible:ring-1"
+            className="pl-9 w-48 xl:w-72 h-9 bg-white/10 border-0 text-white placeholder:text-white/50 focus-visible:ring-1 focus-visible:ring-white/30"
           />
         </div>
 
@@ -119,10 +119,10 @@ const TopHeader = () => {
         {/* User Avatar Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-full">
-              <Avatar className="h-9 w-9 cursor-pointer">
+            <button className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--header-background))] rounded-full">
+              <Avatar className="h-9 w-9 cursor-pointer border-2 border-white/20">
                 <AvatarImage src={firmSettings?.logo_url || undefined} />
-                <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
+                <AvatarFallback className="bg-white/20 text-white text-sm font-medium">
                   {getUserInitials()}
                 </AvatarFallback>
               </Avatar>
