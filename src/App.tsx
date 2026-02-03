@@ -23,6 +23,9 @@ import Jurisprudence from "./pages/Jurisprudence";
 import Tracking from "./pages/Tracking";
 import NotFound from "./pages/NotFound";
 
+// Finance Pages
+import FinanceDashboard from "./pages/finance/FinanceDashboard";
+
 // Layout
 import MainLayout from "./components/layout/MainLayout";
 
@@ -60,6 +63,9 @@ const App = () => (
               <Route path="/agenda/:id/edit" element={<DeadlineForm />} />
               <Route path="/jurisprudence" element={<Jurisprudence />} />
               <Route path="/tracking" element={<Tracking />} />
+              
+              {/* Finance routes */}
+              <Route path="/financeiro" element={<FinanceDashboard />} />
             </Route>
             
             {/* Catch-all */}
