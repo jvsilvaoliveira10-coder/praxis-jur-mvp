@@ -216,7 +216,7 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
       </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-3 space-y-2 overflow-y-auto">
+        <nav className="flex-1 p-3 space-y-2 overflow-y-auto scrollbar-hidden">
           {categories.map(category => renderCategory(category))}
           
           {/* Bottom links */}
@@ -254,8 +254,8 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
         isCollapsed ? "w-16" : "w-64"
       )}
     >
-      {/* Logo - altura fixa de 72px para alinhar com TopHeader */}
-      <div className="h-[72px] px-4 flex items-center border-b border-sidebar-border">
+      {/* Logo + botão de recolher - altura fixa de 72px para alinhar com TopHeader */}
+      <div className="h-[72px] px-4 flex items-center justify-between border-b border-sidebar-border">
         <div className="flex items-center gap-3">
           <img src="/favicon.svg" alt="Práxis AI" className="w-10 h-10" />
           {!isCollapsed && (
@@ -265,10 +265,19 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
             </div>
           )}
         </div>
+        {/* Botão de recolher no header */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="w-8 h-8 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+          onClick={() => setCollapsed(!collapsed)}
+        >
+          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        </Button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-2 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-2 overflow-y-auto scrollbar-hidden">
         {categories.map(category => renderCategory(category, isCollapsed))}
         
         {/* Bottom links */}
@@ -297,20 +306,6 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
           {!isCollapsed && <span>Sair</span>}
         </Button>
       </div>
-
-      {/* Collapse toggle */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-sidebar border border-sidebar-border shadow-md hover:bg-sidebar-accent"
-        onClick={() => setCollapsed(!collapsed)}
-      >
-        {isCollapsed ? (
-          <ChevronRight className="w-4 h-4" />
-        ) : (
-          <ChevronLeft className="w-4 h-4" />
-        )}
-      </Button>
     </aside>
   );
 };
