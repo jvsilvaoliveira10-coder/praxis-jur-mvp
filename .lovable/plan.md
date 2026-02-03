@@ -1,663 +1,458 @@
 
-# Plano: Modulo Financeiro Profissional para Escritorios de Advocacia
+# Plano Completo: Modulo Financeiro Funcional + Sidebar Reorganizado
 
-## Visao Geral
+## Diagnostico do Estado Atual
 
-Este plano detalha a implementacao de um modulo financeiro completo e profissional para o Praxis AI, permitindo que advogados gerenciem toda a saude financeira do escritorio em um unico sistema. O modulo incluira dashboard financeiro, contas a pagar/receber, controle de honorarios, fluxo de caixa, relatorios e integracao com processos/clientes existentes.
+### O que foi implementado
+- Dashboard financeiro com cards de estatisticas e graficos
+- Componentes visuais (FinanceStatsCard, CashFlowChart, RevenueExpenseChart, etc)
+- Tipos TypeScript completos (src/types/finance.ts)
+- Tabelas no banco de dados (receivables, payables, transactions, fee_contracts, financial_accounts, financial_categories, cost_centers)
+- RLS policies configuradas
 
----
-
-## Analise do Sistema Atual
-
-### Entidades Existentes (que se relacionarao com o financeiro)
-- **Clientes** (clients) - fonte de receita
-- **Processos** (cases) - podem ter honorarios vinculados
-- **Peticoes** (petitions) - podem gerar cobrancas por peca
-
-### Gaps Identificados
-- Nenhuma tabela financeira existe
-- Nao ha controle de honorarios por cliente/processo
-- Nao ha fluxo de caixa ou DRE
-- Dashboard atual mostra apenas metricas de producao (clientes, processos, peticoes)
+### O que esta faltando
+1. **Rotas nao existem** - Apenas `/financeiro` esta configurado em App.tsx
+2. **Paginas nao existem** - Apenas FinanceDashboard.tsx foi criado
+3. **Formularios nao existem** - Nao ha CRUD para nenhuma entidade financeira
+4. **Sidebar esta linear** - Nao ha agrupamento por categorias pai
 
 ---
 
-## Arquitetura do Modulo Financeiro
+## Parte 1: Reorganizacao do Sidebar
+
+### Nova Estrutura de Navegacao
 
 ```text
-+-------------------------------------------------------------------+
-|                    DASHBOARD FINANCEIRO                            |
-|  +-------------+  +-------------+  +-------------+  +-------------+|
-|  | Receita     |  | Despesas    |  | Saldo       |  | A Receber  ||
-|  | do Mes      |  | do Mes      |  | Atual       |  | Atrasado   ||
-|  +-------------+  +-------------+  +-------------+  +-------------+|
-|                                                                    |
-|  +---------------------------+  +---------------------------+      |
-|  |   Fluxo de Caixa         |  |   Receitas vs Despesas    |      |
-|  |   (Grafico de Area)      |  |   (Grafico de Barras)     |      |
-|  +---------------------------+  +---------------------------+      |
-|                                                                    |
-|  +---------------------------+  +---------------------------+      |
-|  |   Contas a Vencer (7d)   |  |   Maiores Clientes        |      |
-|  |   (Lista com alertas)    |  |   (Ranking de Receita)    |      |
-|  +---------------------------+  +---------------------------+      |
-+-------------------------------------------------------------------+
-
-+-------------------------------------------------------------------+
-|                    CONTAS A RECEBER                                |
-|  - Honorarios contratuais (mensais, fixos)                        |
-|  - Honorarios por exito                                            |
-|  - Consultas avulsas                                               |
-|  - Parcelas de acordos                                             |
-|  - Vinculacao com Cliente + Processo (opcional)                   |
-+-------------------------------------------------------------------+
-
-+-------------------------------------------------------------------+
-|                    CONTAS A PAGAR                                  |
-|  - Custas processuais                                              |
-|  - Despesas operacionais (aluguel, software, etc)                 |
-|  - Impostos (ISS, IR)                                              |
-|  - Fornecedores                                                    |
-|  - Funcionarios/Pro-labore                                         |
-+-------------------------------------------------------------------+
-
-+-------------------------------------------------------------------+
-|                    TRANSACOES                                      |
-|  - Registro de pagamentos recebidos                               |
-|  - Registro de pagamentos efetuados                               |
-|  - Vinculacao automatica com contas                               |
-|  - Conciliacao bancaria manual                                    |
-+-------------------------------------------------------------------+
++---------------------------+
+|  PRAXIS AI                |
++---------------------------+
+|                           |
+|  [v] Juridico             |  <- Categoria pai colapsavel
+|     - Dashboard           |
+|     - Clientes            |
+|     - Processos           |
+|     - Peticoes            |
+|     - Modelos             |
+|     - Jurisprudencia      |
+|     - Acompanhamento      |
+|     - Agenda              |
+|                           |
+|  [v] Financeiro           |  <- Categoria pai colapsavel
+|     - Painel              |
+|     - Contas a Receber    |
+|     - Contas a Pagar      |
+|     - Extrato             |
+|     - Contratos           |
+|     - Configuracoes       |
+|                           |
++---------------------------+
+|  Usuario                  |
+|  [Sair]                   |
++---------------------------+
 ```
+
+### Arquivos a Modificar
+- `src/components/layout/Sidebar.tsx` - Reescrever com categorias colapsaveis
+
+### Comportamento
+- Categorias iniciam abertas
+- Clique na categoria abre/fecha
+- Estado de aberto/fechado persiste durante a sessao
+- Indicador visual quando ha itens ativos dentro da categoria fechada
 
 ---
 
-## Estrutura do Banco de Dados
+## Parte 2: Paginas Financeiras a Criar
 
-### ENUMs Necessarios
+### 2.1 Contas a Receber
 
-```text
-transaction_type: 'receita' | 'despesa'
-payment_status: 'pendente' | 'pago' | 'atrasado' | 'cancelado' | 'parcial'
-recurrence_type: 'unico' | 'semanal' | 'mensal' | 'trimestral' | 'anual'
-receivable_type: 'honorario_contratual' | 'honorario_exito' | 'consulta' | 'acordo' | 'reembolso' | 'outros'
-payable_type: 'custas_processuais' | 'aluguel' | 'software' | 'impostos' | 'funcionarios' | 'prolabore' | 'fornecedor' | 'outros'
-payment_method: 'pix' | 'boleto' | 'cartao_credito' | 'cartao_debito' | 'transferencia' | 'dinheiro' | 'cheque'
-```
+#### Listagem (`/financeiro/receber`)
+**Arquivo:** `src/pages/finance/Receivables.tsx`
 
-### Tabela: `financial_accounts`
-Contas bancarias/caixas do escritorio.
+**Funcionalidades:**
+- Tabela com todos os recebiveis do usuario
+- Filtros: status, periodo, cliente, tipo de recebivel
+- Busca por descricao
+- Indicadores visuais de status (cores)
+- Acoes: editar, excluir, marcar como pago
+- Totalizadores: total pendente, total atrasado
 
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | UUID | Identificador unico |
-| user_id | UUID | FK para auth.users |
-| name | TEXT | Nome da conta (ex: "Conta Principal Itau") |
-| account_type | TEXT | banco, caixa, carteira_digital |
-| bank_name | TEXT | Nome do banco (opcional) |
-| initial_balance | NUMERIC(12,2) | Saldo inicial |
-| current_balance | NUMERIC(12,2) | Saldo atual (calculado) |
-| is_active | BOOLEAN | Se a conta esta ativa |
-| color | TEXT | Cor para identificacao visual |
-| created_at | TIMESTAMPTZ | Data de criacao |
-| updated_at | TIMESTAMPTZ | Data de atualizacao |
+**Colunas:**
+| Coluna | Descricao |
+|--------|-----------|
+| Descricao | Texto do recebivel |
+| Cliente | Nome do cliente (se vinculado) |
+| Tipo | honorario_contratual, consulta, etc |
+| Valor | Formatado em R$ |
+| Vencimento | Data formatada |
+| Status | Badge colorido |
+| Acoes | Editar, Excluir, Receber |
 
-### Tabela: `financial_categories`
-Categorias para classificacao de receitas/despesas.
+#### Formulario (`/financeiro/receber/novo` e `/financeiro/receber/:id/editar`)
+**Arquivo:** `src/pages/finance/ReceivableForm.tsx`
 
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | UUID | Identificador unico |
-| user_id | UUID | FK para auth.users |
-| name | TEXT | Nome da categoria |
-| type | transaction_type | receita ou despesa |
-| parent_id | UUID | FK para categoria pai (hierarquia) |
-| color | TEXT | Cor para graficos |
-| icon | TEXT | Icone (nome do Lucide icon) |
-| is_system | BOOLEAN | Se e categoria do sistema (nao editavel) |
-| created_at | TIMESTAMPTZ | Data de criacao |
-
-### Tabela: `receivables` (Contas a Receber)
-Todas as receitas esperadas do escritorio.
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | UUID | Identificador unico |
-| user_id | UUID | FK para auth.users |
-| client_id | UUID | FK para clients (opcional) |
-| case_id | UUID | FK para cases (opcional) |
-| category_id | UUID | FK para financial_categories |
-| receivable_type | receivable_type | Tipo do recebivel |
-| description | TEXT | Descricao detalhada |
-| amount | NUMERIC(12,2) | Valor total |
-| amount_paid | NUMERIC(12,2) | Valor ja pago (para parciais) |
-| due_date | DATE | Data de vencimento |
-| payment_date | DATE | Data do pagamento efetivo |
-| status | payment_status | Status atual |
-| recurrence | recurrence_type | Tipo de recorrencia |
-| recurrence_end_date | DATE | Fim da recorrencia |
-| installments_total | INTEGER | Total de parcelas |
-| installment_number | INTEGER | Numero da parcela atual |
-| parent_receivable_id | UUID | FK para receivable pai (parcelamento) |
-| notes | TEXT | Observacoes |
-| created_at | TIMESTAMPTZ | Data de criacao |
-| updated_at | TIMESTAMPTZ | Data de atualizacao |
-
-### Tabela: `payables` (Contas a Pagar)
-Todas as despesas e obrigacoes do escritorio.
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | UUID | Identificador unico |
-| user_id | UUID | FK para auth.users |
-| case_id | UUID | FK para cases (opcional - custas processuais) |
-| category_id | UUID | FK para financial_categories |
-| payable_type | payable_type | Tipo da despesa |
-| supplier_name | TEXT | Nome do fornecedor/credor |
-| description | TEXT | Descricao detalhada |
-| amount | NUMERIC(12,2) | Valor total |
-| amount_paid | NUMERIC(12,2) | Valor ja pago |
-| due_date | DATE | Data de vencimento |
-| payment_date | DATE | Data do pagamento efetivo |
-| status | payment_status | Status atual |
-| recurrence | recurrence_type | Tipo de recorrencia |
-| recurrence_end_date | DATE | Fim da recorrencia |
-| installments_total | INTEGER | Total de parcelas |
-| installment_number | INTEGER | Numero da parcela atual |
-| parent_payable_id | UUID | FK para payable pai |
-| barcode | TEXT | Codigo de barras (boleto) |
-| notes | TEXT | Observacoes |
-| created_at | TIMESTAMPTZ | Data de criacao |
-| updated_at | TIMESTAMPTZ | Data de atualizacao |
-
-### Tabela: `transactions` (Movimentacoes)
-Registro de todas as movimentacoes financeiras reais.
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | UUID | Identificador unico |
-| user_id | UUID | FK para auth.users |
-| account_id | UUID | FK para financial_accounts |
-| receivable_id | UUID | FK para receivables (opcional) |
-| payable_id | UUID | FK para payables (opcional) |
-| category_id | UUID | FK para financial_categories |
-| type | transaction_type | receita ou despesa |
-| description | TEXT | Descricao |
-| amount | NUMERIC(12,2) | Valor da transacao |
-| transaction_date | DATE | Data da transacao |
-| payment_method | payment_method | Forma de pagamento |
-| is_confirmed | BOOLEAN | Se foi conciliado/confirmado |
-| notes | TEXT | Observacoes |
-| created_at | TIMESTAMPTZ | Data de criacao |
-| updated_at | TIMESTAMPTZ | Data de atualizacao |
-
-### Tabela: `fee_contracts` (Contratos de Honorarios)
-Contratos de honorarios recorrentes com clientes.
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | UUID | Identificador unico |
-| user_id | UUID | FK para auth.users |
-| client_id | UUID | FK para clients |
-| case_id | UUID | FK para cases (opcional) |
-| contract_name | TEXT | Nome/identificacao do contrato |
-| contract_type | TEXT | mensal_fixo, por_ato, exito, misto |
-| monthly_amount | NUMERIC(12,2) | Valor mensal (se aplicavel) |
-| success_fee_percentage | NUMERIC(5,2) | Percentual de exito (se aplicavel) |
-| per_act_amount | NUMERIC(12,2) | Valor por ato (se aplicavel) |
-| billing_day | INTEGER | Dia do vencimento (1-31) |
-| start_date | DATE | Inicio do contrato |
-| end_date | DATE | Fim do contrato (opcional) |
-| is_active | BOOLEAN | Se o contrato esta ativo |
-| auto_generate_receivables | BOOLEAN | Gerar recebiveis automaticamente |
-| notes | TEXT | Observacoes |
-| created_at | TIMESTAMPTZ | Data de criacao |
-| updated_at | TIMESTAMPTZ | Data de atualizacao |
-
-### Tabela: `cost_centers` (Centros de Custo)
-Para escritorios maiores que precisam separar custos por area.
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | UUID | Identificador unico |
-| user_id | UUID | FK para auth.users |
-| name | TEXT | Nome do centro de custo |
-| code | TEXT | Codigo (ex: "ADM", "TRB", "CIV") |
-| description | TEXT | Descricao |
-| is_active | BOOLEAN | Se esta ativo |
-| created_at | TIMESTAMPTZ | Data de criacao |
+**Campos:**
+- Descricao (obrigatorio)
+- Tipo de recebivel (select)
+- Valor (number, obrigatorio)
+- Data de vencimento (date picker, obrigatorio)
+- Cliente (select opcional, busca clientes existentes)
+- Processo (select opcional, filtra por cliente selecionado)
+- Categoria (select de financial_categories tipo receita)
+- Recorrencia (unico, mensal, trimestral, anual)
+- Data fim recorrencia (se recorrencia != unico)
+- Parcelamento (checkbox + numero de parcelas)
+- Observacoes (textarea)
 
 ---
 
-## Funcionalidades por Modulo
+### 2.2 Contas a Pagar
 
-### 1. Dashboard Financeiro (/financeiro)
+#### Listagem (`/financeiro/pagar`)
+**Arquivo:** `src/pages/finance/Payables.tsx`
 
-**Cards de Resumo:**
-- Receita do Mes (total de transacoes tipo 'receita' no mes)
-- Despesas do Mes (total de transacoes tipo 'despesa' no mes)
-- Saldo em Contas (soma de current_balance das contas ativas)
-- A Receber Atrasado (soma de receivables com status 'atrasado')
-- A Pagar Hoje (payables com due_date = hoje e status pendente)
+**Funcionalidades:**
+- Tabela com todos os pagaveis do usuario
+- Filtros: status, periodo, fornecedor, tipo
+- Busca por descricao ou fornecedor
+- Indicadores visuais de status
+- Acoes: editar, excluir, marcar como pago
 
-**Graficos:**
-- Fluxo de Caixa Projetado (12 meses - receivables + payables futuros)
-- Receitas vs Despesas (barras comparativas por mes)
-- Distribuicao por Categoria (pizza para despesas)
-- Evolucao do Saldo (linha temporal)
+**Colunas:**
+| Coluna | Descricao |
+|--------|-----------|
+| Descricao | Texto da despesa |
+| Fornecedor | Nome do fornecedor |
+| Tipo | custas_processuais, aluguel, etc |
+| Valor | Formatado em R$ |
+| Vencimento | Data formatada |
+| Status | Badge colorido |
+| Acoes | Editar, Excluir, Pagar |
 
-**Listas Rapidas:**
-- Proximos Vencimentos (7 dias - payables + receivables)
-- Ultimas Movimentacoes (5 transacoes mais recentes)
-- Top 5 Clientes por Receita (ranking do mes/ano)
+#### Formulario (`/financeiro/pagar/novo` e `/financeiro/pagar/:id/editar`)
+**Arquivo:** `src/pages/finance/PayableForm.tsx`
 
-**Alertas Inteligentes:**
-- Contas vencidas nao pagas
-- Fluxo de caixa negativo projetado
-- Clientes com pagamento atrasado
+**Campos:**
+- Descricao (obrigatorio)
+- Tipo de despesa (select)
+- Fornecedor/Credor (texto)
+- Valor (number, obrigatorio)
+- Data de vencimento (date picker, obrigatorio)
+- Processo (select opcional - para custas processuais)
+- Categoria (select de financial_categories tipo despesa)
+- Codigo de barras (texto para boletos)
+- Recorrencia (unico, mensal, trimestral, anual)
+- Observacoes (textarea)
 
-### 2. Contas a Receber (/financeiro/receber)
+---
 
-**Listagem:**
-- Filtros: status, periodo, cliente, tipo, processo
-- Ordenacao: vencimento, valor, cliente
-- Busca: por descricao ou cliente
-- Visualizacao: tabela ou cards
-- Indicadores visuais: cores por status, icones por tipo
+### 2.3 Extrato/Transacoes
 
-**Formulario de Cadastro:**
-- Selecao de cliente (autocomplete)
-- Vinculacao com processo (opcional)
-- Tipo de recebivel (honorario, consulta, etc)
-- Categoria financeira
-- Valor e data de vencimento
-- Recorrencia (se mensal, trimestral, etc)
-- Parcelamento (dividir em X parcelas)
+#### Listagem (`/financeiro/extrato`)
+**Arquivo:** `src/pages/finance/Transactions.tsx`
+
+**Funcionalidades:**
+- Lista de todas as movimentacoes reais
+- Filtros: periodo, conta, tipo (receita/despesa)
+- Totalizadores: entradas, saidas, saldo do periodo
+- Indicador de transacao confirmada
+- Modal para novo lancamento manual
+
+**Colunas:**
+| Coluna | Descricao |
+|--------|-----------|
+| Data | Data da transacao |
+| Descricao | Texto |
+| Tipo | Receita ou Despesa |
+| Conta | Conta bancaria |
+| Forma Pgto | PIX, boleto, etc |
+| Valor | Formatado com sinal |
+| Confirmado | Check se conciliado |
+
+#### Modal de Lancamento
+**Arquivo:** `src/components/finance/TransactionModal.tsx`
+
+**Campos:**
+- Tipo (receita ou despesa)
+- Descricao
+- Valor
+- Data
+- Conta
+- Forma de pagamento
+- Vincular a recebivel/pagavel existente (opcional)
 - Observacoes
 
-**Acoes:**
-- Registrar Recebimento (abre modal para confirmar pagamento)
-- Editar
-- Excluir
-- Duplicar (para criar similar)
-- Gerar Link de Pagamento (futuro - Stripe)
+---
 
-### 3. Contas a Pagar (/financeiro/pagar)
+### 2.4 Contratos de Honorarios
 
-**Listagem:**
-- Filtros: status, periodo, fornecedor, tipo, processo
-- Ordenacao: vencimento, valor, fornecedor
-- Busca: por descricao ou fornecedor
-- Agenda visual (calendario de vencimentos)
+#### Listagem (`/financeiro/contratos`)
+**Arquivo:** `src/pages/finance/FeeContracts.tsx`
 
-**Formulario de Cadastro:**
-- Fornecedor/Credor
-- Vinculacao com processo (custas processuais)
-- Tipo de despesa
-- Categoria financeira
-- Valor e data de vencimento
-- Codigo de barras (boleto)
-- Recorrencia
-- Centro de custo (opcional)
+**Funcionalidades:**
+- Lista de contratos de honorarios
+- Filtros: ativos/inativos, cliente
+- Valor mensal recorrente total
+- Acoes: editar, desativar, gerar recebiveis
 
-**Acoes:**
-- Registrar Pagamento
-- Editar
-- Excluir
-- Agendar pagamento
+**Colunas:**
+| Coluna | Descricao |
+|--------|-----------|
+| Nome | Nome do contrato |
+| Cliente | Nome do cliente |
+| Tipo | mensal_fixo, exito, por_ato |
+| Valor Mensal | Se aplicavel |
+| Dia Vencimento | 1-31 |
+| Status | Ativo/Inativo |
+| Acoes | Editar, Desativar |
 
-### 4. Lancamentos/Extrato (/financeiro/extrato)
+#### Formulario (`/financeiro/contratos/novo` e `/financeiro/contratos/:id/editar`)
+**Arquivo:** `src/pages/finance/FeeContractForm.tsx`
 
-**Visualizacao:**
-- Extrato por conta bancaria
-- Filtros: periodo, conta, tipo, categoria
-- Totalizadores: entradas, saidas, saldo
-
-**Cadastro Rapido:**
-- Lancamento manual (receita ou despesa avulsa)
-- Transferencia entre contas
-- Lancamento vinculado a conta a pagar/receber
-
-**Conciliacao:**
-- Marcar transacao como conciliada
-- Import de extrato OFX (futuro)
-
-### 5. Contratos de Honorarios (/financeiro/contratos)
-
-**Listagem:**
-- Contratos ativos e inativos
-- Valor mensal recorrente
-- Proximo vencimento
-- Cliente vinculado
-
-**Formulario:**
-- Cliente
-- Processo (se especifico)
-- Tipo de contrato (mensal fixo, exito, por ato)
-- Valores conforme tipo
-- Dia de vencimento
-- Geracao automatica de recebiveis
-
-**Automacao:**
-- Edge function para gerar receivables no inicio de cada mes
-- Notificacao quando contrato esta proximo do fim
-
-### 6. Relatorios (/financeiro/relatorios)
-
-**Relatorios Disponiveis:**
-- DRE Simplificado (receitas - despesas por periodo)
-- Fluxo de Caixa Realizado vs Projetado
-- Analise por Cliente (quanto cada cliente gerou)
-- Analise por Processo (receita vs custas por processo)
-- Inadimplencia (clientes com atraso)
-- Custas Processuais por Processo
-
-**Exportacao:**
-- PDF (usando jsPDF ja instalado)
-- Excel/CSV
-
-### 7. Configuracoes Financeiras (/financeiro/config)
-
-- Contas Bancarias (CRUD)
-- Categorias Personalizadas (CRUD com hierarquia)
-- Centros de Custo (CRUD)
-- Preferencias (dia de fechamento, moeda padrao, etc)
+**Campos:**
+- Nome do contrato (obrigatorio)
+- Cliente (select obrigatorio)
+- Processo (select opcional)
+- Tipo de contrato (mensal_fixo, por_ato, exito, misto)
+- Valor mensal (se tipo inclui mensalidade)
+- Percentual de exito (se tipo inclui exito)
+- Valor por ato (se tipo inclui por_ato)
+- Dia de vencimento (1-31)
+- Data inicio (obrigatorio)
+- Data fim (opcional)
+- Gerar recebiveis automaticamente (checkbox)
+- Observacoes
 
 ---
 
-## Paginas e Rotas
+### 2.5 Configuracoes Financeiras
 
-| Rota | Pagina | Descricao |
-|------|--------|-----------|
-| /financeiro | FinanceDashboard | Dashboard principal |
-| /financeiro/receber | Receivables | Lista de contas a receber |
-| /financeiro/receber/novo | ReceivableForm | Cadastro de recebivel |
-| /financeiro/receber/:id/editar | ReceivableForm | Edicao de recebivel |
-| /financeiro/pagar | Payables | Lista de contas a pagar |
-| /financeiro/pagar/novo | PayableForm | Cadastro de conta a pagar |
-| /financeiro/pagar/:id/editar | PayableForm | Edicao de conta a pagar |
-| /financeiro/extrato | Transactions | Extrato/Lancamentos |
-| /financeiro/contratos | FeeContracts | Contratos de honorarios |
-| /financeiro/contratos/novo | FeeContractForm | Cadastro de contrato |
-| /financeiro/contratos/:id/editar | FeeContractForm | Edicao de contrato |
-| /financeiro/relatorios | FinanceReports | Central de relatorios |
-| /financeiro/config | FinanceSettings | Configuracoes |
-| /financeiro/contas | FinancialAccounts | Contas bancarias |
+#### Pagina (`/financeiro/config`)
+**Arquivo:** `src/pages/finance/FinanceSettings.tsx`
+
+**Secoes em Tabs:**
+
+**Tab 1: Contas Bancarias**
+- Lista de contas
+- Botao adicionar
+- Editar inline ou modal
+- Campos: nome, tipo, banco, saldo inicial, cor, ativo
+
+**Tab 2: Categorias**
+- Lista hierarquica (receitas e despesas)
+- Botao adicionar
+- Editar inline
+- Campos: nome, tipo, cor, icone
+
+**Tab 3: Centros de Custo**
+- Lista de centros
+- Botao adicionar
+- Campos: nome, codigo, descricao, ativo
 
 ---
 
-## Componentes a Criar
+## Parte 3: Componentes Auxiliares
 
-### Paginas (src/pages/finance/)
-```text
-FinanceDashboard.tsx
-Receivables.tsx
-ReceivableForm.tsx
-Payables.tsx
-PayableForm.tsx
-Transactions.tsx
-FeeContracts.tsx
-FeeContractForm.tsx
-FinanceReports.tsx
-FinanceSettings.tsx
-FinancialAccounts.tsx
-AccountForm.tsx
-```
+### Modais de Acao Rapida
 
-### Componentes (src/components/finance/)
-```text
-FinanceStatsCard.tsx       - Card de metrica com icone e variacao
-FinanceChart.tsx           - Wrapper para graficos financeiros
-CashFlowChart.tsx          - Grafico de fluxo de caixa
-RevenueExpenseChart.tsx    - Comparativo receita vs despesa
-CategoryPieChart.tsx       - Pizza de categorias
-UpcomingBills.tsx          - Lista de proximos vencimentos
-RecentTransactions.tsx     - Ultimas movimentacoes
-PaymentStatusBadge.tsx     - Badge colorido por status
-RecurrenceIndicator.tsx    - Indicador de recorrencia
-QuickPaymentModal.tsx      - Modal para registrar pagamento
-TransferModal.tsx          - Modal para transferencia entre contas
-CategorySelector.tsx       - Seletor de categoria com hierarquia
-ClientRevenueRanking.tsx   - Ranking de clientes
-FinanceFilters.tsx         - Filtros reutilizaveis
-InstallmentGenerator.tsx   - Componente para gerar parcelas
-ReportExporter.tsx         - Exportacao PDF/CSV
-```
+#### QuickPaymentModal
+**Arquivo:** `src/components/finance/QuickPaymentModal.tsx`
 
-### Hooks (src/hooks/)
-```text
-useFinanceStats.ts         - Busca metricas do dashboard
-useReceivables.ts          - CRUD de recebiveis
-usePayables.ts             - CRUD de contas a pagar
-useTransactions.ts         - CRUD de transacoes
-useFeeContracts.ts         - CRUD de contratos
-useFinancialAccounts.ts    - CRUD de contas bancarias
-useCategories.ts           - CRUD de categorias
-useCashFlow.ts             - Calculo de fluxo de caixa
-```
+Para registrar recebimento/pagamento sem navegar:
+- Valor a pagar/receber
+- Conta destino
+- Forma de pagamento
+- Data do pagamento
+- Cria transacao e atualiza status
 
-### Types (src/types/finance.ts)
+#### QuickReceivableModal
+**Arquivo:** `src/components/finance/QuickReceivableModal.tsx`
+
+Criar recebivel rapidamente do dashboard:
+- Campos essenciais
+- Redirect para listagem apos salvar
+
+### Seletores
+
+#### ClientSelector
+**Arquivo:** `src/components/finance/ClientSelector.tsx`
+
+Combobox com busca para selecionar cliente
+
+#### CaseSelector
+**Arquivo:** `src/components/finance/CaseSelector.tsx`
+
+Combobox com busca, filtra por cliente se selecionado
+
+#### CategorySelector
+**Arquivo:** `src/components/finance/CategorySelector.tsx`
+
+Select com categorias agrupadas por tipo
+
+---
+
+## Parte 4: Rotas a Adicionar
+
+**Arquivo:** `src/App.tsx`
+
 ```text
-Todos os tipos TypeScript para as entidades financeiras
-Labels e constantes (RECEIVABLE_TYPE_LABELS, PAYMENT_STATUS_LABELS, etc)
+Novas rotas dentro do MainLayout:
+
+/financeiro                         -> FinanceDashboard (ja existe)
+/financeiro/receber                 -> Receivables
+/financeiro/receber/novo            -> ReceivableForm
+/financeiro/receber/:id/editar      -> ReceivableForm
+/financeiro/pagar                   -> Payables
+/financeiro/pagar/novo              -> PayableForm
+/financeiro/pagar/:id/editar        -> PayableForm
+/financeiro/extrato                 -> Transactions
+/financeiro/contratos               -> FeeContracts
+/financeiro/contratos/novo          -> FeeContractForm
+/financeiro/contratos/:id/editar    -> FeeContractForm
+/financeiro/config                  -> FinanceSettings
 ```
 
 ---
 
-## Integracao com Modulos Existentes
+## Parte 5: Arquivos a Criar
 
-### Dashboard Principal
-- Adicionar card "Resumo Financeiro" com:
-  - Receita do mes
-  - Link para "/financeiro"
+### Paginas (14 arquivos)
 
-### Pagina de Clientes
-- Nova aba/secao "Financeiro" mostrando:
-  - Total recebido do cliente
-  - Contas em aberto
-  - Historico de pagamentos
-  - Link para criar nova receita
+| Arquivo | Descricao |
+|---------|-----------|
+| `src/pages/finance/Receivables.tsx` | Listagem de contas a receber |
+| `src/pages/finance/ReceivableForm.tsx` | Formulario de recebivel |
+| `src/pages/finance/Payables.tsx` | Listagem de contas a pagar |
+| `src/pages/finance/PayableForm.tsx` | Formulario de despesa |
+| `src/pages/finance/Transactions.tsx` | Extrato/lancamentos |
+| `src/pages/finance/FeeContracts.tsx` | Listagem de contratos |
+| `src/pages/finance/FeeContractForm.tsx` | Formulario de contrato |
+| `src/pages/finance/FinanceSettings.tsx` | Configuracoes (contas, categorias) |
 
-### Pagina de Processos
-- Nova aba/secao "Custos" mostrando:
-  - Custas processuais lancadas
-  - Honorarios vinculados
-  - Saldo: receita - custas
+### Componentes (6 arquivos)
 
-### Sidebar
-- Novo item "Financeiro" com icone de moeda
-- Submenu (se expandido): Dashboard, Receber, Pagar, Extrato
+| Arquivo | Descricao |
+|---------|-----------|
+| `src/components/finance/QuickPaymentModal.tsx` | Modal para pagar/receber rapido |
+| `src/components/finance/TransactionModal.tsx` | Modal para novo lancamento |
+| `src/components/finance/ClientSelector.tsx` | Combobox de clientes |
+| `src/components/finance/CaseSelector.tsx` | Combobox de processos |
+| `src/components/finance/CategorySelector.tsx` | Select de categorias |
+| `src/components/finance/FinanceFilters.tsx` | Filtros reutilizaveis |
 
----
+### Modificacoes (2 arquivos)
 
-## Edge Functions
-
-### `generate-recurring-receivables`
-- Executada diariamente via cron
-- Busca fee_contracts ativos com auto_generate_receivables = true
-- Gera receivables para o mes seguinte
-- Envia notificacao ao usuario
-
-### `check-overdue-payments`
-- Executada diariamente
-- Atualiza status de receivables/payables vencidos para 'atrasado'
-- Gera notificacoes para contas vencidas
-
-### `calculate-account-balance`
-- Trigger no insert/update/delete de transactions
-- Recalcula current_balance da financial_account
+| Arquivo | Modificacao |
+|---------|-------------|
+| `src/App.tsx` | Adicionar todas as rotas financeiras |
+| `src/components/layout/Sidebar.tsx` | Reescrever com categorias colapsaveis |
 
 ---
 
-## Regras de Negocio
+## Parte 6: Fluxos de Usuario
 
-### Status de Pagamento
-- **Pendente**: Criado, aguardando vencimento
-- **Atrasado**: Vencido e nao pago (atualizado automaticamente)
-- **Pago**: Valor total recebido/pago
-- **Parcial**: Parte do valor pago
-- **Cancelado**: Cancelado pelo usuario
+### Fluxo: Registrar Nova Receita
+1. Usuario clica em "Nova Receita" no dashboard
+2. Navega para `/financeiro/receber/novo`
+3. Preenche formulario com dados
+4. Seleciona cliente (opcional)
+5. Clica em "Salvar"
+6. Recebivel criado com status "pendente"
+7. Redirect para listagem
 
-### Recorrencia
-- Ao criar com recorrencia, gera apenas o primeiro registro
-- Edge function gera proximos registros automaticamente
-- Fim da recorrencia interrompe a geracao
+### Fluxo: Receber Pagamento
+1. Na listagem de recebiveis, usuario clica em "Receber"
+2. Abre modal QuickPaymentModal
+3. Confirma valor, conta e forma de pagamento
+4. Sistema cria transacao vinculada
+5. Atualiza status do recebivel para "pago"
+6. Atualiza saldo da conta
 
-### Parcelamento
-- Ao parcelar, gera N registros com parent_receivable_id
-- Cada parcela tem installment_number
-- Status do pai reflete status geral
-
-### Saldo de Contas
-- Calculado: initial_balance + SUM(receitas) - SUM(despesas)
-- Atualizado via trigger ou recalculo periodico
-
----
-
-## Fases de Implementacao
-
-### Fase 1: Infraestrutura (Prioridade Alta)
-1. Criar ENUMs no banco de dados
-2. Criar tabelas: financial_accounts, financial_categories, receivables, payables, transactions
-3. Criar RLS policies para todas as tabelas
-4. Popular categorias padrao do sistema
-
-### Fase 2: Modulo Basico (Prioridade Alta)
-5. Criar tipos TypeScript (src/types/finance.ts)
-6. Criar pagina FinanceDashboard (versao inicial)
-7. Criar CRUD de Contas Bancarias
-8. Criar CRUD de Categorias
-
-### Fase 3: Contas a Receber (Prioridade Alta)
-9. Criar pagina Receivables (listagem)
-10. Criar ReceivableForm (cadastro/edicao)
-11. Implementar modal de registro de recebimento
-12. Adicionar filtros e busca
-
-### Fase 4: Contas a Pagar (Prioridade Alta)
-13. Criar pagina Payables (listagem)
-14. Criar PayableForm (cadastro/edicao)
-15. Implementar modal de registro de pagamento
-16. Adicionar filtros e busca
-
-### Fase 5: Transacoes e Extrato (Prioridade Media)
-17. Criar pagina Transactions (extrato)
-18. Implementar lancamento manual
-19. Implementar transferencia entre contas
-20. Adicionar conciliacao
-
-### Fase 6: Dashboard Completo (Prioridade Media)
-21. Implementar todos os cards de metricas
-22. Criar graficos (fluxo de caixa, comparativos)
-23. Criar listas rapidas (vencimentos, ultimas transacoes)
-24. Implementar alertas
-
-### Fase 7: Contratos de Honorarios (Prioridade Media)
-25. Criar tabela fee_contracts
-26. Criar CRUD de contratos
-27. Criar edge function de geracao automatica
-28. Testar fluxo completo
-
-### Fase 8: Relatorios (Prioridade Baixa)
-29. Criar pagina FinanceReports
-30. Implementar DRE simplificado
-31. Implementar relatorio por cliente
-32. Implementar exportacao PDF/CSV
-
-### Fase 9: Integracoes (Prioridade Baixa)
-33. Adicionar aba Financeiro em Clientes
-34. Adicionar aba Custos em Processos
-35. Adicionar card no Dashboard principal
-
-### Fase 10: Automacoes (Prioridade Baixa)
-36. Edge function para atualizar status de vencidos
-37. Notificacoes de vencimento
-38. Cron jobs para recorrencias
+### Fluxo: Pagar Conta
+1. Na listagem de pagaveis, usuario clica em "Pagar"
+2. Abre modal QuickPaymentModal
+3. Confirma dados
+4. Sistema cria transacao de saida
+5. Atualiza status do pagavel para "pago"
+6. Atualiza saldo da conta (trigger existente)
 
 ---
 
-## Arquivos a Criar
+## Parte 7: Fases de Implementacao
 
-### Banco de Dados
-- Migration com ENUMs e tabelas
-- Migration com RLS policies
-- Migration com dados iniciais (categorias)
+### Fase 1: Sidebar Reorganizado
+1. Reescrever Sidebar.tsx com categorias colapsaveis
+2. Testar navegacao em desktop e mobile
 
-### Frontend
-```text
-src/types/finance.ts
-src/pages/finance/FinanceDashboard.tsx
-src/pages/finance/Receivables.tsx
-src/pages/finance/ReceivableForm.tsx
-src/pages/finance/Payables.tsx
-src/pages/finance/PayableForm.tsx
-src/pages/finance/Transactions.tsx
-src/pages/finance/FeeContracts.tsx
-src/pages/finance/FeeContractForm.tsx
-src/pages/finance/FinanceReports.tsx
-src/pages/finance/FinanceSettings.tsx
-src/pages/finance/FinancialAccounts.tsx
-src/pages/finance/AccountForm.tsx
-src/components/finance/FinanceStatsCard.tsx
-src/components/finance/CashFlowChart.tsx
-src/components/finance/RevenueExpenseChart.tsx
-src/components/finance/UpcomingBills.tsx
-src/components/finance/RecentTransactions.tsx
-src/components/finance/PaymentStatusBadge.tsx
-src/components/finance/QuickPaymentModal.tsx
-src/components/finance/CategorySelector.tsx
-src/hooks/useFinanceStats.ts
-src/hooks/useReceivables.ts
-src/hooks/usePayables.ts
-src/hooks/useTransactions.ts
-```
+### Fase 2: Rotas e Estrutura Base
+3. Adicionar todas as rotas em App.tsx
+4. Criar paginas placeholder para evitar erros 404
 
-### Backend (Edge Functions)
-```text
-supabase/functions/generate-recurring-receivables/index.ts
-supabase/functions/check-overdue-payments/index.ts
-```
+### Fase 3: Contas a Receber (Core)
+5. Implementar Receivables.tsx (listagem)
+6. Implementar ReceivableForm.tsx (formulario)
+7. Testar CRUD completo
 
-### Modificacoes
-- `src/App.tsx` - Adicionar rotas /financeiro/*
-- `src/components/layout/Sidebar.tsx` - Adicionar item Financeiro
-- `src/pages/Dashboard.tsx` - Adicionar card financeiro
-- `src/pages/Clients.tsx` - (futuro) Adicionar aba financeiro
-- `src/pages/Cases.tsx` - (futuro) Adicionar aba custos
+### Fase 4: Contas a Pagar (Core)
+8. Implementar Payables.tsx (listagem)
+9. Implementar PayableForm.tsx (formulario)
+10. Testar CRUD completo
+
+### Fase 5: Acoes de Pagamento
+11. Implementar QuickPaymentModal
+12. Integrar com listagens
+13. Testar fluxo de pagamento/recebimento
+
+### Fase 6: Extrato
+14. Implementar Transactions.tsx
+15. Implementar TransactionModal
+16. Testar lancamentos manuais
+
+### Fase 7: Contratos de Honorarios
+17. Implementar FeeContracts.tsx
+18. Implementar FeeContractForm.tsx
+19. Testar criacao de contratos
+
+### Fase 8: Configuracoes
+20. Implementar FinanceSettings.tsx com tabs
+21. CRUD de contas bancarias
+22. CRUD de categorias
+23. Testar configuracoes
 
 ---
 
 ## Consideracoes Tecnicas
 
-### Performance
-- Indices em due_date, status, user_id para queries frequentes
-- Paginacao em todas as listagens
-- Cache de metricas do dashboard (invalidar em transacoes)
+### Padrao de Codigo
+- Seguir estrutura de ClientForm.tsx para formularios
+- Seguir estrutura de Clients.tsx para listagens
+- Usar componentes shadcn/ui existentes
+- Validacao com Zod
+- Toast para feedback
 
 ### Seguranca
-- RLS em todas as tabelas financeiras
-- user_id obrigatorio em todas as queries
-- Validacao de valores (nao negativos, limites)
+- Todas as queries incluem user_id implicitamente via RLS
+- Validar dados antes de enviar ao banco
+- Nao expor IDs em URLs desnecessariamente
 
-### UX/UI
-- Cores semanticas: verde (receita), vermelho (despesa), amarelo (pendente), laranja (atrasado)
-- Formatacao de moeda brasileira (R$)
-- Graficos responsivos
-- Acoes rapidas (pagar, receber) sem navegar
+### Performance
+- Paginacao em listagens com muitos registros
+- Loading states em todas as operacoes
+- Queries paralelas onde possivel
 
-### Escalabilidade
-- Estrutura preparada para multi-usuario (escritorios com funcionarios)
-- Centros de custo para escritorios maiores
-- Relatorios customizaveis
+### Responsividade
+- Mobile: Cards ao inves de tabelas
+- Desktop: Tabelas com todas as colunas
+- Modais adaptaveis ao tamanho da tela
 
 ---
 
 ## Resultado Esperado
 
-1. **Visao 360 das financas** - Advogado ve tudo em um dashboard
-2. **Controle de honorarios** - Vinculacao com clientes e processos
-3. **Fluxo de caixa** - Projecao de entradas e saidas
-4. **Alertas automaticos** - Notificacoes de vencimentos e inadimplencia
-5. **Relatorios profissionais** - DRE, analise por cliente, exportacao
-6. **Integracao completa** - Financeiro conectado com toda a operacao juridica
-7. **Base para Stripe** - Estrutura pronta para integrar pagamentos online
+1. **Sidebar organizado** - Duas categorias pai claras (Juridico e Financeiro)
+2. **CRUD completo** - Criar, ler, atualizar e excluir para todas as entidades
+3. **Fluxo de pagamento** - Registrar pagamentos e recebimentos facilmente
+4. **Contratos funcionais** - Gerenciar honorarios recorrentes
+5. **Configuracoes acessiveis** - Gerenciar contas e categorias
+6. **Zero erros 404** - Todas as rotas funcionando
+7. **MVP pronto para producao** - Modulo financeiro completo e utilizavel
