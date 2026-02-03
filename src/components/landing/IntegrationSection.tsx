@@ -17,12 +17,9 @@ const integrations = [
       'Ao gerar petição, tarefa marcada como concluída',
       'Documentos organizados por processo',
     ],
-    colors: {
-      from: 'from-primary/20',
-      to: 'to-blue-500/20',
-      iconBg: 'bg-primary/10',
-      iconColor: 'text-primary',
-    },
+    gradient: 'from-primary via-primary/90 to-teal-600',
+    iconBg: 'bg-white/20',
+    iconColor: 'text-white',
   },
   {
     title: 'Processos + Financeiro',
@@ -31,12 +28,9 @@ const integrations = [
       'Custas processuais registradas automaticamente',
       'Saldo e ROI por caso calculados',
     ],
-    colors: {
-      from: 'from-blue-500/20',
-      to: 'to-green-500/20',
-      iconBg: 'bg-blue-500/10',
-      iconColor: 'text-blue-600',
-    },
+    gradient: 'from-blue-600 via-blue-500 to-cyan-500',
+    iconBg: 'bg-white/20',
+    iconColor: 'text-white',
   },
   {
     title: 'Financeiro + Clientes',
@@ -45,12 +39,9 @@ const integrations = [
       'Receitas e custos por relacionamento',
       'Análise de rentabilidade por cliente',
     ],
-    colors: {
-      from: 'from-green-500/20',
-      to: 'to-primary/20',
-      iconBg: 'bg-green-500/10',
-      iconColor: 'text-green-600',
-    },
+    gradient: 'from-emerald-600 via-green-500 to-teal-500',
+    iconBg: 'bg-white/20',
+    iconColor: 'text-white',
   },
 ];
 
@@ -165,29 +156,33 @@ export function IntegrationSection() {
               <Card 
                 key={integration.title}
                 className={cn(
-                  'border-0 transition-all duration-700 hover:shadow-lg',
-                  `bg-gradient-to-br ${integration.colors.from} ${integration.colors.to}`,
+                  'border-0 transition-all duration-700 hover:shadow-xl hover:scale-[1.02] group overflow-hidden relative',
+                  `bg-gradient-to-br ${integration.gradient}`,
                   isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
                 )}
                 style={{ transitionDelay: `${(index + 3) * 100}ms` }}
               >
-                <CardContent className="pt-6">
+                {/* Decorative glow effect */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute -top-12 -right-12 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
+                
+                <CardContent className="pt-6 relative z-10">
                   <div className={cn(
-                    'w-10 h-10 rounded-lg flex items-center justify-center mb-4',
-                    integration.colors.iconBg
+                    'w-12 h-12 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm border border-white/20',
+                    integration.iconBg
                   )}>
-                    <ArrowRight className={cn('w-5 h-5', integration.colors.iconColor)} />
+                    <ArrowRight className={cn('w-6 h-6', integration.iconColor)} />
                   </div>
                   
-                  <h3 className="text-lg font-semibold text-foreground mb-3">
+                  <h3 className="text-xl font-bold text-white mb-4 drop-shadow-sm">
                     {integration.title}
                   </h3>
                   
-                  <ul className="space-y-2">
+                  <ul className="space-y-3">
                     {integration.items.map((item, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                        <div className="w-1.5 h-1.5 rounded-full bg-foreground/50 mt-1.5 flex-shrink-0" />
-                        {item}
+                      <li key={i} className="flex items-start gap-3 text-sm text-white/90">
+                        <div className="w-2 h-2 rounded-full bg-white/70 mt-1.5 flex-shrink-0 shadow-sm" />
+                        <span className="leading-relaxed">{item}</span>
                       </li>
                     ))}
                   </ul>
