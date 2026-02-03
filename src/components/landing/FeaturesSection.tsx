@@ -169,7 +169,7 @@ export function FeaturesSection() {
   const currentModule = modules.find((m) => m.key === activeModule)!;
 
   return (
-    <section id="funcionalidades" className="py-20 scroll-mt-16">
+    <section id="funcionalidades" className="py-10 sm:py-14 scroll-mt-16">
       <div className="container mx-auto px-4">
         <div ref={ref} className="max-w-3xl mx-auto text-center mb-8">
           <h2 

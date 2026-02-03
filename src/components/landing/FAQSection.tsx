@@ -54,7 +54,7 @@ export function FAQSection() {
   const { ref, isInView } = useInView({ threshold: 0.2 });
 
   return (
-    <section id="faq" className="py-20 bg-muted/30 scroll-mt-16">
+    <section id="faq" className="py-8 sm:py-10 scroll-mt-16">
       <div className="container mx-auto px-4">
         <div ref={ref} className="max-w-3xl mx-auto text-center mb-12">
           <h2 

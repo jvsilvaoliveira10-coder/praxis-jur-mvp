@@ -8,7 +8,7 @@ export function CTASection() {
   const { ref, isInView } = useInView({ threshold: 0.3 });
 
   return (
-    <section className="py-20 relative overflow-hidden">
+    <section className="py-12 sm:py-16 relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-primary/90" />
       

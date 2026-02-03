@@ -34,19 +34,31 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <LandingHeader />
-      <main>
-        <HeroSection />
-        <ProblemSection />
-        <FeaturesSection />
-        <ProcessManagementSection />
-        <AISection />
-        <HowItWorksSection />
-        <FinanceSection />
-        <IntegrationSection />
-        <SecuritySection />
-        <TargetAudienceSection />
-        <FAQSection />
-        <CTASection />
+      <main className="relative">
+        {/* Global gradient overlay for continuous flow */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/5 to-background pointer-events-none" />
+        
+        {/* Decorative blur circles that span sections */}
+        <div className="absolute top-[20%] left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-[40%] right-0 w-80 h-80 bg-secondary/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-[60%] left-1/4 w-72 h-72 bg-primary/3 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-[80%] right-1/4 w-96 h-96 bg-secondary/5 rounded-full blur-3xl pointer-events-none" />
+        
+        {/* Content sections */}
+        <div className="relative z-10">
+          <HeroSection />
+          <ProblemSection />
+          <FeaturesSection />
+          <ProcessManagementSection />
+          <AISection />
+          <HowItWorksSection />
+          <FinanceSection />
+          <IntegrationSection />
+          <SecuritySection />
+          <TargetAudienceSection />
+          <FAQSection />
+          <CTASection />
+        </div>
       </main>
       <LandingFooter />
     </div>
