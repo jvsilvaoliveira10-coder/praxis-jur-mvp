@@ -48,7 +48,7 @@ const FeeContractForm = () => {
   const [form, setForm] = useState({
     contract_name: '',
     client_id: '',
-    case_id: '',
+    case_id: 'none',
     contract_type: 'mensal_fixo',
     monthly_amount: '',
     success_fee_percentage: '',
@@ -92,7 +92,7 @@ const FeeContractForm = () => {
           setForm({
             contract_name: data.contract_name || '',
             client_id: data.client_id || '',
-            case_id: data.case_id || '',
+            case_id: data.case_id || 'none',
             contract_type: data.contract_type || 'mensal_fixo',
             monthly_amount: data.monthly_amount ? String(data.monthly_amount) : '',
             success_fee_percentage: data.success_fee_percentage ? String(data.success_fee_percentage) : '',
@@ -149,7 +149,7 @@ const FeeContractForm = () => {
     const payload = {
       contract_name: form.contract_name,
       client_id: form.client_id,
-      case_id: form.case_id || null,
+      case_id: form.case_id && form.case_id !== 'none' ? form.case_id : null,
       contract_type: form.contract_type as 'mensal_fixo' | 'por_ato' | 'exito' | 'misto',
       monthly_amount: form.monthly_amount ? parseFloat(form.monthly_amount.replace(',', '.')) : null,
       success_fee_percentage: form.success_fee_percentage ? parseFloat(form.success_fee_percentage.replace(',', '.')) : null,
@@ -246,7 +246,7 @@ const FeeContractForm = () => {
                     <SelectValue placeholder="Selecione um processo..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {filteredCases.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.process_number || c.opposing_party}
