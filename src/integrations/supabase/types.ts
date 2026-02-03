@@ -670,6 +670,117 @@ export type Database = {
         }
         Relationships: []
       }
+      law_firm_settings: {
+        Row: {
+          address_city: string | null
+          address_complement: string | null
+          address_neighborhood: string | null
+          address_number: string | null
+          address_state: string | null
+          address_street: string | null
+          address_zip: string | null
+          bank_info: string | null
+          cases_monthly_avg: number | null
+          clients_range: Database["public"]["Enums"]["clients_range"] | null
+          cnpj: string | null
+          cpf: string | null
+          created_at: string
+          email: string | null
+          firm_name: string | null
+          firm_type: Database["public"]["Enums"]["firm_type"] | null
+          id: string
+          interns_count: number | null
+          lawyer_name: string | null
+          lawyers_count: number | null
+          logo_url: string | null
+          main_courts: string[] | null
+          oab_number: string | null
+          oab_state: string | null
+          onboarding_completed: boolean
+          onboarding_step: number
+          phone: string | null
+          practice_areas: string[] | null
+          signature_text: string | null
+          staff_count: number | null
+          updated_at: string
+          user_id: string
+          website: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
+          bank_info?: string | null
+          cases_monthly_avg?: number | null
+          clients_range?: Database["public"]["Enums"]["clients_range"] | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string
+          email?: string | null
+          firm_name?: string | null
+          firm_type?: Database["public"]["Enums"]["firm_type"] | null
+          id?: string
+          interns_count?: number | null
+          lawyer_name?: string | null
+          lawyers_count?: number | null
+          logo_url?: string | null
+          main_courts?: string[] | null
+          oab_number?: string | null
+          oab_state?: string | null
+          onboarding_completed?: boolean
+          onboarding_step?: number
+          phone?: string | null
+          practice_areas?: string[] | null
+          signature_text?: string | null
+          staff_count?: number | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
+          bank_info?: string | null
+          cases_monthly_avg?: number | null
+          clients_range?: Database["public"]["Enums"]["clients_range"] | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string
+          email?: string | null
+          firm_name?: string | null
+          firm_type?: Database["public"]["Enums"]["firm_type"] | null
+          id?: string
+          interns_count?: number | null
+          lawyer_name?: string | null
+          lawyers_count?: number | null
+          logo_url?: string | null
+          main_courts?: string[] | null
+          oab_number?: string | null
+          oab_state?: string | null
+          onboarding_completed?: boolean
+          onboarding_step?: number
+          phone?: string | null
+          practice_areas?: string[] | null
+          signature_text?: string | null
+          staff_count?: number | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       legal_articles: {
         Row: {
           article_number: string
@@ -1522,6 +1633,7 @@ export type Database = {
         | "created"
       case_priority: "baixa" | "media" | "alta" | "urgente"
       client_type: "pessoa_fisica" | "pessoa_juridica"
+      clients_range: "1-10" | "11-50" | "51-200" | "200+"
       code_type:
         | "CF"
         | "CC"
@@ -1535,6 +1647,7 @@ export type Database = {
       contract_type: "mensal_fixo" | "por_ato" | "exito" | "misto"
       court_type: "STF" | "STJ" | "TST" | "TSE"
       deadline_type: "prazo_processual" | "audiencia" | "compromisso"
+      firm_type: "solo" | "partnership" | "firm"
       marital_status:
         | "solteiro"
         | "casado"
@@ -1725,6 +1838,7 @@ export const Constants = {
       ],
       case_priority: ["baixa", "media", "alta", "urgente"],
       client_type: ["pessoa_fisica", "pessoa_juridica"],
+      clients_range: ["1-10", "11-50", "51-200", "200+"],
       code_type: [
         "CF",
         "CC",
@@ -1739,6 +1853,7 @@ export const Constants = {
       contract_type: ["mensal_fixo", "por_ato", "exito", "misto"],
       court_type: ["STF", "STJ", "TST", "TSE"],
       deadline_type: ["prazo_processual", "audiencia", "compromisso"],
+      firm_type: ["solo", "partnership", "firm"],
       marital_status: [
         "solteiro",
         "casado",

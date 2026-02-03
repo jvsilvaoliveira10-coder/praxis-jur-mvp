@@ -5,13 +5,24 @@ import NotificationBell from '@/components/notifications/NotificationBell';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, Scale } from 'lucide-react';
-import { useState } from 'react';
+import { Menu } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useFirmSettings } from '@/hooks/useFirmSettings';
+import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
 
 const MainLayout = () => {
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { firmSettings, isLoading: loadingSettings, refetch } = useFirmSettings();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Check if onboarding should be shown
+  useEffect(() => {
+    if (!loadingSettings && firmSettings && !firmSettings.onboarding_completed) {
+      setShowOnboarding(true);
+    }
+  }, [firmSettings, loadingSettings]);
 
   if (loading) {
     return (
@@ -25,54 +36,77 @@ const MainLayout = () => {
     return <Navigate to="/auth" replace />;
   }
 
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    refetch();
+  };
+
+  const handleOnboardingClose = () => {
+    setShowOnboarding(false);
+  };
+
   // Mobile layout with Sheet sidebar
   if (isMobile) {
     return (
-      <div className="min-h-screen bg-background">
-        {/* Mobile Header */}
-        <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-sidebar-foreground hover:bg-sidebar-accent">
-                  <Menu className="w-5 h-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-64 bg-sidebar border-sidebar-border">
-                <Sidebar onNavigate={() => setSidebarOpen(false)} />
-              </SheetContent>
-            </Sheet>
-            <div className="flex items-center gap-2">
-              <img src="/favicon.svg" alt="Práxis AI" className="w-8 h-8" />
-              <span className="font-serif font-bold text-sidebar-foreground">Práxis AI</span>
+      <>
+        <OnboardingWizard 
+          open={showOnboarding} 
+          onClose={handleOnboardingClose} 
+          onComplete={handleOnboardingComplete} 
+        />
+        <div className="min-h-screen bg-background">
+          {/* Mobile Header */}
+          <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-4">
+            <div className="flex items-center gap-3">
+              <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-sidebar-foreground hover:bg-sidebar-accent">
+                    <Menu className="w-5 h-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="p-0 w-64 bg-sidebar border-sidebar-border">
+                  <Sidebar onNavigate={() => setSidebarOpen(false)} />
+                </SheetContent>
+              </Sheet>
+              <div className="flex items-center gap-2">
+                <img src="/favicon.svg" alt="Práxis AI" className="w-8 h-8" />
+                <span className="font-serif font-bold text-sidebar-foreground">Práxis AI</span>
+              </div>
             </div>
-          </div>
-          <NotificationBell />
-        </header>
+            <NotificationBell />
+          </header>
 
-        {/* Main content with top padding for fixed header */}
-        <main className="pt-14">
-          <div className="p-4">
-            <Outlet />
-          </div>
-        </main>
-      </div>
+          {/* Main content with top padding for fixed header */}
+          <main className="pt-14">
+            <div className="p-4">
+              <Outlet />
+            </div>
+          </main>
+        </div>
+      </>
     );
   }
 
   // Desktop layout with fixed sidebar
   return (
-    <div className="min-h-screen bg-background">
-      <Sidebar />
-      <main className="ml-64 transition-all duration-300">
-        <div className="flex justify-end p-4 border-b">
-          <NotificationBell />
-        </div>
-        <div className="p-6">
-          <Outlet />
-        </div>
-      </main>
-    </div>
+    <>
+      <OnboardingWizard 
+        open={showOnboarding} 
+        onClose={handleOnboardingClose} 
+        onComplete={handleOnboardingComplete} 
+      />
+      <div className="min-h-screen bg-background">
+        <Sidebar />
+        <main className="ml-64 transition-all duration-300">
+          <div className="flex justify-end p-4 border-b">
+            <NotificationBell />
+          </div>
+          <div className="p-6">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </>
   );
 };
 
