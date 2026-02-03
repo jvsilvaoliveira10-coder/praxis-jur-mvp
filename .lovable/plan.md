@@ -1,620 +1,548 @@
 
+# Plano: Landing Page 360 - Hub Completo para Advogados
 
-# Plano: CRM de Gestao de Processos Estilo Kanban
+## Objetivo
 
-## Visao Geral
-
-Implementar um sistema completo de gestao de processos (Project Management/CRM) estilo Trello/Kanban, permitindo ao advogado visualizar e gerenciar o fluxo de trabalho de cada processo desde o primeiro contato com o cliente ate a conclusao. O sistema tera multiplas visualizacoes (Kanban, Lista, Calendario) e integracao total com os modulos existentes (Clientes, Processos, Financeiro, Agenda).
+Atualizar a landing page existente para comunicar que o Práxis AI é uma plataforma 360° completa, onde o advogado pode gerenciar todo o escritório em um único lugar: produção jurídica, gestão de processos (CRM), acompanhamento e gestão financeira.
 
 ---
 
-## Conceito de Negocio
+## Diagnóstico da Estrutura Atual
 
-### Por que isso e necessario?
+### Ordem das Seções Existentes
+1. Header (navegação)
+2. HeroSection (headline + CTAs)
+3. ProblemSection (3 problemas)
+4. FeaturesSection (8 funcionalidades jurídicas)
+5. HowItWorksSection (4 passos)
+6. AISection (destaque IA)
+7. SecuritySection (segurança)
+8. TargetAudienceSection (público-alvo)
+9. FAQSection (perguntas)
+10. CTASection (call to action final)
+11. Footer
 
-O fluxo de um processo juridico envolve diversas etapas ANTES e DEPOIS de ir ao tribunal:
+### O que Falta Comunicar
+- Gestão de Processos estilo Kanban/CRM
+- Dashboard financeiro profissional
+- Controle de receitas e despesas
+- Relatórios gerenciais
+- Contratos de honorários
+- Conceito de "hub único" / "plataforma 360"
 
-```text
-1. Consulta Inicial -> 2. Analise do Caso -> 3. Proposta de Honorarios -> 
-4. Contrato Assinado -> 5. Procuracao -> 6. Coleta de Documentos -> 
-7. Peticao Inicial -> 8. Protocolo -> 9. Aguardando Citacao -> 
-10. Audiencia Marcada -> 11. Sentenca -> 12. Recurso (se houver) -> 13. Encerrado
+---
+
+## Parte 1: Atualização do HeroSection
+
+### Novo Headline e Subtítulo
+
+De:
+- Título: "Petições jurídicas em minutos, não em horas"
+- Subtítulo: "Plataforma inteligente para advogados brasileiros. Gere petições com IA, organize modelos e acompanhe processos automaticamente."
+
+Para:
+- Título: "Seu escritório completo em uma só plataforma"
+- Subtítulo: "Hub 360° para advogados brasileiros. Gere petições com IA, gerencie processos como projetos, controle suas finanças e tenha visão total do seu negócio."
+
+### Novos Trust Indicators
+Substituir os 3 indicadores atuais por:
+1. "Gestão jurídica + financeira integrada"
+2. "100% adaptado ao foro brasileiro"
+3. "Sem cartão de crédito"
+
+---
+
+## Parte 2: Expandir ProblemSection
+
+### Adicionar 4º Problema (Financeiro)
+
+Problemas atuais (3):
+1. Tempo perdido
+2. Desorganização
+3. Acompanhamento manual
+
+Novo problema a adicionar:
+```
+{
+  icon: Calculator,
+  title: 'Controle financeiro precário',
+  description: 'Planilhas espalhadas, inadimplência não monitorada e falta de visão sobre a saúde financeira do escritório.'
+}
 ```
 
-O CRM permitira:
-- Ver em qual etapa cada processo esta
-- Identificar gargalos (ex: 10 processos parados aguardando documentos)
-- Nao esquecer nenhum processo
-- Ter uma visao gerencial do escritorio
+Layout: Mudar de 3 colunas para 4 colunas (2x2 no mobile)
 
 ---
 
-## Estrutura do Banco de Dados
+## Parte 3: Reorganizar FeaturesSection
 
-### Nova Tabela: `case_stages` (Etapas do Processo)
+### Nova Estrutura com Tabs/Categorias
 
-Armazena as etapas customizaveis do pipeline:
+Em vez de 8 cards genéricos, organizar em 3 módulos com visual de tabs ou seções distintas:
 
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | uuid | Identificador unico |
-| user_id | uuid | Dono do registro |
-| name | text | Nome da etapa |
-| description | text | Descricao opcional |
-| color | text | Cor para visualizacao |
-| position | integer | Ordem no pipeline |
-| is_default | boolean | Se e uma etapa padrao do sistema |
-| is_final | boolean | Se e etapa final (processo concluido) |
-| created_at | timestamp | Data de criacao |
+**Módulo 1: Produção Jurídica (8 features existentes - cor primária/teal)**
+- Geração com IA
+- Upload de Modelos
+- IA que Aprende
+- Pastas Organizadas
+- Pesquisa de Jurisprudência
+- Exportação em PDF
 
-**Etapas Padrao (criadas automaticamente):**
-1. Consulta Inicial (azul)
-2. Analise de Viabilidade (amarelo)
-3. Proposta/Honorarios (laranja)
-4. Documentacao (roxo)
-5. Elaboracao de Peca (verde)
-6. Aguardando Protocolo (cyan)
-7. Protocolado (verde-escuro)
-8. Em Andamento (azul-escuro)
-9. Aguardando Decisao (amarelo-escuro)
-10. Sentenca/Decisao (verde)
-11. Recurso (vermelho)
-12. Encerrado (cinza)
+**Módulo 2: Gestão de Processos (6 novas features - cor azul)**
+```
+{
+  icon: Kanban,
+  title: 'Pipeline Kanban',
+  description: 'Visualize todos os processos em etapas customizáveis, do primeiro contato ao encerramento.'
+},
+{
+  icon: ListChecks,
+  title: 'Checklists por Processo',
+  description: 'Nunca esqueça uma tarefa. Crie checklists personalizados para cada caso.'
+},
+{
+  icon: History,
+  title: 'Histórico de Atividades',
+  description: 'Registro automático de todas as movimentações e alterações em cada processo.'
+},
+{
+  icon: CalendarDays,
+  title: 'Visualização em Calendário',
+  description: 'Veja prazos e compromissos de todos os processos em uma única agenda.'
+},
+{
+  icon: Bell,
+  title: 'Acompanhamento Automático',
+  description: 'Monitoramento via DataJud com notificações de novas movimentações.'
+},
+{
+  icon: Flag,
+  title: 'Prioridades e Prazos',
+  description: 'Defina prioridades e prazos por etapa para nunca perder um deadline.'
+}
+```
 
----
+**Módulo 3: Gestão Financeira (6 novas features - cor verde)**
+```
+{
+  icon: Wallet,
+  title: 'Contas a Receber',
+  description: 'Controle de honorários, consultas e valores pendentes com alertas de vencimento.'
+},
+{
+  icon: Receipt,
+  title: 'Contas a Pagar',
+  description: 'Gestão de despesas operacionais, custas processuais e vencimentos.'
+},
+{
+  icon: TrendingUp,
+  title: 'Fluxo de Caixa',
+  description: 'Visão em tempo real do dinheiro entrando e saindo, com projeções futuras.'
+},
+{
+  icon: FileSignature,
+  title: 'Contratos de Honorários',
+  description: 'Gestão de contratos recorrentes com geração automática de cobranças.'
+},
+{
+  icon: BarChart3,
+  title: 'Dashboard Avançado',
+  description: 'Métricas, gráficos e indicadores para tomar decisões informadas.'
+},
+{
+  icon: FileSpreadsheet,
+  title: 'Relatórios Gerenciais',
+  description: 'DRE, análise de inadimplência, ROI por cliente e exportação em PDF.'
+}
+```
 
-### Nova Tabela: `case_pipeline` (Posicao do Processo no Pipeline)
-
-Vincula cada processo a uma etapa:
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | uuid | Identificador unico |
-| case_id | uuid | FK para cases |
-| stage_id | uuid | FK para case_stages |
-| user_id | uuid | Dono do registro |
-| priority | text | baixa, media, alta, urgente |
-| due_date | date | Data limite para esta etapa |
-| assigned_to | text | Responsavel (futuro multi-user) |
-| notes | text | Observacoes da etapa atual |
-| entered_at | timestamp | Quando entrou nesta etapa |
-| updated_at | timestamp | Ultima atualizacao |
-
----
-
-### Nova Tabela: `case_activities` (Historico de Atividades)
-
-Log de todas as movimentacoes do processo:
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | uuid | Identificador unico |
-| case_id | uuid | FK para cases |
-| user_id | uuid | Quem realizou a acao |
-| activity_type | text | stage_change, note, document, deadline, task |
-| description | text | Descricao da atividade |
-| from_stage_id | uuid | Etapa anterior (se mudanca) |
-| to_stage_id | uuid | Etapa nova (se mudanca) |
-| metadata | jsonb | Dados extras |
-| created_at | timestamp | Data da atividade |
-
----
-
-### Nova Tabela: `case_tasks` (Tarefas do Processo)
-
-Checklist de tarefas por processo:
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | uuid | Identificador unico |
-| case_id | uuid | FK para cases |
-| user_id | uuid | Dono |
-| title | text | Titulo da tarefa |
-| description | text | Descricao |
-| is_completed | boolean | Se foi concluida |
-| due_date | date | Data limite |
-| completed_at | timestamp | Quando foi concluida |
-| created_at | timestamp | Data de criacao |
-
----
-
-## Estrutura de Componentes
-
-### Nova Pagina Principal: `/pipeline`
-
-**Arquivo:** `src/pages/Pipeline.tsx`
-
-Sera o hub central do CRM com:
-- Header com titulo e filtros
-- Toggle de visualizacao (Kanban | Lista | Calendario)
-- Botao "Novo Processo" que ja inicia no pipeline
-- Filtros: cliente, tipo de acao, prioridade, responsavel
+### Design da Seção
+- Header com 3 botões/tabs de navegação: "Produção Jurídica" | "Gestão de Processos" | "Financeiro"
+- Cards aparecem em grid ao clicar em cada tab
+- Animação de transição suave entre tabs
+- Badge colorido em cada card indicando o módulo
 
 ---
 
-### Componentes do Kanban
+## Parte 4: Nova Seção - ProcessManagementSection
 
-```text
-src/components/pipeline/
-  - PipelineBoard.tsx        (board principal do Kanban)
-  - PipelineColumn.tsx       (coluna/etapa)
-  - PipelineCard.tsx         (card do processo)
-  - PipelineFilters.tsx      (filtros e busca)
-  - PipelineViewToggle.tsx   (toggle Kanban/Lista/Calendario)
-  - ProcessDetailSheet.tsx   (drawer lateral com detalhes)
-  - StageManager.tsx         (modal para gerenciar etapas)
-  - QuickAddProcess.tsx      (modal rapido para novo processo)
-  - TaskChecklist.tsx        (checklist de tarefas)
-  - ActivityTimeline.tsx     (timeline de atividades)
-  - PriorityBadge.tsx        (badge de prioridade)
-  - DueDateBadge.tsx         (badge de vencimento)
+### Criar Componente Dedicado para o CRM/Kanban
+
+**Arquivo:** `src/components/landing/ProcessManagementSection.tsx`
+
+**Posição:** Entre FeaturesSection e HowItWorksSection
+
+**Estrutura:**
+```
++--------------------------------------------------+
+|  [Badge: Gestão de Processos]                    |
+|                                                  |
+|  Acompanhe cada caso do início ao fim            |
+|                                                  |
+|  Descrição sobre o pipeline Kanban               |
++--------------------------------------------------+
+
+[Grid 2 colunas]
+
+Coluna 1 (Mockup do Kanban):
+  - Visual estilizado do board Kanban
+  - 4 colunas: Consulta | Documentação | Protocolado | Encerrado
+  - Cards simulados com nomes e badges
+  - Seta indicando movimento de arrastar
+
+Coluna 2 (Benefícios):
+  - Visualize processos em etapas claras
+  - Arraste cards para atualizar status
+  - Checklists para não esquecer tarefas
+  - Histórico completo de movimentações
+  - Prazos por etapa com alertas
+  - Múltiplas visualizações: Kanban, Lista, Calendário
+
+[Botão: Experimentar Gestão de Processos]
+```
+
+### Design Visual
+- Fundo com gradiente sutil (bg-muted/30)
+- Mockup do Kanban com cards coloridos simulando um board real
+- Animação de entrada com useInView
+
+---
+
+## Parte 5: Nova Seção - FinanceSection
+
+### Criar Componente Dedicado para o Módulo Financeiro
+
+**Arquivo:** `src/components/landing/FinanceSection.tsx`
+
+**Posição:** Após AISection
+
+**Estrutura:**
+```
++--------------------------------------------------+
+|  [Badge: Gestão Financeira]                      |
+|                                                  |
+|  Controle total das finanças do seu escritório   |
+|                                                  |
+|  Descrição sobre o dashboard financeiro          |
++--------------------------------------------------+
+
+[Grid 2 colunas]
+
+Coluna 1 (Lista de benefícios):
+  - Dashboard com métricas em tempo real
+  - Receitas, despesas e lucro líquido
+  - Alertas de inadimplência automáticos
+  - Fluxo de caixa projetado
+  - Contratos de honorários recorrentes
+  - Relatórios DRE e análise por cliente
+  - Tudo integrado com seus clientes e processos
+
+Coluna 2 (Mockup do Dashboard):
+  - Visual estilizado do dashboard financeiro
+  - 4 cards de métricas (Receita, Despesa, Lucro, Saldo)
+  - Mini gráfico de barras representando fluxo de caixa
+  - Cards com cores diferenciadas (verde para receita, vermelho para despesa)
+
+[Botão: Conhecer Módulo Financeiro]
+```
+
+### Design Visual
+- Layout inverso da ProcessManagementSection (mockup à direita, texto à esquerda)
+- Fundo com gradiente de verde sutil
+- Cards com cores verde/vermelho para representar finanças
+- Animação de entrada com useInView
+
+---
+
+## Parte 6: Nova Seção - IntegrationSection
+
+### Mostrar a Integração entre Módulos
+
+**Arquivo:** `src/components/landing/IntegrationSection.tsx`
+
+**Posição:** Entre FinanceSection e SecuritySection
+
+**Estrutura:**
+```
++--------------------------------------------------+
+|  Uma plataforma, três módulos integrados         |
+|                                                  |
+|  Tudo conectado, tudo em um só lugar             |
++--------------------------------------------------+
+
+[Diagrama visual com 3 círculos interconectados]
+
+  +---------------+
+  |   Produção    |
+  |   Jurídica    |
+  +-------+-------+
+          |
+    +-----+-----+
+    |           |
++---v---+   +---v---+
+| Gestão |   |Gestão |
+|Processos|  |Financ.|
++---+---+   +---+---+
+    |           |
+    +-----+-----+
+          |
+    [Cliente no centro]
+
+[Texto explicativo em 3 colunas]
+
+Coluna 1: Produção + Processos
+- Petições vinculadas ao caso no pipeline
+- Ao gerar petição, tarefa marcada como concluída
+- Documentos organizados por processo
+
+Coluna 2: Processos + Financeiro
+- Honorários vinculados ao processo
+- Custas processuais registradas
+- Saldo e ROI por caso
+
+Coluna 3: Financeiro + Produção
+- Cliente com histórico financeiro
+- Receitas por tipo de peça
+- Produtividade vs faturamento
+```
+
+### Design Visual
+- Fundo neutro (bg-card)
+- Ícones conectados por linhas pontilhadas animadas
+- Cards com exemplos de integração
+- Animação de entrada sequencial
+
+---
+
+## Parte 7: Atualizar TargetAudienceSection
+
+### Adicionar Benefícios Financeiros e de Gestão
+
+**Audiência 1 - Advogados Autônomos:**
+Benefícios atuais + novos:
+- Mais tempo para captar clientes
+- Redução de custos operacionais
+- Maior competitividade
+- **Controle financeiro sem planilhas** (novo)
+- **Visão clara de cada processo** (novo)
+
+**Audiência 2 - Pequenos Escritórios:**
+Benefícios atuais + novos:
+- Padronização de documentos
+- Onboarding acelerado
+- Gestão centralizada
+- **Dashboard financeiro compartilhado** (novo)
+- **Pipeline visual para toda equipe** (novo)
+
+**Audiência 3 - Advogados de Volume:**
+Benefícios atuais + novos:
+- Escala sem aumento de equipe
+- Menor custo por peça
+- Consistência na produção
+- **Relatórios de rentabilidade** (novo)
+- **Identificação de gargalos** (novo)
+
+---
+
+## Parte 8: Atualizar FAQSection
+
+### Adicionar 4 Novas Perguntas
+
+```
+{
+  question: 'A plataforma substitui meu software financeiro?',
+  answer: 'O módulo financeiro do Práxis AI foi desenvolvido especificamente para 
+  escritórios de advocacia, com funcionalidades como controle de honorários, custas 
+  processuais, contratos recorrentes e DRE. Para a maioria dos advogados autônomos 
+  e pequenos escritórios, ele é suficiente.'
+},
+{
+  question: 'Como funciona a gestão de processos estilo Kanban?',
+  answer: 'Você visualiza todos os seus processos em um quadro com colunas representando 
+  cada etapa (Consulta Inicial, Documentação, Protocolado, etc.). Basta arrastar o card 
+  do processo para a próxima etapa. O sistema registra automaticamente o histórico de 
+  movimentações e você pode adicionar checklists e prazos.'
+},
+{
+  question: 'Posso ver quanto lucro cada cliente me gera?',
+  answer: 'Sim! O módulo de relatórios permite analisar receitas e custos por cliente 
+  e por processo, mostrando o ROI de cada relacionamento. Isso ajuda a identificar 
+  clientes rentáveis e processos que dão prejuízo.'
+},
+{
+  question: 'Os módulos funcionam de forma integrada?',
+  answer: 'Sim! Ao cadastrar um cliente, você já pode vincular honorários. Ao acompanhar 
+  um processo no pipeline, você vê as custas lançadas e o saldo financeiro. Ao gerar 
+  uma petição, a tarefa no checklist é marcada como concluída. Tudo conectado.'
+}
 ```
 
 ---
 
-## Visualizacao Kanban (Principal)
+## Parte 9: Atualizar Header e Footer
 
-### Layout do Board
+### LandingHeader - Novos Links
 
-```text
-+------------------------------------------------------------------------+
-|  [Filtros: Cliente | Tipo | Prioridade]     [Kanban] [Lista] [Cal]     |
-+------------------------------------------------------------------------+
-
-+-------------+  +-------------+  +-------------+  +-------------+
-| Consulta    |  | Analise     |  | Documentacao|  | Em Andamento|
-| Inicial (3) |  | (2)         |  | (5)         |  | (8)         |
-+-------------+  +-------------+  +-------------+  +-------------+
-|             |  |             |  |             |  |             |
-| +--------+  |  | +--------+  |  | +--------+  |  | +--------+  |
-| |Card 1  |  |  | |Card 2  |  |  | |Card 3  |  |  | |Card 4  |  |
-| |Cliente |  |  | |Cliente |  |  | |Cliente |  |  | |Cliente |  |
-| |Prazo   |  |  | |Prazo   |  |  | |Prazo   |  |  | |Prazo   |  |
-| +--------+  |  | +--------+  |  | +--------+  |  | +--------+  |
-|             |  |             |  |             |  |             |
-| +--------+  |  | +--------+  |  | +--------+  |  |             |
-| |Card 2  |  |  | |Card 3  |  |  | |Card 4  |  |  |             |
-| +--------+  |  | +--------+  |  | +--------+  |  |             |
-|             |  |             |  |             |  |             |
-+-------------+  +-------------+  +-------------+  +-------------+
+De:
+```
+- Funcionalidades
+- Como Funciona
+- Segurança
+- FAQ
 ```
 
-### Card do Processo
-
-```text
-+----------------------------------+
-| [Urgente]              [Cobranca]|  <- Badges
-+----------------------------------+
-| Maria Silva vs. Banco XYZ        |  <- Cliente + Parte Contraria
-| 0000000-00.0000.0.00.0000        |  <- Numero do Processo
-+----------------------------------+
-| [x] Procuracao                   |  <- Checklist resumido
-| [x] Documentos pessoais          |
-| [ ] Petição inicial              |
-+----------------------------------+
-| Vence: 15/02/2026                |  <- Prazo da etapa
-| 1a Vara Civel - SP               |  <- Vara
-+----------------------------------+
+Para:
+```
+- Funcionalidades (âncora para features)
+- Gestão de Processos (âncora para nova seção)
+- Financeiro (âncora para nova seção financeira)
+- FAQ
 ```
 
-### Interacoes do Kanban
+### LandingFooter
 
-1. **Drag and Drop** - Arrastar card entre colunas muda a etapa
-2. **Click no Card** - Abre drawer lateral com detalhes completos
-3. **Menu de Contexto** - Botao direito para acoes rapidas
-4. **Scroll Horizontal** - Para ver todas as colunas
+Atualizar descrição:
+De: "Práxis AI é uma plataforma de produtividade para advogados."
 
----
-
-## Visualizacao em Lista
-
-### Layout da Lista
-
-```text
-+------------------------------------------------------------------------+
-| [Filtros]                                      [Kanban] [Lista] [Cal]  |
-+------------------------------------------------------------------------+
-
-| Cliente          | Processo        | Etapa        | Prazo    | Prior. |
-|------------------|-----------------|--------------|----------|--------|
-| Maria Silva      | 0000-00...      | Documentacao | 15/02    | Alta   |
-| Joao Santos      | 0001-00...      | Em Andamento | 20/02    | Media  |
-| Empresa ABC      | 0002-00...      | Sentenca     | -        | Baixa  |
-+------------------------------------------------------------------------+
-```
-
-### Funcionalidades da Lista
-
-- Ordenacao por qualquer coluna
-- Selecao multipla para acoes em lote
-- Expansao inline para ver detalhes
-- Edicao rapida de prioridade e etapa
-
----
-
-## Visualizacao em Calendario
-
-### Layout do Calendario
-
-```text
-+------------------------------------------------------------------------+
-| [Filtros]                                      [Kanban] [Lista] [Cal]  |
-+------------------------------------------------------------------------+
-
-|  Janeiro 2026                                         [< Mes Ano >]   |
-+--------+--------+--------+--------+--------+--------+--------+
-| Dom    | Seg    | Ter    | Qua    | Qui    | Sex    | Sab    |
-+--------+--------+--------+--------+--------+--------+--------+
-|        |        |        | 1      | 2      | 3      | 4      |
-|        |        |        |        | [2]    |        |        |
-+--------+--------+--------+--------+--------+--------+--------+
-| 5      | 6      | 7      | 8      | 9      | 10     | 11     |
-|        | [1]    |        |        | [3]    |        |        |
-+--------+--------+--------+--------+--------+--------+--------+
-```
-
-O calendario mostra:
-- Prazos de etapas (due_date do pipeline)
-- Audiencias vinculadas (da tabela deadlines)
-- Cards clicaveis que abrem o processo
-
----
-
-## Drawer de Detalhes do Processo
-
-### Layout do Drawer
-
-```text
-+------------------------------------------------+
-| [<] Detalhes do Processo                  [X]  |
-+------------------------------------------------+
-| Maria Silva vs. Banco XYZ                      |
-| Processo: 0000000-00.0000.0.00.0000            |
-| Vara: 1a Vara Civel - Comarca de Sao Paulo     |
-+------------------------------------------------+
-
-[Dados] [Tarefas] [Atividades] [Documentos] [Financeiro]
-
-+------------------------------------------------+
-| ETAPA ATUAL                                    |
-| [Documentacao] ------>  [Selecionar Etapa v]   |
-|                                                |
-| Prazo desta etapa: 15/02/2026                  |
-| Prioridade: [Alta v]                           |
-| Responsavel: [Selecionar v]                    |
-+------------------------------------------------+
-
-| CHECKLIST DE TAREFAS                           |
-| [x] Coletar RG e CPF                           |
-| [x] Coletar comprovante de endereco            |
-| [ ] Coletar contrato original                  |
-| [ ] Elaborar petição inicial                   |
-| [+ Adicionar tarefa]                           |
-+------------------------------------------------+
-
-| PROXIMOS PRAZOS                                |
-| 15/02 - Audiencia de conciliacao               |
-| 20/02 - Prazo para manifestacao                |
-+------------------------------------------------+
-
-[Editar Processo] [Ver Peticoes] [Abrir Financeiro]
-```
-
----
-
-## Integracoes com Modulos Existentes
-
-### Com Clientes
-
-- Ao criar processo pelo pipeline, seleciona cliente existente
-- No card mostra nome do cliente
-- Link direto para pagina do cliente
-
-### Com Processos (Cases)
-
-- Pipeline usa a tabela `cases` como base
-- Adiciona campos de controle via `case_pipeline`
-- Todos os processos existentes aparecem no pipeline (etapa padrao)
-
-### Com Agenda (Deadlines)
-
-- Prazos e audiencias aparecem no processo
-- Ao mover para etapa "Audiencia Marcada", sugere criar deadline
-- Calendario do pipeline mostra deadlines
-
-### Com Peticoes
-
-- Mostra peticoes vinculadas ao processo
-- Botao rapido para gerar nova peticao
-- Ao gerar peticao, marca tarefa como concluida
-
-### Com Financeiro
-
-- Mostra resumo financeiro do processo
-- Receitas e custas vinculadas
-- Saldo do processo (lucro/prejuizo)
-
-### Com Acompanhamento
-
-- Se processo tem numero CNJ, mostra ultimas movimentacoes
-- Link para acompanhamento detalhado
-
----
-
-## Rotas a Adicionar
-
-```text
-/pipeline                    -> Pagina principal do CRM/Kanban
-/pipeline/settings           -> Configuracoes de etapas
-```
-
----
-
-## Atualizacao do Sidebar
-
-Adicionar no menu "Juridico":
-
-```text
-{ to: '/pipeline', icon: Kanban, label: 'Gestao de Processos' },
-```
-
-Posicao: Apos "Processos" e antes de "Peticoes"
+Para: "Práxis AI é a plataforma completa para advogados: produção jurídica, gestão de processos e controle financeiro em um só lugar."
 
 ---
 
 ## Arquivos a Criar
 
-### Paginas (2)
-
-| Arquivo | Descricao |
+| Arquivo | Descrição |
 |---------|-----------|
-| `src/pages/Pipeline.tsx` | Pagina principal do CRM |
-| `src/pages/PipelineSettings.tsx` | Config de etapas |
-
-### Componentes (14)
-
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/components/pipeline/PipelineBoard.tsx` | Board Kanban com drag-drop |
-| `src/components/pipeline/PipelineColumn.tsx` | Coluna/etapa do Kanban |
-| `src/components/pipeline/PipelineCard.tsx` | Card do processo |
-| `src/components/pipeline/PipelineListView.tsx` | Visualizacao em lista |
-| `src/components/pipeline/PipelineCalendarView.tsx` | Visualizacao calendario |
-| `src/components/pipeline/PipelineFilters.tsx` | Filtros e busca |
-| `src/components/pipeline/PipelineViewToggle.tsx` | Toggle de visualizacao |
-| `src/components/pipeline/ProcessDetailSheet.tsx` | Drawer de detalhes |
-| `src/components/pipeline/StageManager.tsx` | Gerenciador de etapas |
-| `src/components/pipeline/QuickAddProcess.tsx` | Modal novo processo |
-| `src/components/pipeline/TaskChecklist.tsx` | Checklist de tarefas |
-| `src/components/pipeline/ActivityTimeline.tsx` | Timeline de atividades |
-| `src/components/pipeline/PriorityBadge.tsx` | Badge de prioridade |
-| `src/components/pipeline/DueDateBadge.tsx` | Badge de prazo |
-
-### Tipos (1)
-
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/types/pipeline.ts` | Tipos do CRM/Pipeline |
+| `src/components/landing/ProcessManagementSection.tsx` | Seção destacando CRM/Kanban |
+| `src/components/landing/FinanceSection.tsx` | Seção destacando módulo financeiro |
+| `src/components/landing/IntegrationSection.tsx` | Seção mostrando integração dos módulos |
 
 ---
 
-## Migracao de Banco de Dados
+## Arquivos a Modificar
 
-```sql
--- Criar enum de prioridade
-CREATE TYPE case_priority AS ENUM ('baixa', 'media', 'alta', 'urgente');
+| Arquivo | Modificação |
+|---------|-------------|
+| `src/pages/Index.tsx` | Importar e adicionar novas seções na ordem correta |
+| `src/components/landing/HeroSection.tsx` | Atualizar headline, subtítulo e trust indicators |
+| `src/components/landing/ProblemSection.tsx` | Adicionar 4º problema (financeiro), ajustar layout |
+| `src/components/landing/FeaturesSection.tsx` | Reorganizar em 3 módulos com tabs/categorias |
+| `src/components/landing/TargetAudienceSection.tsx` | Adicionar benefícios de gestão e financeiro |
+| `src/components/landing/FAQSection.tsx` | Adicionar 4 novas perguntas |
+| `src/components/landing/LandingHeader.tsx` | Atualizar links de navegação |
+| `src/components/landing/LandingFooter.tsx` | Atualizar descrição |
 
--- Tabela de etapas
-CREATE TABLE case_stages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id),
-  name TEXT NOT NULL,
-  description TEXT,
-  color TEXT DEFAULT '#6B7280',
-  position INTEGER NOT NULL DEFAULT 0,
-  is_default BOOLEAN DEFAULT false,
-  is_final BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+---
 
--- Tabela de posicao no pipeline
-CREATE TABLE case_pipeline (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
-  stage_id UUID NOT NULL REFERENCES case_stages(id),
-  user_id UUID NOT NULL REFERENCES auth.users(id),
-  priority case_priority DEFAULT 'media',
-  due_date DATE,
-  assigned_to TEXT,
-  notes TEXT,
-  entered_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(case_id)
-);
+## Nova Ordem das Seções
 
--- Tabela de atividades
-CREATE TABLE case_activities (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id),
-  activity_type TEXT NOT NULL,
-  description TEXT NOT NULL,
-  from_stage_id UUID REFERENCES case_stages(id),
-  to_stage_id UUID REFERENCES case_stages(id),
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+1. Header (navegação atualizada)
+2. **HeroSection** (headline 360 atualizado)
+3. **ProblemSection** (4 problemas, incluindo financeiro)
+4. **FeaturesSection** (3 módulos em tabs: Jurídico, Processos, Financeiro)
+5. **ProcessManagementSection** (NOVA - destaque do CRM/Kanban)
+6. HowItWorksSection (mantém)
+7. AISection (mantém)
+8. **FinanceSection** (NOVA - destaque do módulo financeiro)
+9. **IntegrationSection** (NOVA - integração dos módulos)
+10. SecuritySection (mantém)
+11. **TargetAudienceSection** (com benefícios adicionais)
+12. **FAQSection** (com 4 novas perguntas)
+13. CTASection (mantém)
+14. Footer (descrição atualizada)
 
--- Tabela de tarefas
-CREATE TABLE case_tasks (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id),
-  title TEXT NOT NULL,
-  description TEXT,
-  is_completed BOOLEAN DEFAULT false,
-  due_date DATE,
-  completed_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+---
 
--- RLS policies
-ALTER TABLE case_stages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE case_pipeline ENABLE ROW LEVEL SECURITY;
-ALTER TABLE case_activities ENABLE ROW LEVEL SECURITY;
-ALTER TABLE case_tasks ENABLE ROW LEVEL SECURITY;
+## Design e Consistência Visual
 
--- Policies para case_stages
-CREATE POLICY "Users can view their stages" ON case_stages
-  FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can create their stages" ON case_stages
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their stages" ON case_stages
-  FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their stages" ON case_stages
-  FOR DELETE USING (auth.uid() = user_id AND is_default = false);
+### Padrões a Manter
+- Animações de entrada com useInView
+- Tipografia serif para títulos (font-serif font-bold)
+- Cards com hover:shadow-lg
+- Badges coloridos para categorias
+- Gradientes sutis de fundo
+- Transições com duration-700 e delays escalonados
 
--- Policies para case_pipeline
-CREATE POLICY "Users can view their pipeline" ON case_pipeline
-  FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can create pipeline entries" ON case_pipeline
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their pipeline" ON case_pipeline
-  FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete pipeline entries" ON case_pipeline
-  FOR DELETE USING (auth.uid() = user_id);
+### Cores por Módulo
+- **Produção Jurídica**: Cor primária (teal) - já em uso
+- **Gestão de Processos**: Azul (blue-500/blue-600) - associado a organização
+- **Financeiro**: Verde (green-500/green-600) - associado a dinheiro
 
--- Policies similares para activities e tasks
+### Ícones Novos (do lucide-react)
+- Kanban (para pipeline)
+- ListChecks (para checklists)
+- History (para histórico)
+- CalendarDays (para calendário)
+- Flag (para prioridades)
+- Wallet (para carteira)
+- Receipt (para recibo)
+- TrendingUp (para crescimento)
+- BarChart3 (para gráficos)
+- FileSpreadsheet (para relatórios)
+- FileSignature (para contratos)
+- Calculator (para financeiro/problemas)
+
+---
+
+## Mockups Visuais
+
+### Mockup do Kanban (ProcessManagementSection)
+```
++---------------+  +---------------+  +---------------+  +---------------+
+| Consulta      |  | Documentação  |  | Protocolado   |  | Encerrado     |
+| Inicial (3)   |  | (2)           |  | (4)           |  | (8)           |
++---------------+  +---------------+  +---------------+  +---------------+
+|               |  |               |  |               |  |               |
+| +----------+  |  | +----------+  |  | +----------+  |  | +----------+  |
+| | Maria S. |  |  | | João P.  |  |  | | Empresa  |  |  | | Pedro R. |  |
+| | [Alta]   |  |  | | [Média]  |  |  | | ABC      |  |  | | [Baixa]  |  |
+| +----------+  |  | +----------+  |  | +----------+  |  | +----------+  |
+|               |  |               |  |               |  |               |
++---------------+  +---------------+  +---------------+  +---------------+
+```
+
+### Mockup do Dashboard Financeiro (FinanceSection)
+```
++-------------------+  +-------------------+
+| Receita do Mês    |  | Despesas do Mês   |
+| R$ 45.000         |  | R$ 18.000         |
+| +15.2%            |  | +3.5%             |
++-------------------+  +-------------------+
+
++-------------------+  +-------------------+
+| Lucro Líquido     |  | Saldo Total       |
+| R$ 27.000         |  | R$ 85.000         |
+| +28.4%            |  | +12.1%            |
++-------------------+  +-------------------+
+
+[Gráfico de barras: Receitas vs Despesas últimos 6 meses]
 ```
 
 ---
 
-## Fluxos de Usuario
+## Mensagens de Marketing
 
-### Fluxo 1: Visualizar Pipeline
+### Proposta de Valor Principal
+"Seu escritório completo em uma só plataforma"
 
-1. Usuario clica em "Gestao de Processos" no menu
-2. Ve o board Kanban com todos os processos em suas etapas
-3. Pode filtrar por cliente, prioridade, tipo
-4. Pode alternar para visualizacao em lista ou calendario
+### Taglines por Módulo
+- **Produção**: "Petições em minutos com IA que aprende seu estilo"
+- **Processos**: "Visualize cada caso do primeiro contato ao encerramento"
+- **Financeiro**: "Controle total das finanças sem planilhas"
 
-### Fluxo 2: Mover Processo de Etapa
-
-1. Usuario arrasta card de "Documentacao" para "Elaboracao de Peca"
-2. Sistema atualiza `case_pipeline.stage_id`
-3. Sistema registra atividade em `case_activities`
-4. Card aparece na nova coluna
-5. Toast confirma a mudanca
-
-### Fluxo 3: Ver Detalhes do Processo
-
-1. Usuario clica em um card
-2. Abre drawer lateral com todas as informacoes
-3. Ve checklist de tarefas, prazos, historico
-4. Pode editar prioridade, adicionar notas
-5. Acessa links para peticoes, financeiro, cliente
-
-### Fluxo 4: Adicionar Novo Processo pelo Pipeline
-
-1. Usuario clica em "+ Novo Processo"
-2. Abre modal com formulario simplificado
-3. Seleciona cliente, tipo, parte contraria
-4. Processo e criado ja na primeira etapa do pipeline
-5. Card aparece na coluna "Consulta Inicial"
-
-### Fluxo 5: Gerenciar Etapas Customizadas
-
-1. Usuario acessa configuracoes do pipeline
-2. Ve lista de etapas com drag-drop para reordenar
-3. Pode criar novas etapas personalizadas
-4. Pode editar nome e cor das etapas
-5. Etapas padrao nao podem ser deletadas
-
----
-
-## Consideracoes Tecnicas
-
-### Drag and Drop
-
-Usar biblioteca `@dnd-kit/core` para:
-- Drag and drop suave entre colunas
-- Feedback visual durante arraste
-- Acessibilidade (keyboard navigation)
-
-### Performance
-
-- Virtualizar lista quando houver muitos cards
-- Carregar dados em chunks se necessario
-- Otimizar queries com indices
-
-### Responsividade
-
-- Mobile: Colunas em scroll horizontal ou lista simples
-- Tablet: Kanban adaptado com menos colunas visiveis
-- Desktop: Kanban completo
-
-### Realtime (Futuro)
-
-- Preparar para updates em tempo real
-- Quando multi-usuario, mostrar quem esta editando
-
----
-
-## Fases de Implementacao
-
-### Fase 1: Banco de Dados
-1. Criar migracao com todas as tabelas
-2. Criar RLS policies
-3. Inserir etapas padrao para usuarios existentes
-
-### Fase 2: Tipos e Estrutura Base
-4. Criar tipos TypeScript
-5. Criar pagina Pipeline com estrutura basica
-6. Adicionar rota no App.tsx
-7. Adicionar item no Sidebar
-
-### Fase 3: Visualizacao Kanban
-8. Implementar PipelineBoard
-9. Implementar PipelineColumn
-10. Implementar PipelineCard
-11. Implementar drag and drop
-
-### Fase 4: Detalhes do Processo
-12. Implementar ProcessDetailSheet
-13. Implementar TaskChecklist
-14. Implementar ActivityTimeline
-
-### Fase 5: Filtros e Acoes
-15. Implementar PipelineFilters
-16. Implementar QuickAddProcess
-17. Implementar mudanca de prioridade
-
-### Fase 6: Visualizacoes Alternativas
-18. Implementar PipelineListView
-19. Implementar PipelineCalendarView
-20. Implementar toggle de visualizacao
-
-### Fase 7: Configuracoes
-21. Implementar PipelineSettings
-22. Implementar StageManager
-23. Permitir criar/editar etapas customizadas
-
-### Fase 8: Integracoes
-24. Integrar com Financeiro (resumo no drawer)
-25. Integrar com Acompanhamento (movimentacoes)
-26. Integrar com Agenda (prazos)
+### Chamadas para Ação
+- "Começar Gratuitamente"
+- "Experimentar Gestão de Processos"
+- "Conhecer Módulo Financeiro"
+- "Criar Conta Gratuita"
 
 ---
 
 ## Resultado Esperado
 
-1. **Visao Kanban profissional** - Similar ao Trello, visualmente agradavel
-2. **Multiplas visualizacoes** - Kanban, Lista e Calendario
-3. **Drag and drop fluido** - Mover processos entre etapas facilmente
-4. **Historico completo** - Todas as movimentacoes registradas
-5. **Checklist por processo** - Nao esquecer nenhuma tarefa
-6. **Integracoes nativas** - Conectado com tudo que ja existe
-7. **Customizavel** - Etapas e prioridades personalizaveis
-8. **Visao gerencial** - Quantos processos em cada etapa, gargalos
-9. **Mobile friendly** - Funciona bem no celular
-
+1. **Posicionamento 360°** - Visitante entende que Práxis é uma solução completa
+2. **Diferenciação clara** - Destaca-se de ferramentas que só fazem uma coisa
+3. **Valor percebido aumentado** - Justifica pagamento futuro por entregar mais
+4. **Clareza nos módulos** - Jurídico, Processos e Financeiro claramente explicados
+5. **Consistência visual** - Novas seções no mesmo estilo elegante das existentes
+6. **Conversão otimizada** - Mais motivos para o visitante criar conta
+7. **Educação do usuário** - Visitante sai sabendo tudo que a plataforma oferece
