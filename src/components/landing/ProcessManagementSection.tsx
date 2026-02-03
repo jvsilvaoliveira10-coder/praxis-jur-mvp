@@ -6,7 +6,8 @@ import {
   CalendarDays, 
   ArrowRight,
   GripVertical,
-  Flag
+  Flag,
+  PartyPopper
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { 
@@ -23,9 +24,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useInView } from '@/hooks/useInView';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { KanbanColumn } from './kanban-demo/KanbanColumn';
 import { KanbanCard } from './kanban-demo/KanbanCard';
+import { ConfettiEffect } from './kanban-demo/ConfettiEffect';
 
 const benefits = [
   {
@@ -108,6 +111,8 @@ export function ProcessManagementSection() {
   const { ref, isInView } = useInView({ threshold: 0.2 });
   const [columns, setColumns] = useState<ColumnData[]>(initialColumns);
   const [activeCard, setActiveCard] = useState<CardData | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const { toast } = useToast();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -175,6 +180,11 @@ export function ProcessManagementSection() {
     // If same column, do nothing for now
     if (sourceColumnId === targetColumnId) return;
 
+    // Get column names for feedback
+    const sourceCol = columns.find(c => c.id === sourceColumnId);
+    const targetCol = columns.find(c => c.id === targetColumnId);
+    const movedCardData = findCard(activeCardId);
+
     // Move card between columns
     setColumns(prevColumns => {
       const newColumns = prevColumns.map(col => ({
@@ -182,18 +192,25 @@ export function ProcessManagementSection() {
         cards: [...col.cards]
       }));
 
-      const sourceCol = newColumns.find(c => c.id === sourceColumnId);
-      const targetCol = newColumns.find(c => c.id === targetColumnId);
+      const sourceColumn = newColumns.find(c => c.id === sourceColumnId);
+      const targetColumn = newColumns.find(c => c.id === targetColumnId);
 
-      if (!sourceCol || !targetCol) return prevColumns;
+      if (!sourceColumn || !targetColumn) return prevColumns;
 
-      const cardIndex = sourceCol.cards.findIndex(c => c.id === activeCardId);
+      const cardIndex = sourceColumn.cards.findIndex(c => c.id === activeCardId);
       if (cardIndex === -1) return prevColumns;
 
-      const [movedCard] = sourceCol.cards.splice(cardIndex, 1);
-      targetCol.cards.push(movedCard);
+      const [movedCard] = sourceColumn.cards.splice(cardIndex, 1);
+      targetColumn.cards.push(movedCard);
 
       return newColumns;
+    });
+
+    // Show confetti and toast
+    setShowConfetti(true);
+    toast({
+      title: "🎉 Processo movido!",
+      description: `${movedCardData?.name} foi para ${targetCol?.name}`,
     });
   };
 
@@ -242,7 +259,8 @@ export function ProcessManagementSection() {
                 isInView ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'
               )}
             >
-              <div className="bg-card border rounded-xl p-4 shadow-lg">
+              <div className="bg-card border rounded-xl p-4 shadow-lg relative">
+                <ConfettiEffect show={showConfetti} onComplete={() => setShowConfetti(false)} />
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
