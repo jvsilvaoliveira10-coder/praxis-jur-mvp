@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, Phone } from 'lucide-react';
+import { User, Phone, FileText, MapPin } from 'lucide-react';
 
 interface LawyerDataStepProps {
   data: {
@@ -38,98 +38,104 @@ const LawyerDataStep = ({ data, onChange }: LawyerDataStepProps) => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-          <User className="w-8 h-8 text-primary" />
-        </div>
-        <h2 className="text-xl font-semibold text-foreground">Dados do Advogado</h2>
-        <p className="text-muted-foreground mt-1">
-          Preencha suas informações profissionais
-        </p>
+    <div className="space-y-6 max-w-lg">
+      {/* Name */}
+      <div className="space-y-2">
+        <Label htmlFor="lawyer_name" className="text-sm font-medium flex items-center gap-2">
+          <User className="w-4 h-4 text-muted-foreground" />
+          Nome Completo <span className="text-destructive">*</span>
+        </Label>
+        <Input
+          id="lawyer_name"
+          placeholder="Dr. João da Silva"
+          value={data.lawyer_name}
+          onChange={(e) => onChange('lawyer_name', e.target.value)}
+          className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
+        />
       </div>
 
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="lawyer_name">Nome Completo *</Label>
+      {/* OAB */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="col-span-2 space-y-2">
+          <Label htmlFor="oab_number" className="text-sm font-medium flex items-center gap-2">
+            <FileText className="w-4 h-4 text-muted-foreground" />
+            Número OAB <span className="text-destructive">*</span>
+          </Label>
           <Input
-            id="lawyer_name"
-            placeholder="Dr. João da Silva"
-            value={data.lawyer_name}
-            onChange={(e) => onChange('lawyer_name', e.target.value)}
+            id="oab_number"
+            placeholder="123456"
+            value={data.oab_number}
+            onChange={(e) => onChange('oab_number', e.target.value.replace(/\D/g, ''))}
+            className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
           />
         </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="oab_number">Número OAB *</Label>
-            <Input
-              id="oab_number"
-              placeholder="123456"
-              value={data.oab_number}
-              onChange={(e) => onChange('oab_number', e.target.value.replace(/\D/g, ''))}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="oab_state">Estado *</Label>
-            <Select 
-              value={data.oab_state} 
-              onValueChange={(value) => onChange('oab_state', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="UF" />
-              </SelectTrigger>
-              <SelectContent>
-                {brazilianStates.map((state) => (
-                  <SelectItem key={state} value={state}>
-                    {state}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
         <div className="space-y-2">
-          <Label htmlFor="cpf">CPF</Label>
+          <Label htmlFor="oab_state" className="text-sm font-medium flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-muted-foreground" />
+            UF <span className="text-destructive">*</span>
+          </Label>
+          <Select 
+            value={data.oab_state} 
+            onValueChange={(value) => onChange('oab_state', value)}
+          >
+            <SelectTrigger className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors">
+              <SelectValue placeholder="UF" />
+            </SelectTrigger>
+            <SelectContent>
+              {brazilianStates.map((state) => (
+                <SelectItem key={state} value={state}>
+                  {state}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* CPF */}
+      <div className="space-y-2">
+        <Label htmlFor="cpf" className="text-sm font-medium text-muted-foreground">
+          CPF (opcional)
+        </Label>
+        <Input
+          id="cpf"
+          placeholder="000.000.000-00"
+          value={data.cpf}
+          onChange={(e) => onChange('cpf', formatCPF(e.target.value))}
+          maxLength={14}
+          className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
+        />
+      </div>
+
+      {/* Phones */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="phone" className="text-sm font-medium flex items-center gap-2">
+            <Phone className="w-4 h-4 text-muted-foreground" />
+            Telefone
+          </Label>
           <Input
-            id="cpf"
-            placeholder="000.000.000-00"
-            value={data.cpf}
-            onChange={(e) => onChange('cpf', formatCPF(e.target.value))}
-            maxLength={14}
+            id="phone"
+            placeholder="(11) 3333-4444"
+            value={data.phone}
+            onChange={(e) => onChange('phone', formatPhone(e.target.value))}
+            maxLength={15}
+            className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
           />
         </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="phone">Telefone</Label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="phone"
-                className="pl-10"
-                placeholder="(11) 3333-4444"
-                value={data.phone}
-                onChange={(e) => onChange('phone', formatPhone(e.target.value))}
-                maxLength={15}
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="whatsapp">WhatsApp</Label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="whatsapp"
-                className="pl-10"
-                placeholder="(11) 99999-8888"
-                value={data.whatsapp}
-                onChange={(e) => onChange('whatsapp', formatPhone(e.target.value))}
-                maxLength={15}
-              />
-            </div>
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="whatsapp" className="text-sm font-medium flex items-center gap-2">
+            <Phone className="w-4 h-4 text-muted-foreground" />
+            WhatsApp
+          </Label>
+          <Input
+            id="whatsapp"
+            placeholder="(11) 99999-8888"
+            value={data.whatsapp}
+            onChange={(e) => onChange('whatsapp', formatPhone(e.target.value))}
+            maxLength={15}
+            className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
+          />
         </div>
       </div>
     </div>

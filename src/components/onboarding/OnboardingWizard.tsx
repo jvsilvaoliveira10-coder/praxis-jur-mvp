@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Sparkles } from 'lucide-react';
 import { useFirmSettings, FirmSettings } from '@/hooks/useFirmSettings';
-import OnboardingProgress from './OnboardingProgress';
+import OnboardingSidebar from './OnboardingSidebar';
 import LawyerDataStep from './steps/LawyerDataStep';
 import FirmDataStep from './steps/FirmDataStep';
 import AddressStep from './steps/AddressStep';
@@ -20,10 +20,19 @@ interface OnboardingWizardProps {
 
 const TOTAL_STEPS = 5;
 
+const stepInfo = [
+  { title: 'Dados do Advogado', subtitle: 'Preencha suas informações profissionais para personalizar documentos e petições.' },
+  { title: 'Dados do Escritório', subtitle: 'Configure a identidade visual e informações comerciais do seu escritório.' },
+  { title: 'Endereço Comercial', subtitle: 'Informe a localização do seu escritório para documentos e comunicações.' },
+  { title: 'Estrutura do Escritório', subtitle: 'Nos conte sobre o tamanho da sua equipe para otimizarmos sua experiência.' },
+  { title: 'Áreas de Atuação', subtitle: 'Selecione suas principais áreas para recomendações personalizadas.' },
+];
+
 const OnboardingWizard = ({ open, onClose, onComplete }: OnboardingWizardProps) => {
   const { firmSettings, updateSettings, uploadLogo, completeOnboarding } = useFirmSettings();
   const [currentStep, setCurrentStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('right');
   
   // Form data state
   const [formData, setFormData] = useState({
@@ -122,6 +131,7 @@ const OnboardingWizard = ({ open, onClose, onComplete }: OnboardingWizardProps) 
     await saveCurrentStep();
     
     if (currentStep < TOTAL_STEPS) {
+      setSlideDirection('right');
       setCurrentStep(currentStep + 1);
     } else {
       // Complete onboarding
@@ -135,6 +145,7 @@ const OnboardingWizard = ({ open, onClose, onComplete }: OnboardingWizardProps) 
 
   const handleBack = () => {
     if (currentStep > 1) {
+      setSlideDirection('left');
       setCurrentStep(currentStep - 1);
     }
   };
@@ -220,61 +231,91 @@ const OnboardingWizard = ({ open, onClose, onComplete }: OnboardingWizardProps) 
     }
   };
 
+  const currentStepInfo = stepInfo[currentStep - 1];
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleSkip()}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col p-0">
-        {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <img src="/favicon.svg" alt="Práxis AI" className="w-8 h-8" />
+      <DialogContent 
+        hideCloseButton 
+        className="sm:max-w-4xl max-h-[90vh] h-[650px] overflow-hidden flex p-0 gap-0"
+      >
+        {/* Sidebar */}
+        <OnboardingSidebar
+          currentStep={currentStep}
+          totalSteps={TOTAL_STEPS}
+          onSkip={handleSkip}
+        />
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col bg-background rounded-r-lg overflow-hidden">
+          {/* Header */}
+          <div className="px-8 pt-8 pb-6 border-b border-border">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
+                <Sparkles className="w-6 h-6 text-primary" />
+              </div>
               <div>
-                <h1 className="font-serif font-bold text-lg">Bem-vindo ao Práxis AI</h1>
-                <p className="text-xs text-muted-foreground">Configure seu escritório em poucos minutos</p>
+                <h2 className="text-2xl font-semibold text-foreground tracking-tight">
+                  {currentStepInfo.title}
+                </h2>
+                <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                  {currentStepInfo.subtitle}
+                </p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={handleSkip}>
-              <X className="w-4 h-4" />
-            </Button>
           </div>
-          <OnboardingProgress currentStep={currentStep} totalSteps={TOTAL_STEPS} />
-        </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-6">
-          {renderStep()}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t bg-muted/30 flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={handleSkip}
-            className="text-muted-foreground"
-          >
-            Pular por agora
-          </Button>
-          
-          <div className="flex gap-2">
-            {currentStep > 1 && (
-              <Button variant="outline" onClick={handleBack}>
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Voltar
-              </Button>
-            )}
-            <Button onClick={handleNext} disabled={saving}>
-              {currentStep === TOTAL_STEPS ? (
-                <>
-                  <Check className="w-4 h-4 mr-1" />
-                  Finalizar
-                </>
-              ) : (
-                <>
-                  Continuar
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </>
+          {/* Content with Animation */}
+          <div className="flex-1 overflow-hidden relative">
+            <div
+              key={currentStep}
+              className={cn(
+                "absolute inset-0 overflow-y-auto px-8 py-6",
+                "animate-in duration-300 ease-out",
+                slideDirection === 'right' 
+                  ? "slide-in-from-right-4 fade-in-0" 
+                  : "slide-in-from-left-4 fade-in-0"
               )}
-            </Button>
+            >
+              {renderStep()}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-8 py-5 border-t border-border bg-muted/30 flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Etapa {currentStep} de {TOTAL_STEPS}
+            </div>
+            
+            <div className="flex gap-3">
+              {currentStep > 1 && (
+                <Button 
+                  variant="outline" 
+                  onClick={handleBack}
+                  className="h-11 px-5"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Voltar
+                </Button>
+              )}
+              <Button 
+                onClick={handleNext} 
+                disabled={saving}
+                className="h-11 px-6 bg-gradient-to-r from-primary to-[hsl(222,80%,45%)] hover:from-primary/90 hover:to-[hsl(222,80%,40%)] shadow-lg shadow-primary/25"
+              >
+                {currentStep === TOTAL_STEPS ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Finalizar Configuração
+                  </>
+                ) : (
+                  <>
+                    Continuar
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

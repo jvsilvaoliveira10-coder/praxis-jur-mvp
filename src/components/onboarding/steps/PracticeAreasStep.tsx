@@ -1,7 +1,6 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Scale, FileText } from 'lucide-react';
+import { Scale, FileText, TrendingUp, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PracticeAreasStepProps {
@@ -21,7 +20,7 @@ const practiceAreas = [
   { id: 'empresarial', label: 'Empresarial' },
   { id: 'familia', label: 'Família e Sucessões' },
   { id: 'previdenciario', label: 'Previdenciário' },
-  { id: 'consumidor', label: 'Direito do Consumidor' },
+  { id: 'consumidor', label: 'Dir. do Consumidor' },
   { id: 'ambiental', label: 'Ambiental' },
   { id: 'digital', label: 'Digital/LGPD' },
   { id: 'imobiliario', label: 'Imobiliário' },
@@ -29,15 +28,15 @@ const practiceAreas = [
 ];
 
 const courts = [
-  { id: 'tjsp', label: 'TJSP - Tribunal de Justiça de São Paulo' },
-  { id: 'tjrj', label: 'TJRJ - Tribunal de Justiça do Rio de Janeiro' },
-  { id: 'tjmg', label: 'TJMG - Tribunal de Justiça de Minas Gerais' },
-  { id: 'trt', label: 'TRT - Tribunais Regionais do Trabalho' },
-  { id: 'trf', label: 'TRF - Tribunais Regionais Federais' },
-  { id: 'stj', label: 'STJ - Superior Tribunal de Justiça' },
-  { id: 'stf', label: 'STF - Supremo Tribunal Federal' },
-  { id: 'tst', label: 'TST - Tribunal Superior do Trabalho' },
-  { id: 'juizado', label: 'Juizados Especiais' },
+  { id: 'tjsp', label: 'TJSP' },
+  { id: 'tjrj', label: 'TJRJ' },
+  { id: 'tjmg', label: 'TJMG' },
+  { id: 'trt', label: 'TRTs' },
+  { id: 'trf', label: 'TRFs' },
+  { id: 'stj', label: 'STJ' },
+  { id: 'stf', label: 'STF' },
+  { id: 'tst', label: 'TST' },
+  { id: 'juizado', label: 'Juizados' },
 ];
 
 const PracticeAreasStep = ({ data, onChange }: PracticeAreasStepProps) => {
@@ -58,88 +57,84 @@ const PracticeAreasStep = ({ data, onChange }: PracticeAreasStepProps) => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Scale className="w-8 h-8 text-primary" />
+    <div className="space-y-8">
+      {/* Practice Areas */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium flex items-center gap-2">
+          <Scale className="w-4 h-4 text-muted-foreground" />
+          Áreas de Atuação
+        </Label>
+        <div className="grid grid-cols-3 gap-2">
+          {practiceAreas.map((area) => {
+            const isSelected = (data.practice_areas || []).includes(area.id);
+            return (
+              <button
+                key={area.id}
+                type="button"
+                onClick={() => toggleArea(area.id)}
+                className={cn(
+                  "relative flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all duration-200 text-sm font-medium",
+                  isSelected
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border/50 hover:border-primary/50 hover:bg-muted/30 text-foreground"
+                )}
+              >
+                {isSelected && (
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                )}
+                <span className="truncate">{area.label}</span>
+              </button>
+            );
+          })}
         </div>
-        <h2 className="text-xl font-semibold text-foreground">Áreas de Atuação</h2>
-        <p className="text-muted-foreground mt-1">
-          Selecione suas principais áreas e tribunais
-        </p>
       </div>
 
-      <div className="space-y-6">
-        {/* Practice Areas */}
-        <div className="space-y-3">
-          <Label className="flex items-center gap-2">
-            <Scale className="w-4 h-4" />
-            Áreas de Atuação
-          </Label>
-          <div className="grid grid-cols-2 gap-2">
-            {practiceAreas.map((area) => {
-              const isSelected = (data.practice_areas || []).includes(area.id);
-              return (
-                <button
-                  key={area.id}
-                  type="button"
-                  onClick={() => toggleArea(area.id)}
-                  className={cn(
-                    "flex items-center gap-2 p-3 rounded-lg border transition-all text-left text-sm",
-                    isSelected
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-border hover:border-primary/50"
-                  )}
-                >
-                  <Checkbox checked={isSelected} className="pointer-events-none" />
-                  <span>{area.label}</span>
-                </button>
-              );
-            })}
-          </div>
+      {/* Courts */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium flex items-center gap-2">
+          <FileText className="w-4 h-4 text-muted-foreground" />
+          Tribunais mais utilizados
+        </Label>
+        <div className="grid grid-cols-3 gap-2">
+          {courts.map((court) => {
+            const isSelected = (data.main_courts || []).includes(court.id);
+            return (
+              <button
+                key={court.id}
+                type="button"
+                onClick={() => toggleCourt(court.id)}
+                className={cn(
+                  "relative flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all duration-200 text-sm font-medium",
+                  isSelected
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border/50 hover:border-primary/50 hover:bg-muted/30 text-foreground"
+                )}
+              >
+                {isSelected && (
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                )}
+                <span>{court.label}</span>
+              </button>
+            );
+          })}
         </div>
+      </div>
 
-        {/* Courts */}
-        <div className="space-y-3">
-          <Label className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Tribunais mais utilizados
-          </Label>
-          <div className="grid gap-2">
-            {courts.map((court) => {
-              const isSelected = (data.main_courts || []).includes(court.id);
-              return (
-                <button
-                  key={court.id}
-                  type="button"
-                  onClick={() => toggleCourt(court.id)}
-                  className={cn(
-                    "flex items-center gap-2 p-3 rounded-lg border transition-all text-left text-sm",
-                    isSelected
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-border hover:border-primary/50"
-                  )}
-                >
-                  <Checkbox checked={isSelected} className="pointer-events-none" />
-                  <span>{court.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Monthly Cases */}
-        <div className="space-y-2">
-          <Label htmlFor="cases_monthly_avg">Média de novos processos por mês</Label>
-          <Input
-            id="cases_monthly_avg"
-            type="number"
-            min="0"
-            placeholder="Ex: 10"
-            value={data.cases_monthly_avg || ''}
-            onChange={(e) => onChange('cases_monthly_avg', parseInt(e.target.value) || 0)}
-          />
-        </div>
+      {/* Monthly Cases */}
+      <div className="space-y-2 max-w-xs">
+        <Label htmlFor="cases_monthly_avg" className="text-sm font-medium flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-muted-foreground" />
+          Média de novos processos por mês
+        </Label>
+        <Input
+          id="cases_monthly_avg"
+          type="number"
+          min="0"
+          placeholder="Ex: 10"
+          value={data.cases_monthly_avg || ''}
+          onChange={(e) => onChange('cases_monthly_avg', parseInt(e.target.value) || 0)}
+          className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
+        />
       </div>
     </div>
   );
