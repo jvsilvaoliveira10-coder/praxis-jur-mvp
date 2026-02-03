@@ -31,9 +31,10 @@ import { Plus, Search, Receipt, ArrowDownCircle, ArrowUpCircle, CheckCircle } fr
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { formatCurrency, PAYMENT_METHOD_LABELS, TRANSACTION_TYPE_LABELS } from '@/types/finance';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { DateRangeFilter } from '@/components/finance/DateRangeFilter';
 
 interface Transaction {
   id: string;
@@ -63,6 +64,10 @@ const Transactions = () => {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [modalOpen, setModalOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | null>(() => {
+    const now = new Date();
+    return { from: startOfMonth(now), to: endOfMonth(now) };
+  });
   
   const [newTransaction, setNewTransaction] = useState({
     type: 'receita' as 'receita' | 'despesa',
@@ -76,12 +81,21 @@ const Transactions = () => {
   const fetchData = async () => {
     setLoading(true);
     
+    let transactionsQuery = supabase
+      .from('transactions')
+      .select(`*, financial_accounts(name)`)
+      .order('transaction_date', { ascending: false });
+
+    if (dateRange) {
+      transactionsQuery = transactionsQuery
+        .gte('transaction_date', format(dateRange.from, 'yyyy-MM-dd'))
+        .lte('transaction_date', format(dateRange.to, 'yyyy-MM-dd'));
+    } else {
+      transactionsQuery = transactionsQuery.limit(100);
+    }
+
     const [transactionsRes, accountsRes] = await Promise.all([
-      supabase
-        .from('transactions')
-        .select(`*, financial_accounts(name)`)
-        .order('transaction_date', { ascending: false })
-        .limit(100),
+      transactionsQuery,
       supabase
         .from('financial_accounts')
         .select('id, name, current_balance')
@@ -104,7 +118,7 @@ const Transactions = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [dateRange]);
 
   const handleCreateTransaction = async () => {
     if (!newTransaction.description || !newTransaction.amount || !newTransaction.account_id) {
@@ -170,6 +184,12 @@ const Transactions = () => {
           Novo Lançamento
         </Button>
       </div>
+
+      {/* Date Filter */}
+      <DateRangeFilter
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">

@@ -35,12 +35,13 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile';
 import { PaymentStatusBadge } from '@/components/finance/PaymentStatusBadge';
 import { QuickPaymentModal } from '@/components/finance/QuickPaymentModal';
+import { DateRangeFilter, DateFilterField } from '@/components/finance/DateRangeFilter';
 import { 
   RECEIVABLE_TYPE_LABELS, 
   PAYMENT_STATUS_LABELS,
   formatCurrency
 } from '@/types/finance';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface Receivable {
@@ -50,6 +51,7 @@ interface Receivable {
   amount_paid: number;
   due_date: string;
   payment_date: string | null;
+  created_at: string;
   status: 'pendente' | 'pago' | 'atrasado' | 'cancelado' | 'parcial';
   receivable_type: string;
   client_id: string | null;
@@ -57,6 +59,12 @@ interface Receivable {
   notes: string | null;
   clients?: { name: string } | null;
 }
+
+const FIELD_OPTIONS: { value: DateFilterField; label: string }[] = [
+  { value: 'due_date', label: 'Vencimento' },
+  { value: 'created_at', label: 'Criação' },
+  { value: 'payment_date', label: 'Pagamento' },
+];
 
 const Receivables = () => {
   const { toast } = useToast();
@@ -70,16 +78,30 @@ const Receivables = () => {
     open: false,
     item: null
   });
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | null>(() => {
+    const now = new Date();
+    return { from: startOfMonth(now), to: endOfMonth(now) };
+  });
+  const [filterField, setFilterField] = useState<DateFilterField>('due_date');
 
   const fetchReceivables = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    
+    let query = supabase
       .from('receivables')
       .select(`
         *,
         clients(name)
       `)
       .order('due_date', { ascending: true });
+
+    if (dateRange) {
+      query = query
+        .gte(filterField, format(dateRange.from, 'yyyy-MM-dd'))
+        .lte(filterField, format(dateRange.to, 'yyyy-MM-dd'));
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       toast({
@@ -95,7 +117,7 @@ const Receivables = () => {
 
   useEffect(() => {
     fetchReceivables();
-  }, []);
+  }, [dateRange, filterField]);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -153,6 +175,16 @@ const Receivables = () => {
           </Link>
         </Button>
       </div>
+
+      {/* Date Filter */}
+      <DateRangeFilter
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
+        filterField={filterField}
+        onFilterFieldChange={setFilterField}
+        showFieldSelector
+        fieldOptions={FIELD_OPTIONS}
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4">

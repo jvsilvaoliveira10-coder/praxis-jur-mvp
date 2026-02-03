@@ -24,7 +24,8 @@ import { Plus, Search, Edit, FileSignature, Power, PowerOff } from 'lucide-react
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { formatCurrency, CONTRACT_TYPE_LABELS } from '@/types/finance';
-import { format } from 'date-fns';
+import { DateRangeFilter, DateFilterField } from '@/components/finance/DateRangeFilter';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface FeeContract {
@@ -39,8 +40,14 @@ interface FeeContract {
   end_date: string | null;
   is_active: boolean;
   client_id: string;
+  created_at: string;
   clients?: { name: string } | null;
 }
+
+const FIELD_OPTIONS: { value: DateFilterField; label: string }[] = [
+  { value: 'start_date', label: 'Início' },
+  { value: 'created_at', label: 'Criação' },
+];
 
 const FeeContracts = () => {
   const { toast } = useToast();
@@ -49,13 +56,24 @@ const FeeContracts = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | null>(null);
+  const [filterField, setFilterField] = useState<DateFilterField>('start_date');
 
   const fetchContracts = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    
+    let query = supabase
       .from('fee_contracts')
       .select(`*, clients(name)`)
       .order('created_at', { ascending: false });
+
+    if (dateRange) {
+      query = query
+        .gte(filterField, format(dateRange.from, 'yyyy-MM-dd'))
+        .lte(filterField, format(dateRange.to, 'yyyy-MM-dd'));
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       toast({ variant: 'destructive', title: 'Erro ao carregar contratos', description: error.message });
@@ -67,7 +85,7 @@ const FeeContracts = () => {
 
   useEffect(() => {
     fetchContracts();
-  }, []);
+  }, [dateRange, filterField]);
 
   const toggleActive = async (id: string, currentStatus: boolean) => {
     const { error } = await supabase
@@ -115,6 +133,16 @@ const FeeContracts = () => {
           </Link>
         </Button>
       </div>
+
+      {/* Date Filter */}
+      <DateRangeFilter
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
+        filterField={filterField}
+        onFilterFieldChange={setFilterField}
+        showFieldSelector
+        fieldOptions={FIELD_OPTIONS}
+      />
 
       {/* Stats Card */}
       <Card className="bg-primary/5 border-primary/20">
