@@ -1690,6 +1690,51 @@ export type Database = {
           },
         ]
       }
+      user_onboarding_progress: {
+        Row: {
+          checklist_dismissed: boolean
+          created_at: string
+          first_case_created: boolean
+          first_client_created: boolean
+          first_petition_generated: boolean
+          id: string
+          pipeline_visited: boolean
+          product_tour_completed: boolean
+          product_tour_step: number
+          updated_at: string
+          user_id: string
+          welcome_modal_seen: boolean
+        }
+        Insert: {
+          checklist_dismissed?: boolean
+          created_at?: string
+          first_case_created?: boolean
+          first_client_created?: boolean
+          first_petition_generated?: boolean
+          id?: string
+          pipeline_visited?: boolean
+          product_tour_completed?: boolean
+          product_tour_step?: number
+          updated_at?: string
+          user_id: string
+          welcome_modal_seen?: boolean
+        }
+        Update: {
+          checklist_dismissed?: boolean
+          created_at?: string
+          first_case_created?: boolean
+          first_client_created?: boolean
+          first_petition_generated?: boolean
+          id?: string
+          pipeline_visited?: boolean
+          product_tour_completed?: boolean
+          product_tour_step?: number
+          updated_at?: string
+          user_id?: string
+          welcome_modal_seen?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

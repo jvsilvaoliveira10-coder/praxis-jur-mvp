@@ -1,4 +1,4 @@
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from './Sidebar';
 import TopHeader from './TopHeader';
@@ -9,21 +9,54 @@ import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useFirmSettings } from '@/hooks/useFirmSettings';
+import { useOnboardingProgress } from '@/hooks/useOnboardingProgress';
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
+import WelcomeModal from '@/components/onboarding/WelcomeModal';
+import ProductTour from '@/components/onboarding/ProductTour';
+import OnboardingChecklist from '@/components/onboarding/OnboardingChecklist';
 
 const MainLayout = () => {
   const { user, loading } = useAuth();
+  const location = useLocation();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { firmSettings, isLoading: loadingSettings, refetch } = useFirmSettings();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  
+  const {
+    shouldShowWelcome,
+    shouldShowChecklist,
+    isTourActive,
+    currentTourStep,
+    markWelcomeModalSeen,
+    markTourCompleted,
+    updateTourStep,
+    startTour,
+    stopTour,
+    markPipelineVisited,
+    checkAndUpdateProgress,
+  } = useOnboardingProgress();
 
-  // Check if onboarding should be shown
+  // Check if onboarding wizard should be shown
   useEffect(() => {
     if (!loadingSettings && firmSettings && !firmSettings.onboarding_completed) {
       setShowOnboarding(true);
     }
   }, [firmSettings, loadingSettings]);
+
+  // Mark pipeline as visited when user navigates there
+  useEffect(() => {
+    if (location.pathname === '/pipeline') {
+      markPipelineVisited();
+    }
+  }, [location.pathname, markPipelineVisited]);
+
+  // Check progress when returning to dashboard
+  useEffect(() => {
+    if (location.pathname === '/dashboard') {
+      checkAndUpdateProgress();
+    }
+  }, [location.pathname, checkAndUpdateProgress]);
 
   if (loading) {
     return (
@@ -46,6 +79,24 @@ const MainLayout = () => {
     setShowOnboarding(false);
   };
 
+  const handleWelcomeClose = async () => {
+    await markWelcomeModalSeen();
+  };
+
+  const handleStartTour = async () => {
+    await markWelcomeModalSeen();
+    startTour();
+  };
+
+  const handleTourComplete = async () => {
+    await markTourCompleted();
+  };
+
+  const handleTourSkip = async () => {
+    stopTour();
+    await markTourCompleted();
+  };
+
   // Mobile layout with Sheet sidebar
   if (isMobile) {
     return (
@@ -55,6 +106,19 @@ const MainLayout = () => {
           onClose={handleOnboardingClose} 
           onComplete={handleOnboardingComplete} 
         />
+        <WelcomeModal 
+          open={shouldShowWelcome} 
+          onClose={handleWelcomeClose} 
+          onStartTour={handleStartTour} 
+        />
+        <ProductTour 
+          active={isTourActive} 
+          currentStep={currentTourStep}
+          onStepChange={updateTourStep}
+          onComplete={handleTourComplete}
+          onSkip={handleTourSkip}
+        />
+        
         <div className="min-h-screen bg-background">
           {/* Mobile Header */}
           <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-4">
@@ -74,7 +138,9 @@ const MainLayout = () => {
                 <span className="font-serif font-bold text-sidebar-foreground">Práxis AI</span>
               </div>
             </div>
-            <NotificationBell />
+            <div data-tour="notifications">
+              <NotificationBell />
+            </div>
           </header>
 
           {/* Main content with top padding for fixed header */}
@@ -84,6 +150,9 @@ const MainLayout = () => {
             </div>
           </main>
         </div>
+
+        {/* Floating Checklist */}
+        {shouldShowChecklist && <OnboardingChecklist />}
       </>
     );
   }
@@ -96,6 +165,19 @@ const MainLayout = () => {
         onClose={handleOnboardingClose} 
         onComplete={handleOnboardingComplete} 
       />
+      <WelcomeModal 
+        open={shouldShowWelcome} 
+        onClose={handleWelcomeClose} 
+        onStartTour={handleStartTour} 
+      />
+      <ProductTour 
+        active={isTourActive} 
+        currentStep={currentTourStep}
+        onStepChange={updateTourStep}
+        onComplete={handleTourComplete}
+        onSkip={handleTourSkip}
+      />
+      
       <div className="min-h-screen bg-background flex">
         <Sidebar />
         <main className="ml-64 flex-1 flex flex-col min-h-screen transition-all duration-300">
@@ -105,6 +187,9 @@ const MainLayout = () => {
           </div>
         </main>
       </div>
+
+      {/* Floating Checklist */}
+      {shouldShowChecklist && <OnboardingChecklist />}
     </>
   );
 };
