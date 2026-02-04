@@ -1,327 +1,319 @@
 
-# Plano: Busca sob Demanda de Jurisprudencia STJ
+
+# Plano: Correção de Cache + Visualização Completa de Jurisprudência
 
 ## Resumo Executivo
 
-Vou implementar um sistema **hibrido** de busca de jurisprudencia que:
-1. **Primeiro** busca nos acordaos ja importados localmente (rapido)
-2. **Se nao encontrar resultados suficientes**, consulta a **API publica do Datajud** em tempo real
-3. **Automaticamente importa** os novos acordaos encontrados para a base local (cache progressivo)
-
-Isso permite que a base de dados cresca **organicamente** conforme a demanda real dos advogados, sem precisar baixar todos os dados de uma vez.
+Este plano combina duas melhorias críticas:
+1. **Correção do parser de data** - para que o cache local funcione corretamente
+2. **Visualização detalhada dos acórdãos** - para que o advogado saiba o que está selecionando antes de usar na petição
 
 ---
 
-## Arquitetura da Solucao
+## Problema 1: Cache Falha por Formato de Data
 
-```text
-+--------------------+          +-------------------+
-| Advogado busca     |          | Base Local        |
-| "danos morais"     |--------->| stj_acordaos      |
-+--------------------+          +-------------------+
-                                      |
-                                      v
-                               [Encontrou >= 10?]
-                                 /          \
-                               SIM           NAO
-                                |             |
-                                v             v
-                      [Retorna resultados]  [Busca na API Datajud]
-                                               |
-                                               v
-                                      +-------------------+
-                                      | API Datajud CNJ   |
-                                      | (tempo real)      |
-                                      +-------------------+
-                                               |
-                                               v
-                                      [Importa novos acordaos]
-                                      [para base local]
-                                               |
-                                               v
-                                      [Retorna resultados]
+### Diagnóstico
+A API Datajud retorna datas no formato compacto (`20251224000000`), mas o código atual assume formato ISO (`2025-12-24T00:00:00`).
+
+**Linha problemática (220-222):**
+```typescript
+// ATUAL - falha com formato compacto
+const dataJulgamento = acordaoMovimento?.dataHora
+  ? acordaoMovimento.dataHora.split('T')[0]  // "20251224000000".split('T') = ["20251224000000"]
+  : source.dataAjuizamento?.split('T')[0] || null;
 ```
 
----
-
-## Descoberta Importante: API Publica Datajud
-
-O CNJ disponibiliza uma API publica (Elasticsearch) para consultar processos do STJ em tempo real:
-
-| Item | Valor |
-|------|-------|
-| **Endpoint STJ** | `https://api-publica.datajud.cnj.jus.br/api_publica_stj/_search` |
-| **API Key** | `cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==` |
-| **Formato** | Elasticsearch Query DSL |
-| **Dados** | Metadados de processos + movimentacoes |
-
-Esta API permite buscar por:
-- Palavras-chave em movimentacoes
-- Numero do processo
-- Classe processual
-- Periodo
-
----
-
-## Fase 1: Atualizar Edge Function de Busca
-
-### 1.1 Nova Logica Hibrida em `search-stj-jurisprudence`
-
-A Edge Function tera 3 etapas:
-
-```text
-[1] Busca Local (Full-Text Search)
-    |
-    v
-[2] Verifica quantidade de resultados
-    - Se >= minResults (padrao: 5): retorna
-    - Se < minResults: continua
-    |
-    v
-[3] Busca na API Datajud (tempo real)
-    |
-    v
-[4] Importa acordaos novos para base local
-    |
-    v
-[5] Retorna resultados combinados
-```
-
-### 1.2 Parametros Adicionais
+### Solução
+Criar parser robusto que aceita múltiplos formatos:
 
 ```typescript
-interface SearchParams {
-  query: string;
-  orgao?: string;
-  classe?: string;
-  dataInicio?: string;
-  dataFim?: string;
-  page?: number;
-  limit?: number;
-  // NOVOS
-  fetchRemote?: boolean;     // Forcar busca na API (padrao: auto)
-  minLocalResults?: number;  // Minimo para considerar busca local suficiente (padrao: 5)
-}
-```
-
-### 1.3 Resposta Enriquecida
-
-```typescript
-interface SearchResponse {
-  success: boolean;
-  data: STJAcordao[];
-  pagination: {...};
-  source: 'local' | 'datajud' | 'mixed';  // De onde vieram os dados
-  imported?: number;  // Quantos novos acordaos foram importados
-}
-```
-
----
-
-## Fase 2: Integracao com API Datajud
-
-### 2.1 Funcao para Consultar Datajud
-
-```typescript
-async function searchDatajud(query: string, filters: Filters): Promise<DatajudResult[]> {
-  const response = await fetch(
-    'https://api-publica.datajud.cnj.jus.br/api_publica_stj/_search',
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': 'ApiKey cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query: {
-          bool: {
-            must: [
-              { match: { movimentos.complementosTabelados.descricao: query } }
-            ],
-            filter: [
-              // Filtros opcionais
-            ]
-          }
-        },
-        size: 20,
-        sort: [{ dataAjuizamento: "desc" }]
-      }),
-    }
-  );
+function parseDatajudDate(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null;
   
-  return parseDatajudResponse(response);
+  // Formato ISO: "2025-12-24T00:00:00" ou "2025-12-24"
+  if (dateStr.includes('-')) {
+    return dateStr.split('T')[0];
+  }
+  
+  // Formato compacto: "20251224000000" ou "20251224"
+  if (dateStr.length >= 8 && /^\d+$/.test(dateStr)) {
+    const year = dateStr.substring(0, 4);
+    const month = dateStr.substring(4, 6);
+    const day = dateStr.substring(6, 8);
+    return `${year}-${month}-${day}`;
+  }
+  
+  return null;
 }
 ```
 
-### 2.2 Mapeamento de Dados Datajud para Base Local
+---
 
-A API Datajud retorna uma estrutura diferente dos JSONs de Espelhos de Acordaos. Precisaremos mapear:
+## Problema 2: Advogado Não Sabe o Que Está Selecionando
 
-| Campo Datajud | Campo Local |
-|---------------|-------------|
-| `numeroProcesso` | `processo` |
-| `classeProcessual.nome` | `classe` |
-| `relator.nome` | `relator` |
-| `orgaoJulgador.nome` | `orgao_julgador` |
-| `movimentos[*].dataHora` | `data_julgamento` |
-| `movimentos[*].nome` (ACORDAO) | Identificar ementa |
+### Situação Atual
+- A ementa aparece com `line-clamp-6` (apenas 6 linhas visíveis)
+- Não há como expandir para ler a ementa completa
+- Dados vindos da API Datajud têm ementa limitada (apenas assuntos/movimentações)
+- Não há modal de detalhes para analisar o acórdão antes de selecionar
+
+### Solução: Modal de Detalhes Expandido
+
+Criar um modal/sheet que mostra:
+- **Ementa completa** (sem limite de linhas)
+- **Decisão/Resumo** quando disponível
+- **Metadados completos** (relator, órgão, datas, classe)
+- **Assuntos do processo**
+- **Referências legais citadas**
+- **Link para o processo no STJ** (quando disponível)
+- **Botão "Usar na petição"** diretamente no modal
 
 ---
 
-## Fase 3: Atualizacao do Frontend
+## Arquitetura da Solução
 
-### 3.1 Indicador de Fonte dos Dados
-
-Adicionar no componente `STJResults.tsx`:
-
-- Badge indicando fonte: "Base Local" ou "API em Tempo Real"
-- Indicador de quantos acordaos foram importados na busca
-- Mensagem quando a busca remota e acionada
-
-### 3.2 Opcao para Forcar Busca Remota
-
-Adicionar no componente `STJSearch.tsx`:
-
-- Toggle/checkbox: "Buscar na fonte oficial (mais lento, mais resultados)"
-- Tooltip explicando a diferenca
-
----
-
-## Fase 4: Cache Inteligente
-
-### 4.1 Logica de Cache
-
-Quando um acordao e encontrado via API Datajud:
-1. Verificar se ja existe na base local (por numero do processo)
-2. Se nao existe: inserir
-3. Se existe: atualizar se houver dados novos
-
-### 4.2 Controle de Origem
-
-Adicionar campo `source_type` na tabela `stj_acordaos`:
-
-```sql
-ALTER TABLE stj_acordaos 
-ADD COLUMN source_type TEXT DEFAULT 'portal_dados_abertos';
--- Valores: 'portal_dados_abertos', 'datajud_api', 'manual'
+```text
++------------------+     +--------------------+     +-------------------+
+| STJResultCard    |     | STJDetailSheet     |     | Formulário        |
+| (lista resumida) |---->| (modal detalhado)  |---->| de Petição        |
++------------------+     +--------------------+     +-------------------+
+    - 6 linhas ementa      - Ementa completa        - Jurisprudência
+    - Clique "Ver mais"    - Decisão/Notas          selecionada
+    - Badge fonte          - Link STJ oficial
+                           - Botão "Usar"
 ```
 
 ---
 
-## Implementacao Detalhada
+## Implementação Detalhada
 
-### Arquivos a Modificar/Criar
+### Fase 1: Correção do Parser de Data
 
-| Arquivo | Acao | Descricao |
+**Arquivo:** `supabase/functions/search-stj-jurisprudence/index.ts`
+
+**Mudanças:**
+1. Adicionar função `parseDatajudDate()` após linha 75
+2. Atualizar `mapDatajudToAcordao()` para usar o novo parser (linhas 220-222)
+3. Aplicar também na `data_publicacao` (linha 232)
+
+### Fase 2: Novo Componente de Detalhes
+
+**Arquivo:** `src/components/jurisprudence/STJDetailSheet.tsx` (CRIAR)
+
+**Funcionalidades:**
+- Sheet/modal lateral que abre ao clicar "Ver detalhes"
+- Exibe ementa completa com scroll
+- Mostra todos os metadados organizados
+- Seção de assuntos/palavras-chave
+- Seção de referências legais
+- Botão "Usar na petição" em destaque
+- Link para processo no portal do STJ (quando disponível)
+
+**Estrutura do componente:**
+```typescript
+interface STJDetailSheetProps {
+  acordao: STJAcordao | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSelect: (acordao: STJAcordao) => void;
+  isSelected: boolean;
+}
+```
+
+### Fase 3: Atualização do Card de Resultado
+
+**Arquivo:** `src/components/jurisprudence/STJResultCard.tsx`
+
+**Mudanças:**
+1. Adicionar botão "Ver detalhes" ao lado de "Usar na petição"
+2. Passar callback para abrir o sheet de detalhes
+3. Corrigir badge duplicado "STJ STJ" (linha 35-36)
+
+### Fase 4: Integração na Página
+
+**Arquivo:** `src/components/jurisprudence/STJResults.tsx`
+
+**Mudanças:**
+1. Adicionar estado para controlar o sheet (acordão selecionado para visualização)
+2. Renderizar `STJDetailSheet` com o acordão selecionado
+3. Passar callbacks para os cards abrirem o sheet
+
+---
+
+## Fluxo do Usuário (Após Implementação)
+
+1. Advogado busca "danos morais"
+2. Lista de resultados aparece (cards resumidos com 6 linhas de ementa)
+3. Advogado clica em **"Ver detalhes"** em um card interessante
+4. Sheet lateral abre com:
+   - Ementa completa (scrollável)
+   - Relator, órgão, datas formatadas
+   - Palavras-chave/assuntos
+   - Referências legais
+   - Link para portal STJ
+5. Advogado lê e decide: clica **"Usar na petição"**
+6. Sheet fecha, card aparece como "Selecionado"
+7. Ao criar petição, jurisprudência selecionada é incluída automaticamente
+
+---
+
+## Arquivos a Criar/Modificar
+
+| Arquivo | Ação | Descrição |
 |---------|------|-----------|
-| `supabase/functions/search-stj-jurisprudence/index.ts` | Modificar | Adicionar busca hibrida com API Datajud |
-| `src/components/jurisprudence/STJSearch.tsx` | Modificar | Adicionar toggle para busca remota |
-| `src/components/jurisprudence/STJResults.tsx` | Modificar | Mostrar indicador de fonte |
-| Migracao SQL | Criar | Adicionar campo `source_type` |
-
-### Ordem de Execucao
-
-1. Criar migracao SQL para adicionar campo `source_type`
-2. Atualizar Edge Function com logica hibrida
-3. Testar busca local + fallback para API
-4. Atualizar componentes do frontend
-5. Testar fluxo completo end-to-end
+| `supabase/functions/search-stj-jurisprudence/index.ts` | Modificar | Adicionar parser de data robusto |
+| `src/components/jurisprudence/STJDetailSheet.tsx` | Criar | Modal de detalhes do acórdão |
+| `src/components/jurisprudence/STJResultCard.tsx` | Modificar | Adicionar botão "Ver detalhes", corrigir badge |
+| `src/components/jurisprudence/STJResults.tsx` | Modificar | Integrar sheet de detalhes |
 
 ---
 
-## Exemplo de Fluxo
+## Ordem de Execução
 
-**Cenario: Advogado busca "danos morais"**
-
-1. Frontend envia: `{ query: "danos morais", limit: 20 }`
-2. Edge Function busca na base local
-3. Base local retorna 3 acordaos (menos que minLocalResults=5)
-4. Edge Function consulta API Datajud
-5. API Datajud retorna 15 processos relacionados
-6. Edge Function importa os 15 para base local (cache)
-7. Retorna 18 acordaos (3 locais + 15 novos) com `source: 'mixed'`
-8. Na proxima busca por "danos morais", tudo vem da base local (rapido)
+1. Corrigir parser de data na Edge Function (cache funciona)
+2. Deploy da Edge Function
+3. Testar que cache está funcionando
+4. Criar componente `STJDetailSheet`
+5. Atualizar `STJResultCard` com botão de detalhes
+6. Integrar sheet na página de resultados
+7. Testar fluxo completo end-to-end
 
 ---
 
-## Beneficios
+## Seção Técnica
 
-| Beneficio | Descricao |
-|-----------|-----------|
-| **Crescimento organico** | Base cresce conforme demanda real |
-| **Economia de storage** | So armazena o que e realmente usado |
-| **Busca rapida** | Cache local para temas recorrentes |
-| **Dados atualizados** | API fornece processos mais recentes |
-| **Sem pre-carregamento** | Nao precisa importar 300k acordaos |
-
----
-
-## Riscos e Mitigacoes
-
-| Risco | Probabilidade | Mitigacao |
-|-------|---------------|-----------|
-| Rate limiting da API | Media | Implementar cache agressivo |
-| API Datajud indisponivel | Baixa | Fallback para base local |
-| Estrutura diferente dos dados | Alta | Parser robusto com validacao |
-| Latencia na primeira busca | Media | Mostrar indicador de carregamento |
-
----
-
-## Secao Tecnica
-
-### Query Elasticsearch para Datajud
-
-```json
-{
-  "query": {
-    "bool": {
-      "should": [
-        {
-          "match": {
-            "movimentos.complementosTabelados.descricao": {
-              "query": "danos morais",
-              "operator": "and"
-            }
-          }
-        },
-        {
-          "match": {
-            "assuntos.nome": "danos morais"
-          }
-        }
-      ],
-      "minimum_should_match": 1,
-      "filter": [
-        {
-          "term": {
-            "tribunal": "STJ"
-          }
-        }
-      ]
-    }
-  },
-  "size": 20,
-  "sort": [
-    { "dataAjuizamento": "desc" }
-  ],
-  "_source": [
-    "numeroProcesso",
-    "classeProcessual",
-    "relator",
-    "orgaoJulgador",
-    "dataAjuizamento",
-    "movimentos",
-    "assuntos"
-  ]
-}
-```
-
-### Headers da API Datajud
+### Parser de Data Robusto
 
 ```typescript
-const headers = {
-  'Authorization': 'ApiKey cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==',
-  'Content-Type': 'application/json',
-  'User-Agent': 'Praxis-Juridico/1.0',
+function parseDatajudDate(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null;
+  
+  const cleaned = String(dateStr).trim();
+  
+  // Formato ISO: "2025-12-24T00:00:00" ou "2025-12-24"
+  if (cleaned.includes('-')) {
+    return cleaned.split('T')[0];
+  }
+  
+  // Formato compacto: "20251224000000" ou "20251224"
+  if (cleaned.length >= 8 && /^\d+$/.test(cleaned)) {
+    const year = cleaned.substring(0, 4);
+    const month = cleaned.substring(4, 6);
+    const day = cleaned.substring(6, 8);
+    
+    // Validação básica
+    const y = parseInt(year, 10);
+    const m = parseInt(month, 10);
+    const d = parseInt(day, 10);
+    
+    if (y >= 1900 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      return `${year}-${month}-${day}`;
+    }
+  }
+  
+  return null;
+}
+```
+
+### Estrutura do Sheet de Detalhes
+
+```typescript
+// STJDetailSheet.tsx
+const STJDetailSheet = ({ acordao, isOpen, onClose, onSelect, isSelected }: Props) => {
+  if (!acordao) return null;
+
+  const stjUrl = acordao.processo 
+    ? `https://processo.stj.jus.br/processo/pesquisa/?termo=${acordao.processo}`
+    : null;
+
+  return (
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{acordao.classe} {acordao.processo}</SheetTitle>
+          <SheetDescription>Detalhes do Acórdão STJ</SheetDescription>
+        </SheetHeader>
+
+        {/* Metadados */}
+        <div className="grid grid-cols-2 gap-4 py-4">
+          <InfoItem icon={User} label="Relator" value={acordao.relator} />
+          <InfoItem icon={Building} label="Órgão" value={acordao.orgao_julgador} />
+          <InfoItem icon={Calendar} label="Julgamento" value={formatDate(acordao.data_julgamento)} />
+          <InfoItem icon={BookOpen} label="Publicação" value={formatDate(acordao.data_publicacao)} />
+        </div>
+
+        {/* Ementa Completa */}
+        <div className="space-y-2">
+          <h4 className="font-semibold">Ementa</h4>
+          <ScrollArea className="h-[300px] rounded border p-4">
+            <p className="text-sm whitespace-pre-wrap">{acordao.ementa}</p>
+          </ScrollArea>
+        </div>
+
+        {/* Palavras-chave */}
+        {acordao.palavras_destaque?.length > 0 && (
+          <div className="space-y-2 pt-4">
+            <h4 className="font-semibold text-sm">Assuntos/Palavras-chave</h4>
+            <div className="flex flex-wrap gap-1">
+              {acordao.palavras_destaque.map((p, i) => (
+                <Badge key={i} variant="secondary">{p}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Referências Legais */}
+        {acordao.referencias_legais?.length > 0 && (
+          <div className="space-y-2 pt-4">
+            <h4 className="font-semibold text-sm">Referências Legais</h4>
+            <ul className="text-sm space-y-1">
+              {acordao.referencias_legais.map((ref, i) => (
+                <li key={i}>{ref}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Ações */}
+        <SheetFooter className="pt-6 gap-2">
+          {stjUrl && (
+            <Button variant="outline" asChild>
+              <a href={stjUrl} target="_blank">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Ver no STJ
+              </a>
+            </Button>
+          )}
+          <Button onClick={() => onSelect(acordao)} variant={isSelected ? "secondary" : "default"}>
+            {isSelected ? (
+              <><Check className="mr-2 h-4 w-4" /> Selecionado</>
+            ) : (
+              <><Plus className="mr-2 h-4 w-4" /> Usar na petição</>
+            )}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
 };
 ```
+
+---
+
+## Benefícios
+
+| Benefício | Descrição |
+|-----------|-----------|
+| **Cache funcionando** | Acórdãos importados são salvos para buscas futuras |
+| **Decisão informada** | Advogado lê ementa completa antes de selecionar |
+| **Acesso ao original** | Link direto para o processo no portal STJ |
+| **UX aprimorada** | Modal organizado com todas as informações |
+| **Menos cliques** | Botão "Usar na petição" direto no modal |
+
+---
+
+## Correções Adicionais
+
+1. **Badge duplicado "STJ STJ"** na linha 35-36 do STJResultCard.tsx - será corrigido
+2. **Ementa vazia da API Datajud** - melhorar fallback para usar assuntos de forma mais informativa
+
