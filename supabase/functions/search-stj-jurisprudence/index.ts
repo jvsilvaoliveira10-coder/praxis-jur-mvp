@@ -73,6 +73,36 @@ interface RpcResult {
   total_count: number;
 }
 
+// Parser robusto para datas do Datajud (aceita ISO e formato compacto)
+function parseDatajudDate(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null;
+  
+  const cleaned = String(dateStr).trim();
+  
+  // Formato ISO: "2025-12-24T00:00:00" ou "2025-12-24"
+  if (cleaned.includes('-')) {
+    return cleaned.split('T')[0];
+  }
+  
+  // Formato compacto: "20251224000000" ou "20251224"
+  if (cleaned.length >= 8 && /^\d+$/.test(cleaned)) {
+    const year = cleaned.substring(0, 4);
+    const month = cleaned.substring(4, 6);
+    const day = cleaned.substring(6, 8);
+    
+    // Validação básica
+    const y = parseInt(year, 10);
+    const m = parseInt(month, 10);
+    const d = parseInt(day, 10);
+    
+    if (y >= 1900 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      return `${year}-${month}-${day}`;
+    }
+  }
+  
+  return null;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabaseClient = SupabaseClient<any, any, any>;
 
@@ -216,10 +246,9 @@ function mapDatajudToAcordao(hit: DatajudHit): STJAcordao {
     ementa = `Assuntos: ${source.assuntos.map((a) => a.nome).join(', ')}`;
   }
 
-  // Data de julgamento do acórdão
-  const dataJulgamento = acordaoMovimento?.dataHora
-    ? acordaoMovimento.dataHora.split('T')[0]
-    : source.dataAjuizamento?.split('T')[0] || null;
+  // Data de julgamento do acórdão (usando parser robusto)
+  const dataJulgamento = parseDatajudDate(acordaoMovimento?.dataHora)
+    || parseDatajudDate(source.dataAjuizamento);
 
   return {
     id: crypto.randomUUID(),
