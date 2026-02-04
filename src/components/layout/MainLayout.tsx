@@ -110,11 +110,13 @@ const MainLayout = () => {
   if (isMobile) {
     return (
       <>
-        <OnboardingWizard 
-          open={showOnboarding} 
-          onClose={handleOnboardingClose} 
-          onComplete={handleOnboardingComplete} 
-        />
+        {showOnboarding && (
+          <OnboardingWizard 
+            open={showOnboarding} 
+            onClose={handleOnboardingClose} 
+            onComplete={handleOnboardingComplete} 
+          />
+        )}
         <WelcomeModal 
           open={shouldShowWelcome} 
           onClose={handleWelcomeClose} 
@@ -169,11 +171,13 @@ const MainLayout = () => {
   // Desktop layout with fixed sidebar
   return (
     <>
-      <OnboardingWizard 
-        open={showOnboarding} 
-        onClose={handleOnboardingClose} 
-        onComplete={handleOnboardingComplete} 
-      />
+      {showOnboarding && (
+        <OnboardingWizard 
+          open={showOnboarding} 
+          onClose={handleOnboardingClose} 
+          onComplete={handleOnboardingComplete} 
+        />
+      )}
       <WelcomeModal 
         open={shouldShowWelcome} 
         onClose={handleWelcomeClose} 

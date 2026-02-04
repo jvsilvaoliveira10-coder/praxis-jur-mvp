@@ -100,7 +100,9 @@ const OnboardingWizard = ({ open, onClose, onComplete }: OnboardingWizardProps) 
         main_courts: firmSettings.main_courts || [],
         cases_monthly_avg: firmSettings.cases_monthly_avg || 0,
       });
-      setCurrentStep(firmSettings.onboarding_step || 1);
+      // CORREÇÃO: Garantir que step está no range válido (1-5)
+      const savedStep = firmSettings.onboarding_step || 1;
+      setCurrentStep(Math.min(Math.max(savedStep, 1), TOTAL_STEPS));
     }
   }, [firmSettings]);
 
@@ -116,9 +118,11 @@ const OnboardingWizard = ({ open, onClose, onComplete }: OnboardingWizardProps) 
   const saveCurrentStep = async () => {
     setSaving(true);
     try {
+      // CORREÇÃO: Não salvar step maior que TOTAL_STEPS
+      const nextStep = Math.min(currentStep + 1, TOTAL_STEPS);
       await updateSettings.mutateAsync({
         ...formData,
-        onboarding_step: currentStep + 1,
+        onboarding_step: nextStep,
       } as Partial<FirmSettings>);
     } catch (error) {
       console.error('Erro ao salvar:', error);
@@ -231,7 +235,9 @@ const OnboardingWizard = ({ open, onClose, onComplete }: OnboardingWizardProps) 
     }
   };
 
-  const currentStepInfo = stepInfo[currentStep - 1];
+  // CORREÇÃO: Garantir acesso seguro ao array stepInfo
+  const safeCurrentStep = Math.min(Math.max(currentStep, 1), TOTAL_STEPS);
+  const currentStepInfo = stepInfo[safeCurrentStep - 1];
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleSkip()}>
