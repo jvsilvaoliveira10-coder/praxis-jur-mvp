@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Loader2, Database, Search, ChevronLeft, ChevronRight, Globe, Download } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import STJResultCard from './STJResultCard';
+import STJDetailSheet from './STJDetailSheet';
 import { STJAcordao } from '@/lib/api/stj-jurisprudence';
 
 interface STJResultsProps {
@@ -39,6 +41,7 @@ const STJResults = ({
   localCount,
   remoteCount,
 }: STJResultsProps) => {
+  const [selectedForDetails, setSelectedForDetails] = useState<STJAcordao | null>(null);
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-4">
@@ -173,10 +176,20 @@ const STJResults = ({
             key={acordao.id}
             acordao={acordao}
             onSelect={onSelect}
+            onViewDetails={(a) => setSelectedForDetails(a)}
             isSelected={selectedIds.has(acordao.id)}
           />
         ))}
       </div>
+
+      {/* Modal de detalhes */}
+      <STJDetailSheet
+        acordao={selectedForDetails}
+        isOpen={!!selectedForDetails}
+        onClose={() => setSelectedForDetails(null)}
+        onSelect={onSelect}
+        isSelected={selectedForDetails ? selectedIds.has(selectedForDetails.id) : false}
+      />
 
       {/* Paginação */}
       {pagination && pagination.totalPages > 1 && onPageChange && (

@@ -1,4 +1,4 @@
-import { Calendar, User, Building, Tag, BookOpen, Plus, Check } from 'lucide-react';
+import { Calendar, User, Building, Tag, BookOpen, Plus, Check, Eye } from 'lucide-react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,7 @@ import { STJAcordao } from '@/lib/api/stj-jurisprudence';
 interface STJResultCardProps {
   acordao: STJAcordao;
   onSelect?: (acordao: STJAcordao) => void;
+  onViewDetails?: (acordao: STJAcordao) => void;
   isSelected?: boolean;
   showSelectButton?: boolean;
 }
@@ -14,6 +15,7 @@ interface STJResultCardProps {
 const STJResultCard = ({ 
   acordao, 
   onSelect, 
+  onViewDetails,
   isSelected = false,
   showSelectButton = true 
 }: STJResultCardProps) => {
@@ -32,7 +34,6 @@ const STJResultCard = ({
       <CardContent className="pt-6 space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            STJ
             STJ
           </Badge>
           {acordao.classe && (
@@ -130,6 +131,16 @@ const STJResultCard = ({
       </CardContent>
 
       <CardFooter className="flex flex-wrap gap-2 pt-0">
+        {onViewDetails && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onViewDetails(acordao)}
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            Ver detalhes
+          </Button>
+        )}
         {showSelectButton && onSelect && (
           <Button
             variant={isSelected ? "default" : "secondary"}
