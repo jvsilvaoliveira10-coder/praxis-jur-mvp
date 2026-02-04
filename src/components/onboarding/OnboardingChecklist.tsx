@@ -31,13 +31,16 @@ interface ChecklistTask {
 
 const OnboardingChecklist = () => {
   const navigate = useNavigate();
-  const { firmSettings } = useFirmSettings();
+  const { firmSettings, isLoading: loadingSettings } = useFirmSettings();
   const { 
     progress, 
     percentComplete, 
     dismissChecklist,
     checkAndUpdateProgress 
-  } = useOnboardingProgress();
+  } = useOnboardingProgress({
+    firmSettings,
+    loadingSettings,
+  });
   
   const [isExpanded, setIsExpanded] = useState(true);
   const [showCelebration, setShowCelebration] = useState(false);

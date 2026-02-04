@@ -36,7 +36,10 @@ const MainLayout = () => {
     stopTour,
     markPipelineVisited,
     checkAndUpdateProgress,
-  } = useOnboardingProgress();
+  } = useOnboardingProgress({
+    firmSettings,
+    loadingSettings,
+  });
 
   // Check if onboarding wizard should be shown
   useEffect(() => {

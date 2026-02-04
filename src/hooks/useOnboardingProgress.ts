@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useFirmSettings } from '@/hooks/useFirmSettings';
+import { FirmSettings } from '@/hooks/useFirmSettings';
 
 interface OnboardingProgress {
   id: string;
@@ -16,6 +16,11 @@ interface OnboardingProgress {
   checklist_dismissed: boolean;
   created_at: string;
   updated_at: string;
+}
+
+interface UseOnboardingProgressParams {
+  firmSettings: FirmSettings | null;
+  loadingSettings: boolean;
 }
 
 interface UseOnboardingProgressReturn {
@@ -43,18 +48,21 @@ interface UseOnboardingProgressReturn {
   currentTourStep: number;
 }
 
-export const useOnboardingProgress = (): UseOnboardingProgressReturn => {
+export const useOnboardingProgress = (
+  params: UseOnboardingProgressParams
+): UseOnboardingProgressReturn => {
   const { user } = useAuth();
-  const { firmSettings } = useFirmSettings();
+  const { firmSettings, loadingSettings } = params;
+  
   const [progress, setProgress] = useState<OnboardingProgress | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const [isTourActive, setIsTourActive] = useState(false);
   const [currentTourStep, setCurrentTourStep] = useState(0);
 
   // Buscar progresso do usuário
   const fetchProgress = useCallback(async () => {
     if (!user?.id) {
-      setIsLoading(false);
+      setIsLoadingProgress(false);
       return;
     }
 
@@ -88,7 +96,7 @@ export const useOnboardingProgress = (): UseOnboardingProgressReturn => {
         }
       }
     } finally {
-      setIsLoading(false);
+      setIsLoadingProgress(false);
     }
   }, [user?.id]);
 
@@ -224,8 +232,13 @@ export const useOnboardingProgress = (): UseOnboardingProgressReturn => {
     }
   }, [user?.id, progress]);
 
+  // Loading combinado: inclui tanto o loading do progress quanto o loading das settings
+  const isLoading = isLoadingProgress || loadingSettings;
+
   // Verificar se deve mostrar welcome modal
+  // Só mostrar quando TODOS os dados estiverem carregados e as condições forem atendidas
   const shouldShowWelcome = !!(
+    !isLoading &&
     firmSettings?.onboarding_completed &&
     progress &&
     !progress.welcome_modal_seen
@@ -233,6 +246,7 @@ export const useOnboardingProgress = (): UseOnboardingProgressReturn => {
 
   // Verificar se deve mostrar checklist
   const shouldShowChecklist = !!(
+    !isLoading &&
     firmSettings?.onboarding_completed &&
     progress &&
     progress.welcome_modal_seen &&
