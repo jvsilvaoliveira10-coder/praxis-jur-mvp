@@ -24,6 +24,7 @@ const MainLayout = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   
   const {
+    isLoading: loadingOnboarding,
     shouldShowWelcome,
     shouldShowChecklist,
     isTourActive,
@@ -39,8 +40,12 @@ const MainLayout = () => {
 
   // Check if onboarding wizard should be shown
   useEffect(() => {
-    if (!loadingSettings && firmSettings && !firmSettings.onboarding_completed) {
-      setShowOnboarding(true);
+    if (!loadingSettings) {
+      if (firmSettings && !firmSettings.onboarding_completed) {
+        setShowOnboarding(true);
+      } else {
+        setShowOnboarding(false);
+      }
     }
   }, [firmSettings, loadingSettings]);
 
@@ -58,7 +63,8 @@ const MainLayout = () => {
     }
   }, [location.pathname, checkAndUpdateProgress]);
 
-  if (loading) {
+  // Wait for ALL data to load before rendering
+  if (loading || loadingSettings || loadingOnboarding) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />

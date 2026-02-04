@@ -45,7 +45,7 @@ const OnboardingChecklist = () => {
   // Check progress on mount
   useEffect(() => {
     checkAndUpdateProgress();
-  }, []);
+  }, [checkAndUpdateProgress]);
 
   // Celebrate when complete
   useEffect(() => {
@@ -71,7 +71,7 @@ const OnboardingChecklist = () => {
       description: 'Adicione seu primeiro cliente',
       icon: Users,
       completed: progress?.first_client_created ?? false,
-      action: () => navigate('/clientes/novo'),
+      action: () => navigate('/clients/new'),
       actionLabel: 'Novo Cliente',
     },
     {
@@ -80,7 +80,7 @@ const OnboardingChecklist = () => {
       description: 'Registre um processo judicial',
       icon: FileText,
       completed: progress?.first_case_created ?? false,
-      action: () => navigate('/processos/novo'),
+      action: () => navigate('/cases/new'),
       actionLabel: 'Novo Processo',
     },
     {
@@ -89,7 +89,7 @@ const OnboardingChecklist = () => {
       description: 'Use a IA para criar uma petição',
       icon: FileText,
       completed: progress?.first_petition_generated ?? false,
-      action: () => navigate('/peticoes/nova'),
+      action: () => navigate('/petitions/new'),
       actionLabel: 'Nova Petição',
     },
     {
