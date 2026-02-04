@@ -303,4 +303,20 @@
   .animate-progress-glow {
     animation: progress-glow 2s ease-in-out infinite;
   }
+
+  /* WhatsApp button pulse animation */
+  @keyframes whatsapp-pulse {
+    0%, 100% { 
+      transform: scale(1); 
+      box-shadow: 0 4px 20px hsla(142, 70%, 45%, 0.4); 
+    }
+    50% { 
+      transform: scale(1.05); 
+      box-shadow: 0 4px 30px hsla(142, 70%, 45%, 0.6); 
+    }
+  }
+
+  .animate-whatsapp-pulse {
+    animation: whatsapp-pulse 2s ease-in-out infinite;
+  }
 }

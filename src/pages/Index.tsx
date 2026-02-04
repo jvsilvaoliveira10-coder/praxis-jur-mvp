@@ -15,6 +15,7 @@ import { TargetAudienceSection } from '@/components/landing/TargetAudienceSectio
 import { FAQSection } from '@/components/landing/FAQSection';
 import { CTASection } from '@/components/landing/CTASection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
+import { WhatsAppButton } from '@/components/landing/WhatsAppButton';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -61,6 +62,7 @@ const Index = () => {
         </div>
       </main>
       <LandingFooter />
+      <WhatsAppButton />
     </div>
   );
 };
