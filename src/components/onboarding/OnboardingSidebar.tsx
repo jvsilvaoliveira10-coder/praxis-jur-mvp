@@ -21,11 +21,7 @@ const OnboardingSidebar = ({ currentStep, totalSteps, onSkip }: OnboardingSideba
       {/* Logo */}
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <img src="/favicon.svg" alt="Práxis AI" className="w-10 h-10" />
-          <div>
-            <h1 className="font-serif font-bold text-lg">Práxis AI</h1>
-            <p className="text-xs text-white/60">Hub Jurídico Inteligente</p>
-          </div>
+          <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-10" />
         </div>
       </div>
 

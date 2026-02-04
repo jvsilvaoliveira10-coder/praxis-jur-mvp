@@ -124,10 +124,8 @@ const Auth = () => {
         <div className="text-center mb-8 animate-fade-in">
           <Link to="/" className="inline-flex flex-col items-center justify-center hover:opacity-80 transition-opacity">
             <div className="mb-4">
-              <img src="/favicon.svg" alt="Práxis AI" className="w-16 h-16" />
+              <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-16" />
             </div>
-            <h1 className="text-2xl font-serif font-bold text-foreground">Práxis AI</h1>
-            <p className="text-muted-foreground mt-1">Hub Jurídico Inteligente</p>
           </Link>
         </div>
 
@@ -245,7 +243,7 @@ const Auth = () => {
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          © {new Date().getFullYear()} Práxis AI. Todos os direitos reservados.
+          © {new Date().getFullYear()} Práxis Jur. Todos os direitos reservados.
         </p>
       </div>
     </div>

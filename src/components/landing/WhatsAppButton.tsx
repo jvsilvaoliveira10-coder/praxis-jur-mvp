@@ -1,5 +1,5 @@
 const WHATSAPP_NUMBER = '5516992159284';
-const WHATSAPP_MESSAGE = 'Olá! Gostaria de saber mais sobre o Práxis AI.';
+const WHATSAPP_MESSAGE = 'Olá! Gostaria de saber mais sobre o Práxis Jur.';
 
 export function WhatsAppButton() {
   const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;

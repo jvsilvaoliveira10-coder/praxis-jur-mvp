@@ -6,7 +6,7 @@ const WHATSAPP_NUMBER = '5516992159284';
 const EMAIL = 'sac@praxisjur.com';
 
 const Contact = () => {
-  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Olá! Preciso de suporte com o Práxis AI.')}`;
+  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Olá! Preciso de suporte com o Práxis Jur.')}`;
 
   return (
     <div className="space-y-6">

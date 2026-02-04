@@ -141,7 +141,7 @@ const OnboardingWizard = ({ open, onClose, onComplete }: OnboardingWizardProps) 
       // Complete onboarding
       await completeOnboarding();
       toast.success('Configuração concluída!', {
-        description: 'Seu escritório está pronto para usar o Práxis AI.',
+        description: 'Seu escritório está pronto para usar o Práxis Jur.',
       });
       onComplete();
     }
