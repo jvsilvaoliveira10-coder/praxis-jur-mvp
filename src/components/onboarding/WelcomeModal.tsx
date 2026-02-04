@@ -3,28 +3,61 @@ import { Button } from '@/components/ui/button';
 import { useFirmSettings } from '@/hooks/useFirmSettings';
 import { 
   Sparkles, 
-  Users, 
-  FileText, 
-  LayoutGrid,
+  Scale,
+  Wallet,
   Rocket,
-  PartyPopper
+  PartyPopper,
+  Clock
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { TourModule } from './tourSteps';
 
 interface WelcomeModalProps {
   open: boolean;
   onClose: () => void;
-  onStartTour: () => void;
+  onStartTour: (module: TourModule) => void;
 }
+
+interface TourOption {
+  id: TourModule;
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle: string;
+  steps: number;
+  time: string;
+  gradient: string;
+}
+
+const TOUR_OPTIONS: TourOption[] = [
+  {
+    id: 'juridico',
+    icon: Scale,
+    title: 'Tour Jurídico',
+    subtitle: 'Processos, petições e mais',
+    steps: 10,
+    time: '~4 min',
+    gradient: 'from-teal-500 to-cyan-500',
+  },
+  {
+    id: 'financeiro',
+    icon: Wallet,
+    title: 'Tour Financeiro',
+    subtitle: 'Gestão financeira completa',
+    steps: 7,
+    time: '~3 min',
+    gradient: 'from-green-500 to-emerald-500',
+  },
+];
 
 const WelcomeModal = ({ open, onClose, onStartTour }: WelcomeModalProps) => {
   const { firmSettings } = useFirmSettings();
   const [showConfetti, setShowConfetti] = useState(false);
+  const [selectedTour, setSelectedTour] = useState<TourModule | null>(null);
 
   useEffect(() => {
     if (open) {
       setShowConfetti(true);
-      const timer = setTimeout(() => setShowConfetti(false), 3000);
+      const timer = setTimeout(() => setShowConfetti(false), 4000);
       return () => clearTimeout(timer);
     }
   }, [open]);
@@ -32,29 +65,8 @@ const WelcomeModal = ({ open, onClose, onStartTour }: WelcomeModalProps) => {
   const lawyerName = firmSettings?.lawyer_name || 'Advogado(a)';
   const firstName = lawyerName.split(' ')[0];
 
-  const features = [
-    {
-      icon: Users,
-      title: 'Gestão de Clientes',
-      description: 'Base organizada com todos os dados',
-      color: 'from-blue-500 to-cyan-500',
-    },
-    {
-      icon: FileText,
-      title: 'Petições com IA',
-      description: 'Gere documentos em minutos',
-      color: 'from-purple-500 to-pink-500',
-    },
-    {
-      icon: LayoutGrid,
-      title: 'Pipeline Visual',
-      description: 'Acompanhe processos estilo Kanban',
-      color: 'from-amber-500 to-orange-500',
-    },
-  ];
-
-  const handleStartTour = () => {
-    onStartTour();
+  const handleStartTour = (module: TourModule) => {
+    onStartTour(module);
     onClose();
   };
 
@@ -68,7 +80,7 @@ const WelcomeModal = ({ open, onClose, onStartTour }: WelcomeModalProps) => {
         {/* Confetti effect */}
         {showConfetti && (
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            {[...Array(20)].map((_, i) => (
+            {[...Array(25)].map((_, i) => (
               <div
                 key={i}
                 className="absolute animate-confetti"
@@ -82,7 +94,7 @@ const WelcomeModal = ({ open, onClose, onStartTour }: WelcomeModalProps) => {
                 <Sparkles 
                   className="w-4 h-4" 
                   style={{ 
-                    color: ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'][Math.floor(Math.random() * 5)] 
+                    color: ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'][Math.floor(Math.random() * 6)] 
                   }} 
                 />
               </div>
@@ -91,56 +103,116 @@ const WelcomeModal = ({ open, onClose, onStartTour }: WelcomeModalProps) => {
         )}
 
         {/* Header */}
-        <div className="relative p-6 pb-4 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 mb-4">
-            <PartyPopper className="w-8 h-8 text-primary" />
+        <div className="relative px-6 pt-8 pb-4 text-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 mb-5">
+            <PartyPopper className="w-10 h-10 text-primary" />
           </div>
           
           <h2 className="text-2xl font-bold text-foreground mb-2">
             Bem-vindo(a), Dr(a). {firstName}! 🎉
           </h2>
           
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground max-w-sm mx-auto">
             Seu escritório está configurado e pronto para transformar sua prática jurídica.
           </p>
         </div>
 
-        {/* Features */}
+        {/* Tour Selection */}
         <div className="px-6 pb-4">
-          <div className="grid grid-cols-3 gap-3">
-            {features.map((feature) => (
-              <div
-                key={feature.title}
-                className="relative group p-4 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg"
-              >
-                <div className={`inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br ${feature.color} mb-3`}>
-                  <feature.icon className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="font-medium text-sm text-foreground mb-1">
-                  {feature.title}
-                </h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {feature.description}
-                </p>
-              </div>
-            ))}
+          <p className="text-sm font-medium text-center text-muted-foreground mb-4">
+            Escolha como deseja começar:
+          </p>
+
+          {/* Module Tours */}
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            {TOUR_OPTIONS.map((option) => {
+              const Icon = option.icon;
+              const isSelected = selectedTour === option.id;
+
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => setSelectedTour(isSelected ? null : option.id)}
+                  className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                    isSelected 
+                      ? 'border-primary bg-primary/5 shadow-lg' 
+                      : 'border-border hover:border-primary/50 hover:bg-muted/30'
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${option.gradient} flex items-center justify-center mb-3`}>
+                    <Icon className="w-5 h-5 text-white" />
+                  </div>
+                  
+                  <h3 className="font-semibold text-foreground text-sm mb-0.5">
+                    {option.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    {option.subtitle}
+                  </p>
+                  
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{option.steps} passos</span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {option.time}
+                    </span>
+                  </div>
+
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                      <svg className="w-3 h-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
+
+          {/* Complete Tour Option */}
+          <button
+            onClick={() => setSelectedTour(selectedTour === 'completo' ? null : 'completo')}
+            className={`w-full p-4 rounded-xl border-2 transition-all duration-200 flex items-center gap-4 ${
+              selectedTour === 'completo'
+                ? 'border-primary bg-primary/5 shadow-lg'
+                : 'border-border hover:border-primary/50 hover:bg-muted/30'
+            }`}
+          >
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0">
+              <Rocket className="w-6 h-6 text-white" />
+            </div>
+            <div className="text-left flex-1">
+              <h3 className="font-semibold text-foreground">Tour Completo</h3>
+              <p className="text-xs text-muted-foreground">
+                17 passos • ~7 min • Jurídico + Financeiro
+              </p>
+            </div>
+            {selectedTour === 'completo' && (
+              <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                <svg className="w-3 h-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            )}
+          </button>
         </div>
 
         {/* Actions */}
-        <div className="p-6 pt-2 space-y-3">
+        <div className="px-6 pb-6 pt-2 space-y-3">
           <Button 
-            onClick={handleStartTour} 
-            className="w-full h-12 text-base font-medium bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+            onClick={() => selectedTour && handleStartTour(selectedTour)} 
+            disabled={!selectedTour}
+            className="w-full h-12 text-base font-medium bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 disabled:opacity-50"
           >
             <Rocket className="w-5 h-5 mr-2" />
-            Fazer Tour Guiado
-            <span className="ml-2 text-xs opacity-70">(2 min)</span>
+            {selectedTour ? 'Iniciar Tour' : 'Selecione um tour acima'}
           </Button>
           
           <button
             onClick={handleExplore}
-            className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
           >
             Ou explorar por conta própria →
           </button>

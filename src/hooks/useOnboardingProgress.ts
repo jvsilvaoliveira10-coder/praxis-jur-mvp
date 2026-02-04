@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { FirmSettings } from '@/hooks/useFirmSettings';
+import { TourModule } from '@/components/onboarding/tourSteps';
+import { CHECKLIST_MODULES } from '@/components/onboarding/checklistModules';
 
 interface OnboardingProgress {
   id: string;
@@ -14,6 +16,19 @@ interface OnboardingProgress {
   first_petition_generated: boolean;
   pipeline_visited: boolean;
   checklist_dismissed: boolean;
+  // New fields for modular tour
+  juridico_tour_completed: boolean;
+  juridico_tour_step: number;
+  finance_tour_completed: boolean;
+  finance_tour_step: number;
+  // New task fields
+  jurisprudence_searched: boolean;
+  tracking_used: boolean;
+  finance_dashboard_visited: boolean;
+  first_receivable_created: boolean;
+  first_contract_created: boolean;
+  finance_report_generated: boolean;
+  badges_earned: string[];
   created_at: string;
   updated_at: string;
 }
@@ -30,15 +45,19 @@ interface UseOnboardingProgressReturn {
   
   // Ações
   markWelcomeModalSeen: () => Promise<void>;
-  markTourCompleted: () => Promise<void>;
-  updateTourStep: (step: number) => Promise<void>;
+  markTourCompleted: (module?: TourModule) => Promise<void>;
+  updateTourStep: (step: number, module?: TourModule) => Promise<void>;
   dismissChecklist: () => Promise<void>;
-  startTour: () => void;
+  startTour: (module?: TourModule) => void;
   stopTour: () => void;
   
   // Verificações automáticas
   checkAndUpdateProgress: () => Promise<void>;
   markPipelineVisited: () => Promise<void>;
+  markJurisprudenceSearched: () => Promise<void>;
+  markTrackingUsed: () => Promise<void>;
+  markFinanceDashboardVisited: () => Promise<void>;
+  markFinanceReportGenerated: () => Promise<void>;
   
   // Estados computados
   shouldShowWelcome: boolean;
@@ -46,6 +65,11 @@ interface UseOnboardingProgressReturn {
   shouldShowChecklist: boolean;
   isTourActive: boolean;
   currentTourStep: number;
+  activeTourModule: TourModule;
+  
+  // Module completion states
+  juridicoModuleComplete: boolean;
+  financeModuleComplete: boolean;
 }
 
 export const useOnboardingProgress = (
@@ -58,6 +82,7 @@ export const useOnboardingProgress = (
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const [isTourActive, setIsTourActive] = useState(false);
   const [currentTourStep, setCurrentTourStep] = useState(0);
+  const [activeTourModule, setActiveTourModule] = useState<TourModule>('juridico');
 
   // Buscar progresso do usuário
   const fetchProgress = useCallback(async () => {
@@ -79,8 +104,23 @@ export const useOnboardingProgress = (
       }
 
       if (data) {
-        setProgress(data);
-        setCurrentTourStep(data.product_tour_step);
+        // Safely handle potentially missing fields from older records
+        const progressData: OnboardingProgress = {
+          ...data,
+          juridico_tour_completed: data.juridico_tour_completed ?? false,
+          juridico_tour_step: data.juridico_tour_step ?? 0,
+          finance_tour_completed: data.finance_tour_completed ?? false,
+          finance_tour_step: data.finance_tour_step ?? 0,
+          jurisprudence_searched: data.jurisprudence_searched ?? false,
+          tracking_used: data.tracking_used ?? false,
+          finance_dashboard_visited: data.finance_dashboard_visited ?? false,
+          first_receivable_created: data.first_receivable_created ?? false,
+          first_contract_created: data.first_contract_created ?? false,
+          finance_report_generated: data.finance_report_generated ?? false,
+          badges_earned: data.badges_earned ?? [],
+        };
+        setProgress(progressData);
+        setCurrentTourStep(progressData.product_tour_step);
       } else {
         // Criar registro inicial se não existir
         const { data: newData, error: insertError } = await supabase
@@ -92,7 +132,21 @@ export const useOnboardingProgress = (
         if (insertError) {
           console.error('Erro ao criar progresso:', insertError);
         } else {
-          setProgress(newData);
+          const progressData: OnboardingProgress = {
+            ...newData,
+            juridico_tour_completed: false,
+            juridico_tour_step: 0,
+            finance_tour_completed: false,
+            finance_tour_step: 0,
+            jurisprudence_searched: false,
+            tracking_used: false,
+            finance_dashboard_visited: false,
+            first_receivable_created: false,
+            first_contract_created: false,
+            finance_report_generated: false,
+            badges_earned: [],
+          };
+          setProgress(progressData);
         }
       }
     } finally {
@@ -104,27 +158,59 @@ export const useOnboardingProgress = (
     fetchProgress();
   }, [fetchProgress]);
 
-  // Calcular porcentagem de conclusão
+  // Helper to check if a task is completed
+  const isTaskCompleted = useCallback((progressField: string): boolean => {
+    if (!progress) return false;
+    // Use type assertion to access dynamic field
+    const progressRecord = progress as unknown as Record<string, boolean>;
+    return !!progressRecord[progressField];
+  }, [progress]);
+
+  // Calculate juridico module completion
+  const juridicoModuleComplete = useCallback((): boolean => {
+    if (!progress || !firmSettings) return false;
+    
+    const profileComplete = !!(firmSettings.lawyer_name && firmSettings.oab_number);
+    const tasks = CHECKLIST_MODULES[0].tasks;
+    
+    return tasks.every(task => {
+      if (task.customCheck && task.id === 'profile') return profileComplete;
+      if (task.progressField) return isTaskCompleted(task.progressField);
+      return false;
+    });
+  }, [progress, firmSettings, isTaskCompleted]);
+
+  // Calculate finance module completion
+  const financeModuleComplete = useCallback((): boolean => {
+    if (!progress) return false;
+    
+    const tasks = CHECKLIST_MODULES[1].tasks;
+    return tasks.every(task => {
+      if (task.progressField) return isTaskCompleted(task.progressField);
+      return false;
+    });
+  }, [progress, isTaskCompleted]);
+
+  // Calcular porcentagem de conclusão (todos os módulos)
   const calculatePercent = useCallback((): number => {
     if (!progress || !firmSettings) return 0;
 
     let completed = 0;
-    const tasks = [
-      // Tarefa 1: Perfil completo
-      !!(firmSettings.lawyer_name && firmSettings.oab_number),
-      // Tarefa 2: Primeiro cliente
-      progress.first_client_created,
-      // Tarefa 3: Primeiro processo
-      progress.first_case_created,
-      // Tarefa 4: Primeira petição
-      progress.first_petition_generated,
-      // Tarefa 5: Visitar pipeline
-      progress.pipeline_visited,
-    ];
+    let total = 0;
 
-    completed = tasks.filter(Boolean).length;
-    return Math.round((completed / tasks.length) * 100);
-  }, [progress, firmSettings]);
+    CHECKLIST_MODULES.forEach(module => {
+      module.tasks.forEach(task => {
+        total++;
+        if (task.customCheck && task.id === 'profile') {
+          if (firmSettings.lawyer_name && firmSettings.oab_number) completed++;
+        } else if (task.progressField && isTaskCompleted(task.progressField)) {
+          completed++;
+        }
+      });
+    });
+
+    return total > 0 ? Math.round((completed / total) * 100) : 0;
+  }, [progress, firmSettings, isTaskCompleted]);
 
   // Atualizar campo específico
   const updateField = async (field: Partial<OnboardingProgress>) => {
@@ -153,15 +239,38 @@ export const useOnboardingProgress = (
   };
 
   // Marcar tour como completo
-  const markTourCompleted = async () => {
+  const markTourCompleted = async (module: TourModule = 'juridico') => {
     setIsTourActive(false);
-    await updateField({ product_tour_completed: true, product_tour_step: 5 });
+    
+    const updates: Partial<OnboardingProgress> = {
+      product_tour_completed: true,
+    };
+
+    if (module === 'juridico' || module === 'completo') {
+      updates.juridico_tour_completed = true;
+    }
+    if (module === 'financeiro' || module === 'completo') {
+      updates.finance_tour_completed = true;
+    }
+
+    await updateField(updates);
   };
 
   // Atualizar passo do tour
-  const updateTourStep = async (step: number) => {
+  const updateTourStep = async (step: number, module: TourModule = 'juridico') => {
     setCurrentTourStep(step);
-    await updateField({ product_tour_step: step });
+    
+    const updates: Partial<OnboardingProgress> = {
+      product_tour_step: step,
+    };
+
+    if (module === 'juridico') {
+      updates.juridico_tour_step = step;
+    } else if (module === 'financeiro') {
+      updates.finance_tour_step = step;
+    }
+
+    await updateField(updates);
   };
 
   // Dispensar checklist
@@ -170,9 +279,10 @@ export const useOnboardingProgress = (
   };
 
   // Iniciar tour
-  const startTour = () => {
-    setIsTourActive(true);
+  const startTour = (module: TourModule = 'juridico') => {
+    setActiveTourModule(module);
     setCurrentTourStep(0);
+    setIsTourActive(true);
   };
 
   // Parar tour
@@ -180,10 +290,34 @@ export const useOnboardingProgress = (
     setIsTourActive(false);
   };
 
-  // Marcar pipeline como visitado
+  // Marcar campos específicos
   const markPipelineVisited = async () => {
     if (!progress?.pipeline_visited) {
       await updateField({ pipeline_visited: true });
+    }
+  };
+
+  const markJurisprudenceSearched = async () => {
+    if (!progress?.jurisprudence_searched) {
+      await updateField({ jurisprudence_searched: true });
+    }
+  };
+
+  const markTrackingUsed = async () => {
+    if (!progress?.tracking_used) {
+      await updateField({ tracking_used: true });
+    }
+  };
+
+  const markFinanceDashboardVisited = async () => {
+    if (!progress?.finance_dashboard_visited) {
+      await updateField({ finance_dashboard_visited: true });
+    }
+  };
+
+  const markFinanceReportGenerated = async () => {
+    if (!progress?.finance_report_generated) {
+      await updateField({ finance_report_generated: true });
     }
   };
 
@@ -210,6 +344,18 @@ export const useOnboardingProgress = (
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
+      // Verificar recebíveis
+      const { count: receivableCount } = await supabase
+        .from('receivables')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      // Verificar contratos
+      const { count: contractCount } = await supabase
+        .from('fee_contracts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
       const updates: Partial<OnboardingProgress> = {};
 
       if ((clientCount ?? 0) > 0 && !progress?.first_client_created) {
@@ -224,6 +370,14 @@ export const useOnboardingProgress = (
         updates.first_petition_generated = true;
       }
 
+      if ((receivableCount ?? 0) > 0 && !progress?.first_receivable_created) {
+        updates.first_receivable_created = true;
+      }
+
+      if ((contractCount ?? 0) > 0 && !progress?.first_contract_created) {
+        updates.first_contract_created = true;
+      }
+
       if (Object.keys(updates).length > 0) {
         await updateField(updates);
       }
@@ -232,11 +386,10 @@ export const useOnboardingProgress = (
     }
   }, [user?.id, progress]);
 
-  // Loading combinado: inclui tanto o loading do progress quanto o loading das settings
+  // Loading combinado
   const isLoading = isLoadingProgress || loadingSettings;
 
   // Verificar se deve mostrar welcome modal
-  // Só mostrar quando TODOS os dados estiverem carregados e as condições forem atendidas
   const shouldShowWelcome = !!(
     !isLoading &&
     firmSettings?.onboarding_completed &&
@@ -268,11 +421,19 @@ export const useOnboardingProgress = (
     
     checkAndUpdateProgress,
     markPipelineVisited,
+    markJurisprudenceSearched,
+    markTrackingUsed,
+    markFinanceDashboardVisited,
+    markFinanceReportGenerated,
     
     shouldShowWelcome,
     shouldShowTour: isTourActive,
     shouldShowChecklist,
     isTourActive,
     currentTourStep,
+    activeTourModule,
+    
+    juridicoModuleComplete: juridicoModuleComplete(),
+    financeModuleComplete: financeModuleComplete(),
   };
 };
