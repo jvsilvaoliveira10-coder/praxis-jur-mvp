@@ -34,7 +34,7 @@ const faqs = [
   },
   {
     question: 'A plataforma substitui meu software financeiro?',
-    answer: 'O módulo financeiro do Práxis AI foi desenvolvido especificamente para escritórios de advocacia, com funcionalidades como controle de honorários, custas processuais, contratos recorrentes e DRE. Para a maioria dos advogados autônomos e pequenos escritórios, ele é suficiente.',
+    answer: 'O módulo financeiro do Práxis Jur foi desenvolvido especificamente para escritórios de advocacia, com funcionalidades como controle de honorários, custas processuais, contratos recorrentes e DRE. Para a maioria dos advogados autônomos e pequenos escritórios, ele é suficiente.',
   },
   {
     question: 'Como funciona a gestão de processos estilo Kanban?',

@@ -175,7 +175,7 @@ const OnboardingChecklist = () => {
             <Trophy className="w-20 h-20 text-primary mx-auto mb-4" />
             <h3 className="text-2xl font-bold text-foreground mb-2">Parabéns! 🎉</h3>
             <p className="text-muted-foreground">
-              Você dominou a Práxis AI!
+              Você dominou o Práxis Jur!
             </p>
             <Button 
               onClick={dismissChecklist}

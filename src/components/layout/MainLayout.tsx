@@ -159,8 +159,7 @@ const MainLayout = () => {
                 </SheetContent>
               </Sheet>
               <div className="flex items-center gap-2">
-                <img src="/favicon.svg" alt="Práxis AI" className="w-8 h-8" />
-                <span className="font-serif font-bold text-sidebar-foreground">Práxis AI</span>
+                <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-8" />
               </div>
             </div>
             <div data-tour="notifications">

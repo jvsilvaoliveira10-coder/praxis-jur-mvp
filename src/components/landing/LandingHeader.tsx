@@ -29,8 +29,7 @@ export function LandingHeader() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <img src="/favicon.svg" alt="Práxis AI" className="w-10 h-10" />
-            <span className="font-serif font-bold text-xl text-foreground">Práxis AI</span>
+            <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-10" />
           </div>
 
           {/* Desktop Navigation */}
