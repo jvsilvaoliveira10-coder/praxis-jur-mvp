@@ -1,181 +1,51 @@
-import { useState } from 'react';
-import { Scale, Sparkles, Rocket, Database, FlaskConical, Settings } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Scale, Rocket, CheckCircle2, Search, Calendar, User, Building2, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { jurisprudenceApi, JurisprudenceResult } from '@/lib/api/jurisprudence';
-import { stjJurisprudenceApi, STJAcordao, STJSearchParams } from '@/lib/api/stj-jurisprudence';
-import JurisprudenceSearch from '@/components/jurisprudence/JurisprudenceSearch';
-import JurisprudenceResults from '@/components/jurisprudence/JurisprudenceResults';
-import STJSearch from '@/components/jurisprudence/STJSearch';
-import STJResults from '@/components/jurisprudence/STJResults';
-import { STJSyncPanel } from '@/components/jurisprudence/STJSyncPanel';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+// Dados mock para demonstração
+const mockJurisprudencia = [
+  {
+    id: 'demo-1',
+    processo: 'REsp 1.234.567/SP',
+    classe: 'Recurso Especial',
+    relator: 'Min. Maria Silva',
+    orgao: 'Terceira Turma',
+    ementa: 'CIVIL. RESPONSABILIDADE CIVIL. DANOS MORAIS. FALHA NA PRESTAÇÃO DE SERVIÇOS BANCÁRIOS. INSCRIÇÃO INDEVIDA EM CADASTRO DE INADIMPLENTES. QUANTUM INDENIZATÓRIO. RAZOABILIDADE. I - A inscrição indevida do nome do consumidor em cadastros de inadimplentes configura dano moral in re ipsa, prescindindo de comprovação do efetivo prejuízo. II - O valor da indenização por danos morais deve atender ao caráter compensatório para a vítima e punitivo-pedagógico para o ofensor. III - Recurso especial parcialmente provido.',
+    data: '2024-01-15',
+  },
+  {
+    id: 'demo-2',
+    processo: 'REsp 2.345.678/RJ',
+    classe: 'Recurso Especial',
+    relator: 'Min. Carlos Santos',
+    orgao: 'Quarta Turma',
+    ementa: 'PROCESSUAL CIVIL. CONTRATO DE CONSUMO. CLÁUSULA ABUSIVA. NULIDADE. CÓDIGO DE DEFESA DO CONSUMIDOR. INTERPRETAÇÃO FAVORÁVEL AO CONSUMIDOR. I - São nulas de pleno direito as cláusulas contratuais que estabeleçam obrigações iníquas, abusivas ou que coloquem o consumidor em desvantagem exagerada. II - Na dúvida, as cláusulas contratuais serão interpretadas de maneira mais favorável ao consumidor. III - Recurso especial conhecido e provido.',
+    data: '2024-02-22',
+  },
+  {
+    id: 'demo-3',
+    processo: 'AgInt no AREsp 3.456.789/MG',
+    classe: 'Agravo Interno',
+    relator: 'Min. Ana Oliveira',
+    orgao: 'Segunda Seção',
+    ementa: 'AGRAVO INTERNO. RECURSO ESPECIAL. DIREITO DO CONSUMIDOR. PLANO DE SAÚDE. NEGATIVA DE COBERTURA. TRATAMENTO PRESCRITO POR MÉDICO. ABUSIVIDADE. I - É abusiva a negativa de cobertura de procedimento médico prescrito pelo profissional que acompanha o paciente, quando há previsão contratual de cobertura para a doença. II - O rol de procedimentos da ANS é exemplificativo e não taxativo. III - Agravo interno desprovido.',
+    data: '2024-03-10',
+  },
+];
+
+const upcomingFeatures = [
+  'Busca em tempo real no STJ e tribunais estaduais',
+  'Integração direta com o gerador de petições',
+  'Cache inteligente para buscas mais rápidas',
+  'Seleção e citação automática de acórdãos',
+  'Filtros avançados por área, tribunal e período',
+];
 
 const Jurisprudence = () => {
-  const { toast } = useToast();
-  
-  // TJSP state (demo)
-  const [tjspLoading, setTjspLoading] = useState(false);
-  const [tjspResults, setTjspResults] = useState<JurisprudenceResult[]>([]);
-  const [tjspHasSearched, setTjspHasSearched] = useState(false);
-  const [tjspError, setTjspError] = useState<string>();
-  const [tjspCached, setTjspCached] = useState(false);
-  const [tjspIsMock, setTjspIsMock] = useState(false);
-  const [tjspSelectedIds, setTjspSelectedIds] = useState<Set<string>>(new Set());
-  
-  // STJ state (real)
-  const [stjLoading, setStjLoading] = useState(false);
-  const [stjResults, setStjResults] = useState<STJAcordao[]>([]);
-  const [stjHasSearched, setStjHasSearched] = useState(false);
-  const [stjError, setStjError] = useState<string>();
-  const [stjPagination, setStjPagination] = useState<{
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  }>();
-  const [stjSelectedIds, setStjSelectedIds] = useState<Set<string>>(new Set());
-  const [lastStjParams, setLastStjParams] = useState<STJSearchParams | null>(null);
-  const [stjSource, setStjSource] = useState<'local' | 'datajud' | 'mixed'>();
-  const [stjImported, setStjImported] = useState<number>();
-  const [stjLocalCount, setStjLocalCount] = useState<number>();
-  const [stjRemoteCount, setStjRemoteCount] = useState<number>();
-
-  // TJSP Search Handler (demo)
-  const handleTjspSearch = async (query: string, decisionType?: string) => {
-    setTjspLoading(true);
-    setTjspError(undefined);
-    setTjspHasSearched(true);
-
-    try {
-      const response = await jurisprudenceApi.search(query, decisionType);
-      
-      if (response.success && response.data) {
-        setTjspResults(response.data);
-        setTjspCached(response.cached || false);
-        setTjspIsMock(response.mock || false);
-        
-        if (response.data.length === 0) {
-          toast({
-            title: 'Nenhum resultado',
-            description: response.message || 'Não foram encontradas jurisprudências para esta busca.',
-          });
-        } else {
-          toast({
-            title: 'Busca concluída',
-            description: `${response.data.length} resultado(s) encontrado(s)${response.cached ? ' (cache)' : ''}.`,
-          });
-        }
-      } else {
-        setTjspError(response.error || 'Erro ao buscar jurisprudência');
-        setTjspResults([]);
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      setTjspError(errorMessage);
-      setTjspResults([]);
-    } finally {
-      setTjspLoading(false);
-    }
-  };
-
-  // STJ Search Handler (real)
-  const handleStjSearch = async (params: STJSearchParams) => {
-    setStjLoading(true);
-    setStjError(undefined);
-    setStjHasSearched(true);
-    setLastStjParams(params);
-
-    try {
-      const response = await stjJurisprudenceApi.search(params);
-      
-      if (response.success && response.data) {
-        setStjResults(response.data);
-        setStjPagination(response.pagination);
-        setStjSource(response.source);
-        setStjImported(response.imported);
-        setStjLocalCount(response.localCount);
-        setStjRemoteCount(response.remoteCount);
-        
-        if (response.data.length === 0) {
-          toast({
-            title: 'Nenhum resultado',
-            description: 'Não foram encontrados acórdãos do STJ para esta busca.',
-          });
-        } else {
-          const sourceMsg = response.source === 'datajud' 
-            ? ' (API Datajud)' 
-            : response.source === 'mixed' 
-              ? ' (local + API)' 
-              : ' (base local)';
-          const importedMsg = response.imported && response.imported > 0 
-            ? ` - ${response.imported} novos importados` 
-            : '';
-          toast({
-            title: 'Busca concluída',
-            description: `${response.pagination?.total || response.data.length} acórdão(s) encontrado(s)${sourceMsg}${importedMsg}.`,
-          });
-        }
-      } else {
-        setStjError(response.error || 'Erro ao buscar jurisprudência do STJ');
-        setStjResults([]);
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      setStjError(errorMessage);
-      setStjResults([]);
-    } finally {
-      setStjLoading(false);
-    }
-  };
-
-  const handleStjPageChange = async (page: number) => {
-    if (lastStjParams) {
-      await handleStjSearch({ ...lastStjParams, page });
-    }
-  };
-
-  const handleTjspSelect = (result: JurisprudenceResult) => {
-    setTjspSelectedIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(result.id)) {
-        newSet.delete(result.id);
-      } else {
-        newSet.add(result.id);
-      }
-      return newSet;
-    });
-
-    toast({
-      title: tjspSelectedIds.has(result.id) ? 'Jurisprudência removida' : 'Jurisprudência selecionada',
-      description: tjspSelectedIds.has(result.id)
-        ? 'A jurisprudência foi removida da seleção.'
-        : 'A jurisprudência foi adicionada à seleção.',
-    });
-  };
-
-  const handleStjSelect = (acordao: STJAcordao) => {
-    setStjSelectedIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(acordao.id)) {
-        newSet.delete(acordao.id);
-      } else {
-        newSet.add(acordao.id);
-      }
-      return newSet;
-    });
-
-    toast({
-      title: stjSelectedIds.has(acordao.id) ? 'Acórdão removido' : 'Acórdão selecionado',
-      description: stjSelectedIds.has(acordao.id)
-        ? 'O acórdão foi removido da seleção.'
-        : 'O acórdão foi adicionado à seleção.',
-    });
-  };
-
-  const totalSelected = tjspSelectedIds.size + stjSelectedIds.size;
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -191,132 +61,130 @@ const Jurisprudence = () => {
         </div>
       </div>
 
-      {/* Tabs para selecionar fonte */}
-      <Tabs defaultValue="stj" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
-          <TabsTrigger value="stj" className="flex items-center gap-2">
-            <Database className="h-4 w-4" />
-            STJ (Real)
-          </TabsTrigger>
-          <TabsTrigger value="tjsp" className="flex items-center gap-2">
-            <FlaskConical className="h-4 w-4" />
-            TJSP (Demo)
-          </TabsTrigger>
-          <TabsTrigger value="admin" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Admin
-          </TabsTrigger>
-        </TabsList>
+      {/* Banner "Em Breve" */}
+      <Alert className="border-primary/40 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
+        <Rocket className="h-5 w-5 text-primary" />
+        <AlertTitle className="text-primary font-semibold flex items-center gap-2">
+          <Sparkles className="h-4 w-4" />
+          Em Desenvolvimento
+        </AlertTitle>
+        <AlertDescription className="mt-3 space-y-4">
+          <p className="text-foreground/80">
+            Estamos desenvolvendo uma ferramenta completa de pesquisa de jurisprudência 
+            para fundamentar suas petições automaticamente.
+          </p>
+          
+          <div className="grid gap-2 text-sm">
+            {upcomingFeatures.map((feature, index) => (
+              <div key={index} className="flex items-center gap-2 text-foreground/70">
+                <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
+                <span>{feature}</span>
+              </div>
+            ))}
+          </div>
+        </AlertDescription>
+      </Alert>
 
-        {/* STJ Tab - Dados Reais */}
-        <TabsContent value="stj" className="space-y-6">
-          <Alert className="border-primary/30 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
-            <Database className="h-5 w-5 text-primary" />
-            <AlertTitle className="text-primary font-semibold">
-              Base de Dados Real do STJ
-            </AlertTitle>
-            <AlertDescription className="text-foreground/80 mt-2">
-              <p>
-                Esta busca utiliza dados oficiais do <strong>Portal de Dados Abertos do STJ</strong>. 
-                Os acórdãos são reais e podem ser citados em suas petições.
-              </p>
-            </AlertDescription>
-          </Alert>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Buscar no STJ</CardTitle>
+      {/* Card de Prévia */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Prévia da Funcionalidade</CardTitle>
               <CardDescription>
-                Busque acórdãos por palavras-chave, órgão julgador, classe processual ou período
+                Veja como será a pesquisa de jurisprudência quando lançarmos
               </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <STJSearch onSearch={handleStjSearch} isLoading={stjLoading} />
-            </CardContent>
-          </Card>
+            </div>
+            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+              DEMONSTRAÇÃO
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Campo de busca desabilitado */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Ex: danos morais, responsabilidade civil, contrato de consumo..."
+                className="pl-10"
+                disabled
+              />
+            </div>
+            <Button disabled>
+              Buscar
+            </Button>
+          </div>
 
-          <STJResults
-            results={stjResults}
-            isLoading={stjLoading}
-            hasSearched={stjHasSearched}
-            error={stjError}
-            pagination={stjPagination}
-            selectedIds={stjSelectedIds}
-            onSelect={handleStjSelect}
-            onPageChange={handleStjPageChange}
-            source={stjSource}
-            imported={stjImported}
-            localCount={stjLocalCount}
-            remoteCount={stjRemoteCount}
-          />
-        </TabsContent>
+          {/* Resultados de exemplo */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>Resultados de exemplo</span>
+              <span>{mockJurisprudencia.length} acórdãos</span>
+            </div>
 
-        {/* TJSP Tab - Demo */}
-        <TabsContent value="tjsp" className="space-y-6">
-          <Alert className="border-muted bg-muted/50">
-            <Sparkles className="h-5 w-5 text-muted-foreground" />
-            <AlertTitle className="text-foreground font-semibold flex items-center gap-2">
-              <Rocket className="h-4 w-4" />
-              Prévia - Modo Demonstração
-            </AlertTitle>
-            <AlertDescription className="text-muted-foreground mt-2">
-              <p className="mb-2">
-                Esta é uma <strong className="text-foreground">demonstração interativa</strong> da ferramenta de pesquisa do TJSP. 
-                Os resultados exibidos são exemplos ilustrativos.
-              </p>
-              <p className="text-sm">
-                🚀 <strong className="text-foreground">Em breve:</strong> Integração real com a base do TJSP.
-              </p>
-            </AlertDescription>
-          </Alert>
+            <ScrollArea className="h-[500px] pr-4">
+              <div className="space-y-4">
+                {mockJurisprudencia.map((item) => (
+                  <Card key={item.id} className="relative overflow-hidden border-muted">
+                    {/* Badge Demo */}
+                    <div className="absolute top-2 right-2">
+                      <Badge variant="outline" className="text-xs bg-muted/50">
+                        EXEMPLO
+                      </Badge>
+                    </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Buscar no TJSP</CardTitle>
-              <CardDescription>
-                Digite palavras-chave ou termos jurídicos para buscar jurisprudências
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <JurisprudenceSearch onSearch={handleTjspSearch} isLoading={tjspLoading} />
-            </CardContent>
-          </Card>
+                    <CardContent className="pt-4 pb-4 space-y-3">
+                      {/* Processo e Classe */}
+                      <div className="flex items-start justify-between pr-20">
+                        <div>
+                          <h4 className="font-semibold text-foreground">
+                            {item.processo}
+                          </h4>
+                          <Badge variant="secondary" className="mt-1 text-xs">
+                            {item.classe}
+                          </Badge>
+                        </div>
+                      </div>
 
-          <JurisprudenceResults
-            results={tjspResults}
-            isLoading={tjspLoading}
-            hasSearched={tjspHasSearched}
-            error={tjspError}
-            cached={tjspCached}
-            isMock={tjspIsMock}
-            selectedIds={tjspSelectedIds}
-            onSelect={handleTjspSelect}
-          />
-        </TabsContent>
+                      {/* Metadados */}
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          <span>{item.relator}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Building2 className="h-3 w-3" />
+                          <span>{item.orgao}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>{new Date(item.data).toLocaleDateString('pt-BR')}</span>
+                        </div>
+                      </div>
 
-        {/* Admin Tab - Painel de Sincronização */}
-        <TabsContent value="admin" className="space-y-6">
-          <Alert className="border-muted bg-muted/50">
-            <Settings className="h-5 w-5 text-muted-foreground" />
-            <AlertTitle className="text-foreground font-semibold">
-              Administração da Base de Dados
-            </AlertTitle>
-            <AlertDescription className="text-muted-foreground mt-2">
-              Gerencie a importação de acórdãos do Portal de Dados Abertos do STJ. 
-              A sincronização importa arquivos JSON mensais automaticamente.
-            </AlertDescription>
-          </Alert>
+                      {/* Ementa */}
+                      <p className="text-sm text-muted-foreground line-clamp-4">
+                        {item.ementa}
+                      </p>
 
-          <STJSyncPanel />
-        </TabsContent>
-      </Tabs>
-
-      {/* Selected count indicator */}
-      {totalSelected > 0 && (
-        <div className="fixed bottom-6 right-6 bg-primary text-primary-foreground px-4 py-2 rounded-full shadow-lg">
-          {totalSelected} jurisprudência{totalSelected !== 1 ? 's' : ''} selecionada{totalSelected !== 1 ? 's' : ''}
-        </div>
-      )}
+                      {/* Ações */}
+                      <div className="flex gap-2 pt-2">
+                        <Button variant="outline" size="sm" disabled>
+                          Ver detalhes
+                        </Button>
+                        <Button size="sm" disabled>
+                          Usar na petição
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
