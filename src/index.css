@@ -216,4 +216,91 @@
   .label-premium {
     @apply text-sm font-medium flex items-center gap-2;
   }
+
+  /* ====== Premium Onboarding Animations ====== */
+  
+  /* Badge unlock animation */
+  @keyframes badge-unlock {
+    0% { 
+      transform: scale(0) rotate(-180deg); 
+      opacity: 0; 
+    }
+    50% { 
+      transform: scale(1.2) rotate(10deg); 
+    }
+    100% { 
+      transform: scale(1) rotate(0deg); 
+      opacity: 1; 
+    }
+  }
+
+  .animate-badge-unlock {
+    animation: badge-unlock 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  /* Shimmer effect for completed tasks */
+  @keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  .shimmer-complete {
+    background: linear-gradient(90deg, 
+      transparent 0%, 
+      rgba(255,255,255,0.15) 50%, 
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+  }
+
+  /* Gentle pulse for next task */
+  @keyframes gentle-pulse {
+    0%, 100% { 
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.3); 
+    }
+    50% { 
+      box-shadow: 0 0 0 4px hsl(var(--primary) / 0); 
+    }
+  }
+
+  .animate-next-task {
+    animation: gentle-pulse 2s ease-in-out infinite;
+  }
+
+  /* Module complete celebration */
+  @keyframes celebrate-bounce {
+    0%, 100% { transform: translateY(0); }
+    25% { transform: translateY(-8px) rotate(-3deg); }
+    75% { transform: translateY(-4px) rotate(3deg); }
+  }
+
+  .animate-celebrate {
+    animation: celebrate-bounce 0.5s ease-out;
+  }
+
+  /* Checkmark draw animation */
+  @keyframes draw-check {
+    0% { stroke-dashoffset: 24; }
+    100% { stroke-dashoffset: 0; }
+  }
+
+  .animate-check-draw {
+    stroke-dasharray: 24;
+    animation: draw-check 0.4s ease-out forwards;
+  }
+
+  /* Progress bar glow */
+  @keyframes progress-glow {
+    0%, 100% { 
+      box-shadow: 0 0 4px 0 hsl(var(--primary) / 0.4); 
+    }
+    50% { 
+      box-shadow: 0 0 12px 2px hsl(var(--primary) / 0.6); 
+    }
+  }
+
+  .animate-progress-glow {
+    animation: progress-glow 2s ease-in-out infinite;
+  }
 }

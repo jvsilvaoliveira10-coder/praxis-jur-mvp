@@ -29,12 +29,15 @@ const MainLayout = () => {
     shouldShowChecklist,
     isTourActive,
     currentTourStep,
+    activeTourModule,
     markWelcomeModalSeen,
     markTourCompleted,
     updateTourStep,
     startTour,
     stopTour,
     markPipelineVisited,
+    markJurisprudenceSearched,
+    markFinanceDashboardVisited,
     checkAndUpdateProgress,
   } = useOnboardingProgress({
     firmSettings,
@@ -52,12 +55,18 @@ const MainLayout = () => {
     }
   }, [firmSettings, loadingSettings]);
 
-  // Mark pipeline as visited when user navigates there
+  // Mark pages as visited when user navigates there
   useEffect(() => {
     if (location.pathname === '/pipeline') {
       markPipelineVisited();
     }
-  }, [location.pathname, markPipelineVisited]);
+    if (location.pathname === '/jurisprudence') {
+      markJurisprudenceSearched();
+    }
+    if (location.pathname === '/financeiro') {
+      markFinanceDashboardVisited();
+    }
+  }, [location.pathname, markPipelineVisited, markJurisprudenceSearched, markFinanceDashboardVisited]);
 
   // Check progress when returning to dashboard
   useEffect(() => {
@@ -92,18 +101,22 @@ const MainLayout = () => {
     await markWelcomeModalSeen();
   };
 
-  const handleStartTour = async () => {
+  const handleStartTour = async (module: 'juridico' | 'financeiro' | 'completo' = 'juridico') => {
     await markWelcomeModalSeen();
-    startTour();
+    startTour(module);
   };
 
   const handleTourComplete = async () => {
-    await markTourCompleted();
+    await markTourCompleted(activeTourModule);
   };
 
   const handleTourSkip = async () => {
     stopTour();
-    await markTourCompleted();
+    await markTourCompleted(activeTourModule);
+  };
+
+  const handleTourStepChange = async (step: number) => {
+    await updateTourStep(step, activeTourModule);
   };
 
   // Mobile layout with Sheet sidebar
@@ -123,9 +136,10 @@ const MainLayout = () => {
           onStartTour={handleStartTour} 
         />
         <ProductTour 
-          active={isTourActive} 
+          active={isTourActive}
+          tourModule={activeTourModule}
           currentStep={currentTourStep}
-          onStepChange={updateTourStep}
+          onStepChange={handleTourStepChange}
           onComplete={handleTourComplete}
           onSkip={handleTourSkip}
         />
@@ -184,9 +198,10 @@ const MainLayout = () => {
         onStartTour={handleStartTour} 
       />
       <ProductTour 
-        active={isTourActive} 
+        active={isTourActive}
+        tourModule={activeTourModule}
         currentStep={currentTourStep}
-        onStepChange={updateTourStep}
+        onStepChange={handleTourStepChange}
         onComplete={handleTourComplete}
         onSkip={handleTourSkip}
       />

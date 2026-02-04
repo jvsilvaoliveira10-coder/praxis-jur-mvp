@@ -1692,43 +1692,76 @@ export type Database = {
       }
       user_onboarding_progress: {
         Row: {
+          badges_earned: string[] | null
           checklist_dismissed: boolean
           created_at: string
+          finance_dashboard_visited: boolean | null
+          finance_report_generated: boolean | null
+          finance_tour_completed: boolean | null
+          finance_tour_step: number | null
           first_case_created: boolean
           first_client_created: boolean
+          first_contract_created: boolean | null
           first_petition_generated: boolean
+          first_receivable_created: boolean | null
           id: string
+          juridico_tour_completed: boolean | null
+          juridico_tour_step: number | null
+          jurisprudence_searched: boolean | null
           pipeline_visited: boolean
           product_tour_completed: boolean
           product_tour_step: number
+          tracking_used: boolean | null
           updated_at: string
           user_id: string
           welcome_modal_seen: boolean
         }
         Insert: {
+          badges_earned?: string[] | null
           checklist_dismissed?: boolean
           created_at?: string
+          finance_dashboard_visited?: boolean | null
+          finance_report_generated?: boolean | null
+          finance_tour_completed?: boolean | null
+          finance_tour_step?: number | null
           first_case_created?: boolean
           first_client_created?: boolean
+          first_contract_created?: boolean | null
           first_petition_generated?: boolean
+          first_receivable_created?: boolean | null
           id?: string
+          juridico_tour_completed?: boolean | null
+          juridico_tour_step?: number | null
+          jurisprudence_searched?: boolean | null
           pipeline_visited?: boolean
           product_tour_completed?: boolean
           product_tour_step?: number
+          tracking_used?: boolean | null
           updated_at?: string
           user_id: string
           welcome_modal_seen?: boolean
         }
         Update: {
+          badges_earned?: string[] | null
           checklist_dismissed?: boolean
           created_at?: string
+          finance_dashboard_visited?: boolean | null
+          finance_report_generated?: boolean | null
+          finance_tour_completed?: boolean | null
+          finance_tour_step?: number | null
           first_case_created?: boolean
           first_client_created?: boolean
+          first_contract_created?: boolean | null
           first_petition_generated?: boolean
+          first_receivable_created?: boolean | null
           id?: string
+          juridico_tour_completed?: boolean | null
+          juridico_tour_step?: number | null
+          jurisprudence_searched?: boolean | null
           pipeline_visited?: boolean
           product_tour_completed?: boolean
           product_tour_step?: number
+          tracking_used?: boolean | null
           updated_at?: string
           user_id?: string
           welcome_modal_seen?: boolean
