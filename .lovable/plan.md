@@ -1,300 +1,355 @@
 
+# Plano: Integracao de Jurisprudencia Real do STJ (Portal de Dados Abertos)
 
-# Plano: Formularios Premium Centralizados
+## Contexto e Descobertas
 
-## Problema Identificado
+### O que o Portal de Dados Abertos do STJ oferece
 
-Os formularios atuais (ClientForm, CaseForm, PetitionForm) tem design basico com:
-- Alinhamento a esquerda deixando espaco vazio na direita
-- Cards com estilo simples sem tratamento premium
-- Inputs basicos sem os refinamentos visuais do onboarding
-- Falta de hierarquia visual e espacamento elegante
+O portal `dadosabertos.web.stj.jus.br` disponibiliza **11 conjuntos de dados de "Espelhos de Acordaos"** organizados por orgao julgador:
 
-## Solucao: Design Premium Centralizado
+| Orgao | Dataset |
+|-------|---------|
+| Corte Especial | `espelhos-de-acordaos-corte-especial` |
+| Primeira Secao | `espelhos-de-acordaos-primeira-secao` |
+| Segunda Secao | `espelhos-de-acordaos-segunda-secao` |
+| Terceira Secao | `espelhos-de-acordaos-terceira-secao` |
+| Primeira Turma | `espelhos-de-acordaos-primeira-turma` |
+| Segunda Turma | `espelhos-de-acordaos-segunda-turma` |
+| Terceira Turma | `espelhos-de-acordaos-terceira-turma` |
+| Quarta Turma | `espelhos-de-acordaos-quarta-turma` |
+| Quinta Turma | `espelhos-de-acordaos-quinta-turma` |
+| Sexta Turma | `espelhos-de-acordaos-sexta-turma` |
 
-### Conceito Visual
+**Formato dos dados:**
+- Arquivo ZIP inicial com historico completo (desde maio/2022)
+- Arquivos JSON mensais incrementais (AAAAMMDD.json)
+- Dicionario de dados em CSV
+- Atualizacao mensal
 
-Transformar os formularios para seguir o padrao premium do onboarding:
+**Estrutura estimada de cada acordao (baseado na documentacao do STJ):**
+- ID unico
+- Numero do processo
+- Classe processual
+- Relator
+- Orgao julgador
+- Data do julgamento
+- Data da publicacao
+- Ementa completa
+- Palavras de destaque/indexacao
+- Notas/observacoes
+- Referencia legislativa
+- Jurisprudencia citada
+
+---
+
+## Arquitetura da Solucao
+
+### Visao Geral
 
 ```text
-ANTES (Atual):
-+--Sidebar--+-------------------------------------+
-|           | [Form max-w-3xl]      [VAZIO]       |
-|           | [Card basico]                       |
-|           | [Inputs simples]                    |
-+-----------+-------------------------------------+
++------------------+     +-------------------+     +------------------+
+| Portal Dados     |     | Edge Function     |     | Supabase         |
+| Abertos STJ      |---->| sync-stj-data     |---->| stj_acordaos     |
+| (JSON mensais)   |     | (Scheduled/Manual)|     | (Full-text search)|
++------------------+     +-------------------+     +------------------+
+                                                          |
+                                                          v
++------------------+     +-------------------+     +------------------+
+| Frontend         |<----| Edge Function     |<----| Busca local      |
+| JurisprudenceSTJ |     | search-stj        |     | PostgreSQL FTS   |
++------------------+     +-------------------+     +------------------+
+```
 
-DEPOIS (Premium):
-+--Sidebar--+-------------------------------------+
-|           |         [Conteudo Centralizado]     |
-|           |         [Header Premium]            |
-|           |         [Card Elegante]             |
-|           |         [Inputs h-12 rounded-xl]    |
-+-----------+-------------------------------------+
+### Por que essa abordagem
+
+1. **Dados reais e verificaveis** - Fonte oficial do STJ
+2. **Busca local rapida** - Full-text search no PostgreSQL (sem latencia de API externa)
+3. **Controle total** - Dados armazenados localmente, sem dependencia em tempo real
+4. **Custo zero** - Dados publicos, sem API key necessaria
+
+---
+
+## Fase 1: Infraestrutura de Dados
+
+### 1.1 Nova Tabela: `stj_acordaos`
+
+```sql
+CREATE TABLE stj_acordaos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  stj_id TEXT UNIQUE NOT NULL,           -- ID original do STJ
+  processo TEXT,                          -- Numero do processo
+  classe TEXT,                            -- Classe processual (REsp, AgInt, etc)
+  relator TEXT,                           -- Ministro relator
+  orgao_julgador TEXT NOT NULL,          -- Turma/Secao
+  data_julgamento DATE,                   -- Data do julgamento
+  data_publicacao DATE,                   -- Data de publicacao no DJe
+  ementa TEXT NOT NULL,                   -- Texto da ementa
+  palavras_destaque TEXT[],               -- Keywords de indexacao
+  referencias_legais TEXT[],              -- Leis citadas
+  notas TEXT,                             -- Observacoes adicionais
+  search_vector TSVECTOR,                 -- Vetor de busca
+  source_file TEXT,                       -- Arquivo de origem (para rastreabilidade)
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indices para performance
+CREATE INDEX idx_stj_acordaos_search ON stj_acordaos USING GIN(search_vector);
+CREATE INDEX idx_stj_acordaos_orgao ON stj_acordaos(orgao_julgador);
+CREATE INDEX idx_stj_acordaos_data ON stj_acordaos(data_julgamento DESC);
+CREATE INDEX idx_stj_acordaos_classe ON stj_acordaos(classe);
+```
+
+### 1.2 Trigger para Search Vector
+
+```sql
+CREATE OR REPLACE FUNCTION update_stj_acordaos_search_vector()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.search_vector := 
+    setweight(to_tsvector('portuguese', COALESCE(NEW.ementa, '')), 'A') ||
+    setweight(to_tsvector('portuguese', COALESCE(NEW.processo, '')), 'B') ||
+    setweight(to_tsvector('portuguese', COALESCE(NEW.relator, '')), 'C') ||
+    setweight(to_tsvector('portuguese', array_to_string(NEW.palavras_destaque, ' ')), 'A') ||
+    setweight(to_tsvector('portuguese', array_to_string(NEW.referencias_legais, ' ')), 'B');
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_stj_acordaos_search_vector
+  BEFORE INSERT OR UPDATE ON stj_acordaos
+  FOR EACH ROW
+  EXECUTE FUNCTION update_stj_acordaos_search_vector();
+```
+
+### 1.3 Tabela de Controle de Sincronizacao
+
+```sql
+CREATE TABLE stj_sync_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  orgao TEXT NOT NULL,
+  arquivo TEXT NOT NULL,
+  registros_importados INTEGER DEFAULT 0,
+  status TEXT DEFAULT 'pending',
+  started_at TIMESTAMPTZ,
+  finished_at TIMESTAMPTZ,
+  error_message TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(orgao, arquivo)
+);
 ```
 
 ---
 
-## Elementos de Design Premium a Aplicar
+## Fase 2: Edge Function de Sincronizacao
 
-### 1. Layout Centralizado
+### 2.1 `sync-stj-jurisprudence`
 
-Usar `mx-auto` com largura maxima apropriada para cada formulario:
-- ClientForm: `max-w-3xl mx-auto` (multi-etapas)
-- CaseForm: `max-w-2xl mx-auto` (simples)
-- PetitionForm: `max-w-5xl mx-auto` (complexo com 2 colunas)
+Edge Function que:
+1. Busca a lista de arquivos JSON disponiveis no portal STJ
+2. Verifica quais arquivos ja foram importados (via `stj_sync_log`)
+3. Baixa e processa os arquivos pendentes
+4. Insere os acordaos na tabela `stj_acordaos`
 
-### 2. Header Premium
+**Estrategia de importacao:**
+- Importar 1 orgao por vez para evitar timeout
+- Processar em lotes de 100-500 registros por transacao
+- Usar `ON CONFLICT (stj_id) DO UPDATE` para evitar duplicatas
 
-Adicionar icone decorativo com gradiente, similar ao onboarding:
+**Parametros:**
+- `orgao`: qual turma/secao sincronizar (opcional, padrao: todas)
+- `force`: reimportar arquivos ja processados (boolean)
 
-```tsx
-<div className="flex items-start gap-4 mb-8">
-  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
-    <User className="w-6 h-6 text-primary" />
-  </div>
-  <div>
-    <h1 className="text-2xl font-semibold tracking-tight">
-      Novo Cliente
-    </h1>
-    <p className="text-muted-foreground mt-1 text-sm">
-      Preencha a qualificacao completa do cliente
-    </p>
-  </div>
-</div>
+### 2.2 Mapeamento de URLs
+
+Os arquivos JSON seguem o padrao:
+```
+https://dadosabertos.web.stj.jus.br/dataset/{dataset-id}/resource/{resource-id}/download/{AAAAMMDD}.json
 ```
 
-### 3. Inputs Premium
+A Edge Function precisara:
+1. Fazer scraping da pagina do dataset para obter lista de recursos
+2. OU manter um mapeamento estatico dos datasets conhecidos
 
-Padronizar todos os inputs com o estilo do onboarding:
+---
 
-```tsx
-className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
+## Fase 3: Edge Function de Busca
+
+### 3.1 `search-stj-jurisprudence`
+
+Edge Function otimizada para busca local:
+
+```typescript
+// Parametros de entrada
+interface SearchParams {
+  query: string;              // Texto de busca
+  orgao?: string;             // Filtro por turma/secao
+  classe?: string;            // Filtro por classe (REsp, AgInt, etc)
+  dataInicio?: string;        // Filtro por periodo
+  dataFim?: string;
+  page?: number;
+  limit?: number;
+}
+
+// Retorno
+interface SearchResult {
+  success: boolean;
+  data: STJAcordao[];
+  total: number;
+  page: number;
+  source: 'stj_local';        // Indica fonte real
+}
 ```
 
-### 4. Labels com Icones
-
-Adicionar icones sutis nas labels como no onboarding:
-
-```tsx
-<Label className="text-sm font-medium flex items-center gap-2">
-  <User className="w-4 h-4 text-muted-foreground" />
-  Nome Completo <span className="text-destructive">*</span>
-</Label>
-```
-
-### 5. Cards Elevados
-
-Usar cards com sombras sutis e bordas refinadas:
-
-```tsx
-<Card className="shadow-sm border-border/50">
-```
-
-### 6. Botoes Premium
-
-Botao principal com gradiente e sombra:
-
-```tsx
-<Button className="h-11 px-6 bg-gradient-to-r from-primary to-[hsl(222,80%,45%)] hover:from-primary/90 hover:to-[hsl(222,80%,40%)] shadow-lg shadow-primary/25">
+**Query SQL otimizada:**
+```sql
+SELECT *,
+  ts_rank(search_vector, websearch_to_tsquery('portuguese', $1)) as relevance
+FROM stj_acordaos
+WHERE search_vector @@ websearch_to_tsquery('portuguese', $1)
+  AND ($2 IS NULL OR orgao_julgador = $2)
+  AND ($3 IS NULL OR classe = $3)
+  AND ($4 IS NULL OR data_julgamento >= $4)
+  AND ($5 IS NULL OR data_julgamento <= $5)
+ORDER BY relevance DESC, data_julgamento DESC
+LIMIT $6 OFFSET $7;
 ```
 
 ---
 
-## Arquivos a Modificar
+## Fase 4: Frontend
 
-### 1. `src/pages/ClientForm.tsx`
+### 4.1 Novo Componente: `JurisprudenceSTJ.tsx`
 
-**Mudancas Principais:**
+Nova aba ou secao na pagina de Jurisprudencia especifica para STJ:
 
-| Aspecto | Antes | Depois |
-|---------|-------|--------|
-| Container | `max-w-3xl` (alinhado esquerda) | `max-w-3xl mx-auto` (centralizado) |
-| Header | Titulo simples | Header com icone gradiente |
-| Inputs | Basicos | `h-12 rounded-xl bg-muted/30` |
-| Step Indicator | Pills simples | Indicadores circulares premium |
-| Botao Salvar | Basico | Gradiente com sombra |
+**Elementos:**
+- Filtros especificos: Turma, Classe processual, Periodo
+- Indicador de "Fonte: STJ - Dados Abertos"
+- Badge de "Dados Reais" (substituindo o aviso de "Demonstracao")
+- Indicador de ultima atualizacao da base
 
-**Estrutura do Novo Layout:**
+### 4.2 Atualizacao do `JurisprudenceSearch.tsx`
+
+Adicionar:
+- Toggle ou tabs: "TJSP (Demo)" | "STJ (Real)"
+- Filtros dinamicos baseados na fonte selecionada
+
+### 4.3 Atualizacao do `JurisprudenceResults.tsx`
+
+- Renderizar badge de tribunal (STJ)
+- Link para acordao original no site do STJ (quando disponivel)
+- Exibir referencias legais e palavras-chave
+
+---
+
+## Fase 5: Administracao (Opcional)
+
+### 5.1 Painel de Status da Base
+
+Componente para administradores visualizarem:
+- Total de acordaos por turma
+- Ultima sincronizacao
+- Botao para disparar sincronizacao manual
+- Log de erros
+
+---
+
+## Cronograma de Implementacao
+
+| Ordem | Item | Descricao |
+|-------|------|-----------|
+| 1 | Migracao SQL | Criar tabelas `stj_acordaos` e `stj_sync_log` |
+| 2 | Edge Function Sync | Implementar `sync-stj-jurisprudence` |
+| 3 | Importacao Inicial | Popular base com dados de 1-2 turmas (teste) |
+| 4 | Edge Function Search | Implementar `search-stj-jurisprudence` |
+| 5 | API Client | Atualizar `jurisprudenceApi` para suportar STJ |
+| 6 | Frontend STJ | Criar componentes de busca STJ |
+| 7 | Integracao | Conectar com fluxo de peticoes |
+| 8 | Importacao Completa | Popular base com todas as turmas |
+
+---
+
+## Estimativa de Volume
+
+Baseado na estrutura do portal:
+- ~10 orgaos julgadores
+- Dados desde maio/2022 + atualizacoes mensais
+- Estimativa: **50.000 a 150.000 acordaos** no total
+
+**Armazenamento estimado:** 200MB - 500MB
+
+---
+
+## Riscos e Mitigacoes
+
+| Risco | Probabilidade | Mitigacao |
+|-------|---------------|-----------|
+| Mudanca na estrutura do JSON | Media | Parser flexivel + validacao |
+| Timeout na importacao | Alta | Processar em lotes pequenos |
+| Volume muito grande | Media | Limitar orgaos mais relevantes inicialmente |
+| Portal indisponivel | Baixa | Retry com backoff + cache local |
+
+---
+
+## Secao Tecnica Detalhada
+
+### Estrutura Esperada do JSON (baseado no dicionario STJ)
+
+```json
+{
+  "id": 12345,
+  "numeroProcesso": "REsp 1234567/SP",
+  "classe": "REsp",
+  "relator": "Ministro(a) NOME DO MINISTRO",
+  "orgaoJulgador": "TERCEIRA TURMA",
+  "dataJulgamento": "2024-01-15",
+  "dataPublicacao": "2024-01-20",
+  "ementa": "CIVIL E PROCESSUAL CIVIL. RECURSO ESPECIAL...",
+  "palavrasDestaque": ["CONTRATO", "RESCISAO", "DANO MORAL"],
+  "notasJurisprudencia": "...",
+  "referenciaLegislativa": ["Art. 927 do CC/2002", "Art. 5o do CDC"]
+}
+```
+
+### Edge Function - Fluxo de Sincronizacao
 
 ```text
-+-------------------------------------------+
-|     [<-]  [Icon Gradiente]  Novo Cliente  |
-|           Preencha a qualificacao...      |
-+-------------------------------------------+
-|                                           |
-|     [(1) Dados Pessoais]---[(2) Endereco] |
-|                                           |
-|  +--------------------------------------+ |
-|  | Card Header Premium                  | |
-|  | [Select Tipo Pessoa]                 | |
-|  +--------------------------------------+ |
-|  | [Nome Completo *]        [h-12 xl]   | |
-|  | [CPF *]  [Nacionalidade *]           | |
-|  | [Estado Civil]  [Profissao *]        | |
-|  | ...                                  | |
-|  +--------------------------------------+ |
-|  |   [<- Anterior]      [Proximo ->]    | |
-|  +--------------------------------------+ |
-|                                           |
-+-------------------------------------------+
+sync-stj-jurisprudence(orgao)
+    |
+    v
+[1] Buscar lista de arquivos do dataset
+    |
+    v
+[2] Comparar com stj_sync_log
+    |
+    v
+[3] Para cada arquivo pendente:
+    |
+    +---> Baixar JSON
+    |
+    +---> Parse e validacao
+    |
+    +---> INSERT em lotes (500 registros)
+    |
+    +---> Atualizar stj_sync_log
+    |
+    v
+[4] Retornar estatisticas
 ```
 
-### 2. `src/pages/CaseForm.tsx`
+### RLS Policies
 
-**Mudancas Principais:**
+```sql
+-- Leitura publica (dados sao publicos)
+ALTER TABLE stj_acordaos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Acordaos sao publicos para leitura"
+  ON stj_acordaos FOR SELECT
+  USING (true);
 
-| Aspecto | Antes | Depois |
-|---------|-------|--------|
-| Container | `max-w-2xl` | `max-w-2xl mx-auto` |
-| Header | Titulo simples | Header com icone Briefcase |
-| Card | Basico | Com sombra e borda refinada |
-| Inputs | Basicos | Premium style |
-
-**Estrutura:**
-
-```text
-+-------------------------------------------+
-|     [<-]  [Briefcase Icon]  Novo Processo |
-|           Cadastre um novo processo       |
-+-------------------------------------------+
-|                                           |
-|  +--------------------------------------+ |
-|  | Dados do Processo                    | |
-|  +--------------------------------------+ |
-|  | [Cliente *]              [Select]    | |
-|  | [Numero do Processo]     [Input]     | |
-|  | [Vara/Comarca *]         [Input]     | |
-|  | [Tipo de Acao *]         [Select]    | |
-|  | [Parte Contraria *]      [Input]     | |
-|  +--------------------------------------+ |
-|  |      [Cancelar]    [Salvar ->]       | |
-|  +--------------------------------------+ |
-|                                           |
-+-------------------------------------------+
+-- Apenas service role pode inserir/atualizar
+CREATE POLICY "Apenas sistema pode modificar acordaos"
+  ON stj_acordaos FOR ALL
+  USING (auth.role() = 'service_role');
 ```
-
-### 3. `src/pages/PetitionForm.tsx`
-
-**Mudancas Principais:**
-
-| Aspecto | Antes | Depois |
-|---------|-------|--------|
-| Container | Sem centralizacao | `max-w-5xl mx-auto` |
-| Header | Titulo basico | Header premium com icone |
-| Cards | Basicos | Sombras e bordas refinadas |
-| Inputs/Textareas | Basicos | Premium rounded-xl |
-
-**Estrutura Visual:**
-
-O formulario de peticao e mais complexo, com grid de 2 colunas. Manter a estrutura mas aplicar:
-- Centralizacao geral
-- Cards com estilo premium
-- Inputs e Textareas com `rounded-xl`
-- Botoes com gradiente
-
----
-
-## Componente Reutilizavel (Opcional)
-
-Criar componente `PremiumFormHeader.tsx` para padronizar headers:
-
-```tsx
-interface PremiumFormHeaderProps {
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-  backPath: string;
-}
-
-const PremiumFormHeader = ({ icon, title, subtitle, backPath }: PremiumFormHeaderProps) => {
-  const navigate = useNavigate();
-  
-  return (
-    <div className="flex items-start gap-4 mb-8">
-      <Button variant="ghost" size="icon" onClick={() => navigate(backPath)} className="mt-1">
-        <ArrowLeft className="w-4 h-4" />
-      </Button>
-      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
-        {icon}
-      </div>
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground tracking-tight">
-          {title}
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-          {subtitle}
-        </p>
-      </div>
-    </div>
-  );
-};
-```
-
----
-
-## Classe Utilitaria para Inputs Premium
-
-Adicionar classe reutilizavel no `index.css`:
-
-```css
-.input-premium {
-  @apply h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors;
-}
-
-.select-premium {
-  @apply h-12 rounded-xl border-border/50 bg-muted/30;
-}
-
-.textarea-premium {
-  @apply rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors;
-}
-
-.btn-premium {
-  @apply h-11 px-6 bg-gradient-to-r from-primary to-[hsl(222,80%,45%)] hover:from-primary/90 hover:to-[hsl(222,80%,40%)] shadow-lg shadow-primary/25;
-}
-```
-
----
-
-## Resumo das Mudancas por Arquivo
-
-### Novos Arquivos
-
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/components/forms/PremiumFormHeader.tsx` | Header reutilizavel com icone gradiente |
-
-### Arquivos Modificados
-
-| Arquivo | Mudancas |
-|---------|----------|
-| `src/index.css` | Adicionar classes utilitarias premium |
-| `src/pages/ClientForm.tsx` | Centralizar, aplicar estilo premium em todos inputs/cards |
-| `src/pages/CaseForm.tsx` | Centralizar, aplicar estilo premium |
-| `src/pages/PetitionForm.tsx` | Centralizar, aplicar estilo premium em cards e inputs |
-
----
-
-## Ordem de Implementacao
-
-1. Adicionar classes utilitarias em `index.css`
-2. Criar componente `PremiumFormHeader.tsx`
-3. Refatorar `CaseForm.tsx` (mais simples, bom para validar o padrao)
-4. Refatorar `ClientForm.tsx` (multi-etapas, testar indicadores)
-5. Refatorar `PetitionForm.tsx` (mais complexo, aplicar em grid de 2 colunas)
-6. Testar responsividade em todos os tamanhos
-
----
-
-## Resultado Visual Esperado
-
-Apos as mudancas, todos os formularios terao:
-
-1. **Centralizacao** - Sem espaco vazio excessivo nas laterais
-2. **Header Premium** - Icone com gradiente + titulo + subtitulo
-3. **Inputs Refinados** - Altura confortavel, bordas arredondadas, transicoes suaves
-4. **Cards Elegantes** - Sombras sutis, bordas refinadas
-5. **Botoes Premium** - Gradiente e sombra no botao principal
-6. **Consistencia** - Mesmo padrao visual do onboarding em toda a aplicacao
-
