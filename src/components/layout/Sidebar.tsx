@@ -23,6 +23,7 @@ import {
   Settings,
   BarChart3,
   Kanban,
+  MessageCircle,
   LucideIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -95,7 +96,8 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
     },
   ];
 
-  const bottomLinks: NavItem[] = [
+  const fixedBottomLinks: NavItem[] = [
+    { to: '/contato', icon: MessageCircle, label: 'Contato' },
     { to: '/configuracoes', icon: Settings, label: 'Configurações' },
   ];
 
@@ -217,32 +219,35 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
         </div>
       </div>
 
-        {/* Navigation */}
+        {/* Navigation - apenas categorias scrolláveis */}
         <nav className="flex-1 p-3 space-y-2 overflow-y-auto scrollbar-hidden">
           {categories.map(category => renderCategory(category))}
-          
-          {/* Bottom links */}
-          <div className="pt-2 mt-2 border-t border-sidebar-border">
-            {bottomLinks.map(item => renderNavItem(item))}
-          </div>
         </nav>
 
-        {/* User info */}
-        <div className="p-3 border-t border-sidebar-border">
-          {profile && (
-            <div className="mb-3 px-3">
-              <p className="font-medium text-sm truncate">{profile.name}</p>
-              <p className="text-xs text-sidebar-foreground/70 capitalize">{profile.role}</p>
-            </div>
-          )}
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
-            onClick={handleSignOut}
-          >
-            <LogOut className="w-5 h-5" />
-            <span>Sair</span>
-          </Button>
+        {/* Bottom fixo - Contato + Config + User */}
+        <div className="border-t border-sidebar-border">
+          {/* Links fixos */}
+          <div className="p-3 space-y-1">
+            {fixedBottomLinks.map(item => renderNavItem(item))}
+          </div>
+          
+          {/* User info */}
+          <div className="p-3 border-t border-sidebar-border">
+            {profile && (
+              <div className="mb-3 px-3">
+                <p className="font-medium text-sm truncate">{profile.name}</p>
+                <p className="text-xs text-sidebar-foreground/70 capitalize">{profile.role}</p>
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+              onClick={handleSignOut}
+            >
+              <LogOut className="w-5 h-5" />
+              <span>Sair</span>
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -278,35 +283,38 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
         </Button>
       </div>
 
-      {/* Navigation */}
+      {/* Navigation - apenas categorias scrolláveis */}
       <nav className="flex-1 p-3 space-y-2 overflow-y-auto scrollbar-hidden">
         {categories.map(category => renderCategory(category, isCollapsed))}
-        
-        {/* Bottom links */}
-        <div className="pt-2 mt-2 border-t border-sidebar-border">
-          {bottomLinks.map(item => renderNavItem(item, isCollapsed))}
-        </div>
       </nav>
 
-      {/* User info */}
-      <div className="p-3 border-t border-sidebar-border">
-        {!isCollapsed && profile && (
-          <div className="mb-3 px-3">
-            <p className="font-medium text-sm truncate">{profile.name}</p>
-            <p className="text-xs text-sidebar-foreground/70 capitalize">{profile.role}</p>
-          </div>
-        )}
-        <Button
-          variant="ghost"
-          className={cn(
-            "w-full justify-start gap-3 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
-            isCollapsed && "justify-center px-0"
+      {/* Bottom fixo - Contato + Config + User */}
+      <div className="border-t border-sidebar-border">
+        {/* Links fixos */}
+        <div className="p-3 space-y-1">
+          {fixedBottomLinks.map(item => renderNavItem(item, isCollapsed))}
+        </div>
+        
+        {/* User info */}
+        <div className="p-3 border-t border-sidebar-border">
+          {!isCollapsed && profile && (
+            <div className="mb-3 px-3">
+              <p className="font-medium text-sm truncate">{profile.name}</p>
+              <p className="text-xs text-sidebar-foreground/70 capitalize">{profile.role}</p>
+            </div>
           )}
-          onClick={signOut}
-        >
-          <LogOut className="w-5 h-5" />
-          {!isCollapsed && <span>Sair</span>}
-        </Button>
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start gap-3 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
+              isCollapsed && "justify-center px-0"
+            )}
+            onClick={signOut}
+          >
+            <LogOut className="w-5 h-5" />
+            {!isCollapsed && <span>Sair</span>}
+          </Button>
+        </div>
       </div>
     </aside>
   );

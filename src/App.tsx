@@ -43,6 +43,9 @@ import LegalReports from "./pages/LegalReports";
 // Settings
 import Settings from "./pages/Settings";
 
+// Contact
+import Contact from "./pages/Contact";
+
 // Layout
 import MainLayout from "./components/layout/MainLayout";
 
@@ -83,6 +86,7 @@ const App = () => (
               <Route path="/pipeline" element={<Pipeline />} />
               <Route path="/pipeline/settings" element={<PipelineSettings />} />
               <Route path="/relatorios" element={<LegalReports />} />
+              <Route path="/contato" element={<Contact />} />
               <Route path="/configuracoes" element={<Settings />} />
               
               {/* Finance routes */}

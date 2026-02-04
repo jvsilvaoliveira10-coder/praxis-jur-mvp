@@ -1,4 +1,7 @@
-import { Scale } from 'lucide-react';
+import { Mail, MessageCircle } from 'lucide-react';
+
+const WHATSAPP_NUMBER = '5516992159284';
+const EMAIL = 'sac@praxisjur.com';
 
 export function LandingFooter() {
   const currentYear = new Date().getFullYear();
@@ -30,7 +33,29 @@ export function LandingFooter() {
               </a>
             </nav>
 
-            {/* Copyright */}
+            {/* Contact */}
+            <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
+              <a 
+                href={`mailto:${EMAIL}`}
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Mail className="w-4 h-4" />
+                {EMAIL}
+              </a>
+              <a 
+                href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                (16) 99215-9284
+              </a>
+            </div>
+          </div>
+
+          {/* Copyright */}
+          <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
               © {currentYear} Práxis AI. Todos os direitos reservados.
             </p>
