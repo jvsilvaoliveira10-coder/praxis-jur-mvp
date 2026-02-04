@@ -1,299 +1,282 @@
 
-# Plano: Integracao de Jurisprudencia Real do STJ (Portal de Dados Abertos)
+# Plano: Script Automatizado de Importacao STJ
 
-## ✅ IMPLEMENTADO - Status Atual
+## Resumo Executivo
 
-**Fases Concluídas:**
-- ✅ Fase 1: Infraestrutura de Dados (tabelas, triggers, índices, RLS)
-- ✅ Fase 2: Edge Function de Sincronização (`sync-stj-jurisprudence`)
-- ✅ Fase 3: Edge Function de Busca (`search-stj-jurisprudence`)
-- ✅ Fase 4: Frontend (componentes STJ, tabs, filtros avançados)
-- ✅ Importação de dados de teste (3 acórdãos de exemplo)
+Vou criar um sistema automatizado que busca, baixa e importa todos os acordaos do Portal de Dados Abertos do STJ, usando a API CKAN do portal para descobrir dinamicamente todos os arquivos disponiveis.
 
-**Próximos Passos (Manual):**
-1. Baixar JSON do Portal de Dados Abertos STJ
-2. Usar a Edge Function sync-stj-jurisprudence com `jsonUrl` para importar dados reais
+## Descobertas da Analise
 
----
+### Estrutura Real dos Dados JSON do STJ
 
-## Contexto e Descobertas
+Os arquivos JSON tem uma estrutura diferente do mapeamento atual:
 
-### O que o Portal de Dados Abertos do STJ oferece
+| Campo Real STJ | Campo no Banco |
+|----------------|----------------|
+| `id` | `stj_id` |
+| `numeroProcesso` + `siglaClasse` | `processo` |
+| `siglaClasse` | `classe` |
+| `ministroRelator` | `relator` |
+| `nomeOrgaoJulgador` | `orgao_julgador` |
+| `dataDecisao` (YYYYMMDD) | `data_julgamento` |
+| `dataPublicacao` | `data_publicacao` |
+| `ementa` | `ementa` |
+| `referenciasLegislativas` | `referencias_legais` |
+| `termosAuxiliares` | `palavras_destaque` |
 
-O portal `dadosabertos.web.stj.jus.br` disponibiliza **11 conjuntos de dados de "Espelhos de Acordaos"** organizados por orgao julgador:
+### API CKAN do Portal
 
-| Orgao | Dataset |
-|-------|---------|
-| Corte Especial | `espelhos-de-acordaos-corte-especial` |
-| Primeira Secao | `espelhos-de-acordaos-primeira-secao` |
-| Segunda Secao | `espelhos-de-acordaos-segunda-secao` |
-| Terceira Secao | `espelhos-de-acordaos-terceira-secao` |
-| Primeira Turma | `espelhos-de-acordaos-primeira-turma` |
-| Segunda Turma | `espelhos-de-acordaos-segunda-turma` |
-| Terceira Turma | `espelhos-de-acordaos-terceira-turma` |
-| Quarta Turma | `espelhos-de-acordaos-quarta-turma` |
-| Quinta Turma | `espelhos-de-acordaos-quinta-turma` |
-| Sexta Turma | `espelhos-de-acordaos-sexta-turma` |
+O portal usa CKAN, com endpoints disponiveis:
+- `package_show?id={dataset}` - Lista todos os recursos de um dataset
+- Recursos incluem URL de download direta
 
-**Formato dos dados:**
-- Arquivo ZIP inicial com historico completo (desde maio/2022)
-- Arquivos JSON mensais incrementais (AAAAMMDD.json)
-- Dicionario de dados em CSV
-- Atualizacao mensal
+### Volume Estimado
 
-**Estrutura estimada de cada acordao (baseado na documentacao do STJ):**
-- ID unico
-- Numero do processo
-- Classe processual
-- Relator
-- Orgao julgador
-- Data do julgamento
-- Data da publicacao
-- Ementa completa
-- Palavras de destaque/indexacao
-- Notas/observacoes
-- Referencia legislativa
-- Jurisprudencia citada
+- 10 orgaos julgadores
+- ~40 arquivos por orgao (mai/2022 ate fev/2026)
+- Estimativa: **150.000 a 300.000 acordaos** no total
 
 ---
 
 ## Arquitetura da Solucao
 
-### Visao Geral
-
 ```text
-+------------------+     +-------------------+     +------------------+
-| Portal Dados     |     | Edge Function     |     | Supabase         |
-| Abertos STJ      |---->| sync-stj-data     |---->| stj_acordaos     |
-| (JSON mensais)   |     | (Scheduled/Manual)|     | (Full-text search)|
-+------------------+     +-------------------+     +------------------+
-                                                          |
-                                                          v
-+------------------+     +-------------------+     +------------------+
-| Frontend         |<----| Edge Function     |<----| Busca local      |
-| JurisprudenceSTJ |     | search-stj        |     | PostgreSQL FTS   |
-+------------------+     +-------------------+     +------------------+
-```
-
-### Por que essa abordagem
-
-1. **Dados reais e verificaveis** - Fonte oficial do STJ
-2. **Busca local rapida** - Full-text search no PostgreSQL (sem latencia de API externa)
-3. **Controle total** - Dados armazenados localmente, sem dependencia em tempo real
-4. **Custo zero** - Dados publicos, sem API key necessaria
-
----
-
-## Fase 1: Infraestrutura de Dados
-
-### 1.1 Nova Tabela: `stj_acordaos`
-
-```sql
-CREATE TABLE stj_acordaos (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  stj_id TEXT UNIQUE NOT NULL,           -- ID original do STJ
-  processo TEXT,                          -- Numero do processo
-  classe TEXT,                            -- Classe processual (REsp, AgInt, etc)
-  relator TEXT,                           -- Ministro relator
-  orgao_julgador TEXT NOT NULL,          -- Turma/Secao
-  data_julgamento DATE,                   -- Data do julgamento
-  data_publicacao DATE,                   -- Data de publicacao no DJe
-  ementa TEXT NOT NULL,                   -- Texto da ementa
-  palavras_destaque TEXT[],               -- Keywords de indexacao
-  referencias_legais TEXT[],              -- Leis citadas
-  notas TEXT,                             -- Observacoes adicionais
-  search_vector TSVECTOR,                 -- Vetor de busca
-  source_file TEXT,                       -- Arquivo de origem (para rastreabilidade)
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Indices para performance
-CREATE INDEX idx_stj_acordaos_search ON stj_acordaos USING GIN(search_vector);
-CREATE INDEX idx_stj_acordaos_orgao ON stj_acordaos(orgao_julgador);
-CREATE INDEX idx_stj_acordaos_data ON stj_acordaos(data_julgamento DESC);
-CREATE INDEX idx_stj_acordaos_classe ON stj_acordaos(classe);
-```
-
-### 1.2 Trigger para Search Vector
-
-```sql
-CREATE OR REPLACE FUNCTION update_stj_acordaos_search_vector()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.search_vector := 
-    setweight(to_tsvector('portuguese', COALESCE(NEW.ementa, '')), 'A') ||
-    setweight(to_tsvector('portuguese', COALESCE(NEW.processo, '')), 'B') ||
-    setweight(to_tsvector('portuguese', COALESCE(NEW.relator, '')), 'C') ||
-    setweight(to_tsvector('portuguese', array_to_string(NEW.palavras_destaque, ' ')), 'A') ||
-    setweight(to_tsvector('portuguese', array_to_string(NEW.referencias_legais, ' ')), 'B');
-  NEW.updated_at := NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_stj_acordaos_search_vector
-  BEFORE INSERT OR UPDATE ON stj_acordaos
-  FOR EACH ROW
-  EXECUTE FUNCTION update_stj_acordaos_search_vector();
-```
-
-### 1.3 Tabela de Controle de Sincronizacao
-
-```sql
-CREATE TABLE stj_sync_log (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  orgao TEXT NOT NULL,
-  arquivo TEXT NOT NULL,
-  registros_importados INTEGER DEFAULT 0,
-  status TEXT DEFAULT 'pending',
-  started_at TIMESTAMPTZ,
-  finished_at TIMESTAMPTZ,
-  error_message TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(orgao, arquivo)
-);
++------------------+     +--------------------+     +------------------+
+| API CKAN STJ     |     | Edge Function      |     | Frontend Admin   |
+| package_show     |---->| auto-sync-stj      |<----| Painel Controle  |
++------------------+     +--------------------+     +------------------+
+                                |
+                                v
+                         +-------------+
+                         | stj_acordaos|
+                         | stj_sync_log|
+                         +-------------+
 ```
 
 ---
 
-## Fase 2: Edge Function de Sincronizacao
+## Fase 1: Atualizar Edge Function de Sincronizacao
 
-### 2.1 `sync-stj-jurisprudence`
+### 1.1 Novo Modo: `discoverAndSync`
 
-Edge Function que:
-1. Busca a lista de arquivos JSON disponiveis no portal STJ
-2. Verifica quais arquivos ja foram importados (via `stj_sync_log`)
-3. Baixa e processa os arquivos pendentes
-4. Insere os acordaos na tabela `stj_acordaos`
-
-**Estrategia de importacao:**
-- Importar 1 orgao por vez para evitar timeout
-- Processar em lotes de 100-500 registros por transacao
-- Usar `ON CONFLICT (stj_id) DO UPDATE` para evitar duplicatas
-
-**Parametros:**
-- `orgao`: qual turma/secao sincronizar (opcional, padrao: todas)
-- `force`: reimportar arquivos ja processados (boolean)
-
-### 2.2 Mapeamento de URLs
-
-Os arquivos JSON seguem o padrao:
-```
-https://dadosabertos.web.stj.jus.br/dataset/{dataset-id}/resource/{resource-id}/download/{AAAAMMDD}.json
-```
-
-A Edge Function precisara:
-1. Fazer scraping da pagina do dataset para obter lista de recursos
-2. OU manter um mapeamento estatico dos datasets conhecidos
-
----
-
-## Fase 3: Edge Function de Busca
-
-### 3.1 `search-stj-jurisprudence`
-
-Edge Function otimizada para busca local:
+Adicionar funcionalidade para descobrir automaticamente todos os recursos via API CKAN:
 
 ```typescript
-// Parametros de entrada
-interface SearchParams {
-  query: string;              // Texto de busca
-  orgao?: string;             // Filtro por turma/secao
-  classe?: string;            // Filtro por classe (REsp, AgInt, etc)
-  dataInicio?: string;        // Filtro por periodo
-  dataFim?: string;
-  page?: number;
-  limit?: number;
-}
+// Consulta a API CKAN para obter lista de arquivos
+const response = await fetch(
+  `https://dadosabertos.web.stj.jus.br/api/3/action/package_show?id=${datasetId}`
+);
+const { result } = await response.json();
+const resources = result.resources.filter(r => 
+  r.format?.toLowerCase() === 'json' && 
+  r.name.match(/\d{8}\.json/)
+);
+```
 
-// Retorno
-interface SearchResult {
-  success: boolean;
-  data: STJAcordao[];
-  total: number;
-  page: number;
-  source: 'stj_local';        // Indica fonte real
+### 1.2 Corrigir Mapeamento de Campos
+
+Atualizar a funcao `mapAcordao` para usar os campos reais:
+
+```typescript
+function mapAcordao(raw: STJAcordaoRaw, orgaoNome: string, sourceFile: string) {
+  return {
+    stj_id: raw.id,
+    processo: `${raw.siglaClasse} ${raw.numeroProcesso}`,
+    classe: raw.siglaClasse,
+    relator: raw.ministroRelator,
+    orgao_julgador: raw.nomeOrgaoJulgador || orgaoNome,
+    data_julgamento: parseDateYYYYMMDD(raw.dataDecisao),
+    data_publicacao: parseDate(raw.dataPublicacao),
+    ementa: raw.ementa || '',
+    palavras_destaque: normalizeArray(raw.termosAuxiliares),
+    referencias_legais: raw.referenciasLegislativas || [],
+    notas: raw.notas || raw.teseJuridica,
+    source_file: sourceFile,
+  };
 }
 ```
 
-**Query SQL otimizada:**
-```sql
-SELECT *,
-  ts_rank(search_vector, websearch_to_tsquery('portuguese', $1)) as relevance
-FROM stj_acordaos
-WHERE search_vector @@ websearch_to_tsquery('portuguese', $1)
-  AND ($2 IS NULL OR orgao_julgador = $2)
-  AND ($3 IS NULL OR classe = $3)
-  AND ($4 IS NULL OR data_julgamento >= $4)
-  AND ($5 IS NULL OR data_julgamento <= $5)
-ORDER BY relevance DESC, data_julgamento DESC
-LIMIT $6 OFFSET $7;
+### 1.3 Processamento em Lotes
+
+Estrategia para evitar timeout:
+
+1. **Por chamada**: Processar 1 arquivo de cada vez
+2. **Dentro do arquivo**: Inserir em lotes de 200 registros
+3. **Controle de estado**: Usar `stj_sync_log` para retomar de onde parou
+
+---
+
+## Fase 2: Edge Function para Importacao Completa
+
+### 2.1 Nova Edge Function: `auto-sync-stj`
+
+Orquestrador que:
+1. Lista todos os datasets (10 orgaos)
+2. Para cada dataset, consulta API CKAN
+3. Identifica arquivos nao importados
+4. Chama sync para cada arquivo pendente
+
+```typescript
+interface SyncJob {
+  orgao: string;
+  datasetId: string;
+  pendingFiles: {
+    name: string;
+    url: string;
+    created: string;
+  }[];
+}
+
+// Fluxo principal
+for (const orgao of ORGAOS) {
+  const resources = await fetchCKANResources(orgao.datasetId);
+  const imported = await getImportedFiles(orgao.name);
+  const pending = resources.filter(r => !imported.includes(r.name));
+  
+  for (const file of pending.slice(0, MAX_PER_RUN)) {
+    await syncFile(file.url, orgao.name, file.name);
+  }
+}
+```
+
+### 2.2 Parametros de Controle
+
+```typescript
+interface AutoSyncParams {
+  orgao?: string;        // Opcional: sincronizar apenas um orgao
+  maxFiles?: number;     // Limite de arquivos por execucao (padrao: 5)
+  startFrom?: string;    // Nome do arquivo para comecar (retomar)
+  skipZip?: boolean;     // Pular arquivo ZIP inicial (muito grande)
+}
 ```
 
 ---
 
-## Fase 4: Frontend
+## Fase 3: Painel de Administracao
 
-### 4.1 Novo Componente: `JurisprudenceSTJ.tsx`
+### 3.1 Novo Componente: `STJSyncPanel.tsx`
 
-Nova aba ou secao na pagina de Jurisprudencia especifica para STJ:
+Interface para monitorar e controlar a sincronizacao:
 
 **Elementos:**
-- Filtros especificos: Turma, Classe processual, Periodo
-- Indicador de "Fonte: STJ - Dados Abertos"
-- Badge de "Dados Reais" (substituindo o aviso de "Demonstracao")
-- Indicador de ultima atualizacao da base
+- Cards com estatisticas por orgao (total importado, ultima sync)
+- Barra de progresso global
+- Botao "Iniciar Sincronizacao Completa"
+- Botao "Sincronizar Orgao Especifico"
+- Log de atividades em tempo real
+- Indicador de arquivos pendentes
 
-### 4.2 Atualizacao do `JurisprudenceSearch.tsx`
+### 3.2 Integracao na Pagina de Jurisprudencia
 
-Adicionar:
-- Toggle ou tabs: "TJSP (Demo)" | "STJ (Real)"
-- Filtros dinamicos baseados na fonte selecionada
-
-### 4.3 Atualizacao do `JurisprudenceResults.tsx`
-
-- Renderizar badge de tribunal (STJ)
-- Link para acordao original no site do STJ (quando disponivel)
-- Exibir referencias legais e palavras-chave
+Adicionar aba "Administracao" ou botao de config visivel apenas para admins.
 
 ---
 
-## Fase 5: Administracao (Opcional)
+## Fase 4: Cron Job (Opcional)
 
-### 5.1 Painel de Status da Base
+### 4.1 Sincronizacao Mensal Automatica
 
-Componente para administradores visualizarem:
-- Total de acordaos por turma
-- Ultima sincronizacao
-- Botao para disparar sincronizacao manual
-- Log de erros
+Usar pg_cron para executar sincronizacao todo dia 5 do mes:
 
----
-
-## Cronograma de Implementacao
-
-| Ordem | Item | Descricao |
-|-------|------|-----------|
-| 1 | Migracao SQL | Criar tabelas `stj_acordaos` e `stj_sync_log` |
-| 2 | Edge Function Sync | Implementar `sync-stj-jurisprudence` |
-| 3 | Importacao Inicial | Popular base com dados de 1-2 turmas (teste) |
-| 4 | Edge Function Search | Implementar `search-stj-jurisprudence` |
-| 5 | API Client | Atualizar `jurisprudenceApi` para suportar STJ |
-| 6 | Frontend STJ | Criar componentes de busca STJ |
-| 7 | Integracao | Conectar com fluxo de peticoes |
-| 8 | Importacao Completa | Popular base com todas as turmas |
+```sql
+SELECT cron.schedule(
+  'stj-monthly-sync',
+  '0 3 5 * *',  -- Todo dia 5 as 03:00
+  $$
+  SELECT net.http_post(
+    url := 'https://htxpsggxvbjqsojaabxu.supabase.co/functions/v1/auto-sync-stj',
+    headers := '{"Authorization": "Bearer ANON_KEY"}'::jsonb,
+    body := '{"maxFiles": 20}'::jsonb
+  );
+  $$
+);
+```
 
 ---
 
-## Estimativa de Volume
+## Implementacao Detalhada
 
-Baseado na estrutura do portal:
-- ~10 orgaos julgadores
-- Dados desde maio/2022 + atualizacoes mensais
-- Estimativa: **50.000 a 150.000 acordaos** no total
+### Arquivos a Criar/Modificar
 
-**Armazenamento estimado:** 200MB - 500MB
+| Arquivo | Acao | Descricao |
+|---------|------|-----------|
+| `supabase/functions/sync-stj-jurisprudence/index.ts` | Modificar | Corrigir mapeamento, adicionar modo CKAN |
+| `supabase/functions/auto-sync-stj/index.ts` | Criar | Orquestrador de sincronizacao completa |
+| `src/components/jurisprudence/STJSyncPanel.tsx` | Criar | Painel de controle admin |
+| `src/lib/api/stj-jurisprudence.ts` | Modificar | Adicionar funcoes de sync e stats |
+| `src/pages/Jurisprudence.tsx` | Modificar | Adicionar tab de administracao |
+
+### Ordem de Execucao
+
+1. Atualizar Edge Function `sync-stj-jurisprudence` com mapeamento correto
+2. Criar Edge Function `auto-sync-stj`
+3. Testar importacao de 1 arquivo real
+4. Criar componente `STJSyncPanel`
+5. Importar dados de 1-2 orgaos para teste
+6. Importar todos os orgaos
+7. (Opcional) Configurar cron mensal
+
+---
+
+## Secao Tecnica
+
+### Estrutura Completa do JSON STJ
+
+```typescript
+interface STJAcordaoRaw {
+  id: string;                    // "000897322"
+  numeroProcesso: string;        // "2583484"
+  numeroRegistro: string;        // "202400682179"
+  siglaClasse: string;           // "RCD no AgInt no AREsp"
+  descricaoClasse: string;       // "PEDIDO DE RECONSIDERACAO..."
+  nomeOrgaoJulgador: string;     // "TERCEIRA TURMA"
+  ministroRelator: string;       // "RICARDO VILLAS BOAS CUEVA"
+  dataPublicacao: string | null;
+  ementa: string;
+  tipoDeDecisao: string;         // "ACORDAO"
+  dataDecisao: string;           // "20241209" (YYYYMMDD)
+  decisao: string;               // Texto da decisao
+  jurisprudenciaCitada: string | null;
+  notas: string | null;
+  informacoesComplementares: string | null;
+  termosAuxiliares: string | null;
+  teseJuridica: string | null;
+  tema: string | null;
+  referenciasLegislativas: string[];
+  acordaosSimilares: string[];
+}
+```
+
+### Parser de Data YYYYMMDD
+
+```typescript
+function parseDateYYYYMMDD(dateStr: string | null): string | null {
+  if (!dateStr || dateStr.length !== 8) return null;
+  const year = dateStr.substring(0, 4);
+  const month = dateStr.substring(4, 6);
+  const day = dateStr.substring(6, 8);
+  return `${year}-${month}-${day}`;
+}
+```
+
+### Resposta da API CKAN
+
+```typescript
+interface CKANResource {
+  id: string;           // UUID do recurso
+  name: string;         // "20250131.json"
+  format: string;       // "JSON"
+  url: string;          // URL completa de download
+  created: string;      // ISO date
+  last_modified: string;
+}
+
+interface CKANPackage {
+  id: string;
+  name: string;
+  resources: CKANResource[];
+}
+```
 
 ---
 
@@ -301,70 +284,18 @@ Baseado na estrutura do portal:
 
 | Risco | Probabilidade | Mitigacao |
 |-------|---------------|-----------|
-| Mudanca na estrutura do JSON | Media | Parser flexivel + validacao |
-| Timeout na importacao | Alta | Processar em lotes pequenos |
-| Volume muito grande | Media | Limitar orgaos mais relevantes inicialmente |
-| Portal indisponivel | Baixa | Retry com backoff + cache local |
+| Timeout em arquivos grandes | Alta | Processar em lotes pequenos |
+| API CKAN indisponivel | Baixa | Retry com backoff exponencial |
+| Mudanca na estrutura JSON | Media | Validacao de campos obrigatorios |
+| Limite de storage | Media | Monitorar uso, comprimir se necessario |
+| Rate limiting do STJ | Baixa | Delay entre requisicoes |
 
 ---
 
-## Secao Tecnica Detalhada
+## Metricas de Sucesso
 
-### Estrutura Esperada do JSON (baseado no dicionario STJ)
-
-```json
-{
-  "id": 12345,
-  "numeroProcesso": "REsp 1234567/SP",
-  "classe": "REsp",
-  "relator": "Ministro(a) NOME DO MINISTRO",
-  "orgaoJulgador": "TERCEIRA TURMA",
-  "dataJulgamento": "2024-01-15",
-  "dataPublicacao": "2024-01-20",
-  "ementa": "CIVIL E PROCESSUAL CIVIL. RECURSO ESPECIAL...",
-  "palavrasDestaque": ["CONTRATO", "RESCISAO", "DANO MORAL"],
-  "notasJurisprudencia": "...",
-  "referenciaLegislativa": ["Art. 927 do CC/2002", "Art. 5o do CDC"]
-}
-```
-
-### Edge Function - Fluxo de Sincronizacao
-
-```text
-sync-stj-jurisprudence(orgao)
-    |
-    v
-[1] Buscar lista de arquivos do dataset
-    |
-    v
-[2] Comparar com stj_sync_log
-    |
-    v
-[3] Para cada arquivo pendente:
-    |
-    +---> Baixar JSON
-    |
-    +---> Parse e validacao
-    |
-    +---> INSERT em lotes (500 registros)
-    |
-    +---> Atualizar stj_sync_log
-    |
-    v
-[4] Retornar estatisticas
-```
-
-### RLS Policies
-
-```sql
--- Leitura publica (dados sao publicos)
-ALTER TABLE stj_acordaos ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Acordaos sao publicos para leitura"
-  ON stj_acordaos FOR SELECT
-  USING (true);
-
--- Apenas service role pode inserir/atualizar
-CREATE POLICY "Apenas sistema pode modificar acordaos"
-  ON stj_acordaos FOR ALL
-  USING (auth.role() = 'service_role');
-```
+- [ ] 100% dos arquivos JSON descobertos automaticamente
+- [ ] Retomada automatica em caso de falha
+- [ ] Log completo de cada importacao
+- [ ] Painel mostrando progresso em tempo real
+- [ ] Busca retornando acordaos reais
