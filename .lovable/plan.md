@@ -1,6 +1,21 @@
 
 # Plano: Integracao de Jurisprudencia Real do STJ (Portal de Dados Abertos)
 
+## ✅ IMPLEMENTADO - Status Atual
+
+**Fases Concluídas:**
+- ✅ Fase 1: Infraestrutura de Dados (tabelas, triggers, índices, RLS)
+- ✅ Fase 2: Edge Function de Sincronização (`sync-stj-jurisprudence`)
+- ✅ Fase 3: Edge Function de Busca (`search-stj-jurisprudence`)
+- ✅ Fase 4: Frontend (componentes STJ, tabs, filtros avançados)
+- ✅ Importação de dados de teste (3 acórdãos de exemplo)
+
+**Próximos Passos (Manual):**
+1. Baixar JSON do Portal de Dados Abertos STJ
+2. Usar a Edge Function sync-stj-jurisprudence com `jsonUrl` para importar dados reais
+
+---
+
 ## Contexto e Descobertas
 
 ### O que o Portal de Dados Abertos do STJ oferece

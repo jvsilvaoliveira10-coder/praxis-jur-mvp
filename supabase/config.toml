@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.populate-legal-database]
 verify_jwt = false
+
+[functions.sync-stj-jurisprudence]
+verify_jwt = false
+
+[functions.search-stj-jurisprudence]
+verify_jwt = false

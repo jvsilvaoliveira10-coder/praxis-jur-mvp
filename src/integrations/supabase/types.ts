@@ -1368,6 +1368,99 @@ export type Database = {
           },
         ]
       }
+      stj_acordaos: {
+        Row: {
+          classe: string | null
+          created_at: string | null
+          data_julgamento: string | null
+          data_publicacao: string | null
+          ementa: string
+          id: string
+          notas: string | null
+          orgao_julgador: string
+          palavras_destaque: string[] | null
+          processo: string | null
+          referencias_legais: string[] | null
+          relator: string | null
+          search_vector: unknown
+          source_file: string | null
+          stj_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          classe?: string | null
+          created_at?: string | null
+          data_julgamento?: string | null
+          data_publicacao?: string | null
+          ementa: string
+          id?: string
+          notas?: string | null
+          orgao_julgador: string
+          palavras_destaque?: string[] | null
+          processo?: string | null
+          referencias_legais?: string[] | null
+          relator?: string | null
+          search_vector?: unknown
+          source_file?: string | null
+          stj_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          classe?: string | null
+          created_at?: string | null
+          data_julgamento?: string | null
+          data_publicacao?: string | null
+          ementa?: string
+          id?: string
+          notas?: string | null
+          orgao_julgador?: string
+          palavras_destaque?: string[] | null
+          processo?: string | null
+          referencias_legais?: string[] | null
+          relator?: string | null
+          search_vector?: unknown
+          source_file?: string | null
+          stj_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      stj_sync_log: {
+        Row: {
+          arquivo: string
+          created_at: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          orgao: string
+          registros_importados: number | null
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          arquivo: string
+          created_at?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          orgao: string
+          registros_importados?: number | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          arquivo?: string
+          created_at?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          orgao?: string
+          registros_importados?: number | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       sumulas: {
         Row: {
           content: string
@@ -1615,6 +1708,33 @@ export type Database = {
           ref_source: string
           ref_type: string
           relevance: number
+        }[]
+      }
+      search_stj_acordaos: {
+        Args: {
+          filter_classe?: string
+          filter_data_fim?: string
+          filter_data_inicio?: string
+          filter_orgao?: string
+          result_limit?: number
+          result_offset?: number
+          search_query: string
+        }
+        Returns: {
+          classe: string
+          data_julgamento: string
+          data_publicacao: string
+          ementa: string
+          id: string
+          notas: string
+          orgao_julgador: string
+          palavras_destaque: string[]
+          processo: string
+          referencias_legais: string[]
+          relator: string
+          relevance: number
+          stj_id: string
+          total_count: number
         }[]
       }
     }
