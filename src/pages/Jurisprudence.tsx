@@ -37,6 +37,10 @@ const Jurisprudence = () => {
   }>();
   const [stjSelectedIds, setStjSelectedIds] = useState<Set<string>>(new Set());
   const [lastStjParams, setLastStjParams] = useState<STJSearchParams | null>(null);
+  const [stjSource, setStjSource] = useState<'local' | 'datajud' | 'mixed'>();
+  const [stjImported, setStjImported] = useState<number>();
+  const [stjLocalCount, setStjLocalCount] = useState<number>();
+  const [stjRemoteCount, setStjRemoteCount] = useState<number>();
 
   // TJSP Search Handler (demo)
   const handleTjspSearch = async (query: string, decisionType?: string) => {
@@ -89,6 +93,10 @@ const Jurisprudence = () => {
       if (response.success && response.data) {
         setStjResults(response.data);
         setStjPagination(response.pagination);
+        setStjSource(response.source);
+        setStjImported(response.imported);
+        setStjLocalCount(response.localCount);
+        setStjRemoteCount(response.remoteCount);
         
         if (response.data.length === 0) {
           toast({
@@ -96,9 +104,17 @@ const Jurisprudence = () => {
             description: 'Não foram encontrados acórdãos do STJ para esta busca.',
           });
         } else {
+          const sourceMsg = response.source === 'datajud' 
+            ? ' (API Datajud)' 
+            : response.source === 'mixed' 
+              ? ' (local + API)' 
+              : ' (base local)';
+          const importedMsg = response.imported && response.imported > 0 
+            ? ` - ${response.imported} novos importados` 
+            : '';
           toast({
             title: 'Busca concluída',
-            description: `${response.pagination?.total || response.data.length} acórdão(s) encontrado(s).`,
+            description: `${response.pagination?.total || response.data.length} acórdão(s) encontrado(s)${sourceMsg}${importedMsg}.`,
           });
         }
       } else {
@@ -228,6 +244,10 @@ const Jurisprudence = () => {
             selectedIds={stjSelectedIds}
             onSelect={handleStjSelect}
             onPageChange={handleStjPageChange}
+            source={stjSource}
+            imported={stjImported}
+            localCount={stjLocalCount}
+            remoteCount={stjRemoteCount}
           />
         </TabsContent>
 
