@@ -14,6 +14,7 @@ export interface STJAcordao {
   referencias_legais: string[];
   notas: string | null;
   relevance?: number;
+  source_type?: string;
 }
 
 export interface STJSearchParams {
@@ -24,6 +25,8 @@ export interface STJSearchParams {
   dataFim?: string;
   page?: number;
   limit?: number;
+  fetchRemote?: boolean;
+  minLocalResults?: number;
 }
 
 export interface STJSearchResponse {
@@ -35,7 +38,10 @@ export interface STJSearchResponse {
     total: number;
     totalPages: number;
   };
-  source?: string;
+  source?: 'local' | 'datajud' | 'mixed';
+  imported?: number;
+  localCount?: number;
+  remoteCount?: number;
   error?: string;
 }
 
@@ -75,7 +81,7 @@ export const STJ_CLASSES = [
 
 export const stjJurisprudenceApi = {
   /**
-   * Busca acórdãos do STJ usando Full-Text Search
+   * Busca acórdãos do STJ usando busca híbrida (local + API Datajud)
    */
   async search(params: STJSearchParams): Promise<STJSearchResponse> {
     const { data, error } = await supabase.functions.invoke('search-stj-jurisprudence', {

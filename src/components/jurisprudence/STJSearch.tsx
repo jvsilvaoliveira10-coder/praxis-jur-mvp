@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Search, Loader2, Filter, Calendar } from 'lucide-react';
+import { Search, Loader2, Filter, Calendar, Globe, Database } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -15,6 +16,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -32,6 +39,7 @@ const STJSearch = ({ onSearch, isLoading }: STJSearchProps) => {
   const [dataInicio, setDataInicio] = useState<Date | undefined>();
   const [dataFim, setDataFim] = useState<Date | undefined>();
   const [showFilters, setShowFilters] = useState(false);
+  const [fetchRemote, setFetchRemote] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +50,7 @@ const STJSearch = ({ onSearch, isLoading }: STJSearchProps) => {
         classe: classe || undefined,
         dataInicio: dataInicio ? format(dataInicio, 'yyyy-MM-dd') : undefined,
         dataFim: dataFim ? format(dataFim, 'yyyy-MM-dd') : undefined,
+        fetchRemote,
       });
     }
   };
@@ -51,6 +60,7 @@ const STJSearch = ({ onSearch, isLoading }: STJSearchProps) => {
     setClasse('');
     setDataInicio(undefined);
     setDataFim(undefined);
+    setFetchRemote(false);
   };
 
   const hasFilters = orgao || classe || dataInicio || dataFim;
@@ -99,6 +109,42 @@ const STJSearch = ({ onSearch, isLoading }: STJSearchProps) => {
             </>
           )}
         </Button>
+      </div>
+
+      {/* Toggle busca remota */}
+      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-dashed">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="fetch-remote"
+                  checked={fetchRemote}
+                  onCheckedChange={setFetchRemote}
+                  disabled={isLoading}
+                />
+                <Label htmlFor="fetch-remote" className="flex items-center gap-2 cursor-pointer">
+                  {fetchRemote ? (
+                    <Globe className="h-4 w-4 text-primary" />
+                  ) : (
+                    <Database className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span className={fetchRemote ? "text-primary font-medium" : ""}>
+                    {fetchRemote ? "Buscar na fonte oficial (mais lento)" : "Busca rápida (cache local)"}
+                  </span>
+                </Label>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p>
+                <strong>Busca rápida:</strong> Busca nos acórdãos já baixados localmente (mais rápido).
+              </p>
+              <p className="mt-1">
+                <strong>Fonte oficial:</strong> Consulta a API do Datajud/CNJ em tempo real para obter os dados mais atualizados. Os resultados são importados automaticamente para buscas futuras.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* Filtros avançados */}

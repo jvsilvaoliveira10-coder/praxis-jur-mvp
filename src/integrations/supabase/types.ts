@@ -1384,6 +1384,7 @@ export type Database = {
           relator: string | null
           search_vector: unknown
           source_file: string | null
+          source_type: string | null
           stj_id: string
           updated_at: string | null
         }
@@ -1402,6 +1403,7 @@ export type Database = {
           relator?: string | null
           search_vector?: unknown
           source_file?: string | null
+          source_type?: string | null
           stj_id: string
           updated_at?: string | null
         }
@@ -1420,6 +1422,7 @@ export type Database = {
           relator?: string | null
           search_vector?: unknown
           source_file?: string | null
+          source_type?: string | null
           stj_id?: string
           updated_at?: string | null
         }
