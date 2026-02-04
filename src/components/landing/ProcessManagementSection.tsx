@@ -256,7 +256,7 @@ export function ProcessManagementSection() {
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                 >
-                  <div className="flex gap-3 overflow-x-auto pb-2">
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3 sm:overflow-x-auto sm:pb-2">
                     {columns.map((column) => (
                       <KanbanColumn 
                         key={column.id} 
@@ -269,7 +269,8 @@ export function ProcessManagementSection() {
                 {/* Instruction */}
                 <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg py-2">
                   <GripVertical className="w-4 h-4" />
-                  <span>Experimente! Arraste os cards entre as colunas</span>
+                  <span className="hidden sm:inline">Experimente! Arraste os cards entre as colunas</span>
+                  <span className="sm:hidden">Toque e arraste os cards</span>
                 </div>
               </div>
             </div>
