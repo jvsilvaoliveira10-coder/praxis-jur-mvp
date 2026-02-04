@@ -1,439 +1,318 @@
 
-# Plano Premium: Onboarding Completo e Gamificado para Advogados
+# Plano: Adicionar Contato (WhatsApp + Email) na Landing Page e Sistema Interno
 
-## Visão Geral
-
-Transformar o onboarding atual em uma **experiência premium dividida em dois módulos** (Jurídico e Financeiro), com tour guiado mais completo, tooltips responsivos que nunca saem da tela, e checklist gamificado com recompensas visuais.
+## Informacoes de Contato
+- **WhatsApp**: 16992159284
+- **Email**: sac@praxisjur.com
 
 ---
 
-## Estrutura Proposta
+## Resumo das Alteracoes
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                    ONBOARDING FLOW                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  1. Setup Wizard (já existe) → Coleta dados iniciais       │
-│                     ↓                                       │
-│  2. Welcome Modal → Introdução + escolha de tour           │
-│                     ↓                                       │
-│  3. TOUR JURÍDICO (8-10 steps)                             │
-│     • Dashboard                                             │
-│     • Clientes + Processos                                  │
-│     • Petições com IA                                       │
-│     • Pipeline Kanban                                       │
-│     • Jurisprudência + Acompanhamento                       │
-│     • Agenda + Notificações                                 │
-│                     ↓                                       │
-│  4. TOUR FINANCEIRO (6-8 steps)                            │
-│     • Painel Financeiro                                     │
-│     • Contas a Receber/Pagar                               │
-│     • Contratos de Honorários                              │
-│     • Relatórios Financeiros                               │
-│                     ↓                                       │
-│  5. CHECKLIST GAMIFICADO                                    │
-│     • Missões separadas por módulo                         │
-│     • Badges/conquistas visuais                            │
-│     • Barra de progresso com animações                     │
-│     • Celebração ao completar cada módulo                  │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                    IMPLEMENTACAO DE CONTATO                         │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  1. LANDING PAGE (/)                                                │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │  • Botao flutuante WhatsApp (canto inferior direito)         │  │
+│  │  • Animacao de pulse suave para chamar atencao               │  │
+│  │  • Link direto: wa.me/5516992159284                          │  │
+│  │  • Email no rodape (LandingFooter)                           │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  2. SIDEBAR INTERNA (/dashboard, etc)                              │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │  • Menu "Contato" + "Configuracoes" fixos no bottom          │  │
+│  │  • Separados das categorias colapsaveis (Juridico/Financ.)   │  │
+│  │  • Permanecem visiveis mesmo com sidebar colapsada           │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  3. PAGINA DE CONTATO (/contato)                                   │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │  • Cards com WhatsApp e Email                                │  │
+│  │  • Botoes de acao direta (abrir WhatsApp, copiar email)      │  │
+│  │  • Design premium consistente com o sistema                  │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Problemas Atuais a Resolver
+## Arquivos a Criar/Modificar
 
-### 1. Tooltip saindo da tela (notificações)
-O tooltip do step "Notificações" está posicionado para baixo (`placement: 'bottom'`), mas não há verificação de limites de tela.
-
-### 2. Tour muito curto (5 steps)
-Cobre apenas: Dashboard, Clientes, Petições, Pipeline, Notificações. Falta cobrir 70% da plataforma.
-
-### 3. Checklist básico (5 tarefas)
-Não cobre módulo financeiro nem gamificação real.
-
-### 4. Falta divisão em módulos
-Advogados querem entender primeiro o core jurídico antes de ver financeiro.
+| Arquivo | Acao | Descricao |
+|---------|------|-----------|
+| `src/components/landing/WhatsAppButton.tsx` | **CRIAR** | Botao flutuante do WhatsApp |
+| `src/pages/Index.tsx` | MODIFICAR | Adicionar WhatsAppButton |
+| `src/components/landing/LandingFooter.tsx` | MODIFICAR | Adicionar email e WhatsApp |
+| `src/pages/Contact.tsx` | **CRIAR** | Pagina de contato interna |
+| `src/components/layout/Sidebar.tsx` | MODIFICAR | Fixar Contato + Config no bottom |
+| `src/App.tsx` | MODIFICAR | Adicionar rota /contato |
 
 ---
 
-## Arquitetura de Arquivos
+## Detalhes Tecnicos
 
-| Arquivo | Ação |
-|---------|------|
-| `src/components/onboarding/ProductTour.tsx` | Refatorar com viewport-aware positioning |
-| `src/components/onboarding/TourTooltip.tsx` | **NOVO** - Componente de tooltip inteligente |
-| `src/components/onboarding/OnboardingChecklist.tsx` | Expandir com módulos e gamificação |
-| `src/components/onboarding/WelcomeModal.tsx` | Adicionar opção de escolher módulo |
-| `src/components/onboarding/AchievementBadge.tsx` | **NOVO** - Componente de conquistas |
-| `src/hooks/useOnboardingProgress.ts` | Adicionar campos para tour financeiro |
-| `src/index.css` | Adicionar animações premium |
-| **Migration SQL** | Novos campos no banco |
+### 1. Botao Flutuante WhatsApp (Landing Page)
 
----
-
-## Detalhes Técnicos
-
-### 1. TourTooltip Inteligente (Viewport-Aware)
-
-O novo componente calcula automaticamente se o tooltip cabe na posição desejada e ajusta:
+Componente que fica fixo no canto inferior direito com animacao de pulse:
 
 ```typescript
-// Lógica de posicionamento seguro
-const calculateSafePosition = (
-  targetRect: DOMRect,
-  tooltipWidth: number,
-  tooltipHeight: number,
-  preferredPlacement: 'top' | 'bottom' | 'left' | 'right'
-) => {
-  const viewport = {
-    width: window.innerWidth,
-    height: window.innerHeight,
-  };
+// src/components/landing/WhatsAppButton.tsx
+import { MessageCircle } from 'lucide-react';
+
+const WHATSAPP_NUMBER = '5516992159284';
+const WHATSAPP_MESSAGE = 'Olá! Gostaria de saber mais sobre o Práxis AI.';
+
+export function WhatsAppButton() {
+  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
   
-  // Verificar se cabe na posição preferida
-  // Se não couber, tentar posições alternativas
-  // Garantir padding mínimo de 16px das bordas
+  return (
+    <a
+      href={whatsappUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="fixed bottom-6 right-6 z-50 flex items-center justify-center 
+                 w-14 h-14 bg-green-500 hover:bg-green-600 rounded-full 
+                 shadow-lg hover:shadow-xl transition-all duration-300
+                 animate-pulse-subtle group"
+      aria-label="Contato via WhatsApp"
+    >
+      {/* Icone WhatsApp SVG oficial */}
+      <svg viewBox="0 0 24 24" className="w-7 h-7 fill-white">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.789l4.89-1.284A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.32 0-4.473-.64-6.32-1.748l-.453-.27-2.902.762.775-2.833-.296-.469A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+      </svg>
+      
+      {/* Tooltip on hover */}
+      <span className="absolute right-16 bg-foreground text-background 
+                       px-3 py-1.5 rounded-lg text-sm font-medium
+                       opacity-0 group-hover:opacity-100 transition-opacity
+                       whitespace-nowrap shadow-md">
+        Fale conosco
+      </span>
+    </a>
+  );
+}
+```
+
+CSS para animacao suave (adicionar ao index.css se nao existir):
+
+```css
+@keyframes pulse-subtle {
+  0%, 100% { transform: scale(1); box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4); }
+  50% { transform: scale(1.05); box-shadow: 0 4px 30px rgba(34, 197, 94, 0.6); }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+```
+
+### 2. Rodape da Landing Page Atualizado
+
+Adicionar secao de contato no LandingFooter:
+
+```typescript
+// Adicionar ao LandingFooter.tsx
+<div className="flex flex-col md:flex-row items-center gap-4 text-sm">
+  <a 
+    href="mailto:sac@praxisjur.com" 
+    className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+  >
+    <Mail className="w-4 h-4" />
+    sac@praxisjur.com
+  </a>
+  <a 
+    href="https://wa.me/5516992159284" 
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+  >
+    <MessageCircle className="w-4 h-4" />
+    (16) 99215-9284
+  </a>
+</div>
+```
+
+### 3. Sidebar com Bottom Fixo
+
+A estrutura sera reorganizada para ter tres areas distintas:
+
+```typescript
+// Sidebar.tsx - Nova estrutura
+
+// Categorias colapsaveis (Juridico e Financeiro)
+const categories: NavCategory[] = [
+  { id: 'juridico', ... },
+  { id: 'financeiro', ... },
+];
+
+// Links fixos no bottom (NAO fazem parte do scroll)
+const fixedBottomLinks: NavItem[] = [
+  { to: '/contato', icon: MessageCircle, label: 'Contato' },
+  { to: '/configuracoes', icon: Settings, label: 'Configuracoes' },
+];
+
+// Layout:
+<aside className="... flex flex-col">
+  {/* Header com logo */}
+  <div className="h-[72px] ...">...</div>
   
-  return { top, left, actualPlacement };
+  {/* Area scrollavel - APENAS categorias */}
+  <nav className="flex-1 overflow-y-auto scrollbar-hidden p-3">
+    {categories.map(category => renderCategory(category))}
+  </nav>
+  
+  {/* Bottom FIXO - Contato + Config + User */}
+  <div className="border-t border-sidebar-border">
+    {/* Links fixos */}
+    <div className="p-3 space-y-1">
+      {fixedBottomLinks.map(item => renderNavItem(item))}
+    </div>
+    
+    {/* User info + Logout */}
+    <div className="p-3 border-t border-sidebar-border">
+      {profile && <div>...</div>}
+      <Button onClick={signOut}>Sair</Button>
+    </div>
+  </div>
+</aside>
+```
+
+### 4. Pagina de Contato
+
+Pagina simples e elegante com os dois canais:
+
+```typescript
+// src/pages/Contact.tsx
+const Contact = () => {
+  const WHATSAPP_NUMBER = '5516992159284';
+  const EMAIL = 'sac@praxisjur.com';
+  
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Contato</h1>
+        <p className="text-muted-foreground">
+          Estamos aqui para ajudar. Escolha o melhor canal para voce.
+        </p>
+      </div>
+      
+      <div className="grid gap-6 md:grid-cols-2 max-w-2xl">
+        {/* WhatsApp Card */}
+        <Card className="p-6 hover:shadow-lg transition-shadow">
+          <div className="flex flex-col items-center text-center gap-4">
+            <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center">
+              <MessageCircle className="w-8 h-8 text-green-500" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-lg">WhatsApp</h2>
+              <p className="text-sm text-muted-foreground">Resposta rapida</p>
+            </div>
+            <p className="font-mono text-lg">(16) 99215-9284</p>
+            <Button asChild className="w-full bg-green-500 hover:bg-green-600">
+              <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank">
+                Iniciar Conversa
+              </a>
+            </Button>
+          </div>
+        </Card>
+        
+        {/* Email Card */}
+        <Card className="p-6 hover:shadow-lg transition-shadow">
+          <div className="flex flex-col items-center text-center gap-4">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+              <Mail className="w-8 h-8 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-lg">E-mail</h2>
+              <p className="text-sm text-muted-foreground">Suporte detalhado</p>
+            </div>
+            <p className="font-mono text-lg">{EMAIL}</p>
+            <Button asChild variant="outline" className="w-full">
+              <a href={`mailto:${EMAIL}`}>
+                Enviar E-mail
+              </a>
+            </Button>
+          </div>
+        </Card>
+      </div>
+      
+      {/* Horario de atendimento */}
+      <Card className="p-4 bg-muted/50 max-w-2xl">
+        <div className="flex items-center gap-3">
+          <Clock className="w-5 h-5 text-muted-foreground" />
+          <div>
+            <p className="text-sm font-medium">Horario de Atendimento</p>
+            <p className="text-sm text-muted-foreground">
+              Segunda a Sexta, das 9h as 18h
+            </p>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
 };
 ```
 
-### 2. Novo Tour Jurídico Completo (10 steps)
-
-```typescript
-const TOUR_JURIDICO: TourStep[] = [
-  { target: '[data-tour="dashboard"]', title: 'Central de Comando', category: 'juridico', ... },
-  { target: '[data-tour="clients"]', title: 'Base de Clientes', category: 'juridico', ... },
-  { target: '[data-tour="cases"]', title: 'Processos Ativos', category: 'juridico', ... },
-  { target: '[data-tour="pipeline"]', title: 'Gestão Visual Kanban', category: 'juridico', ... },
-  { target: '[data-tour="petitions"]', title: 'Gerador de Petições IA', category: 'juridico', ... },
-  { target: '[data-tour="templates"]', title: 'Biblioteca de Modelos', category: 'juridico', ... },
-  { target: '[data-tour="jurisprudence"]', title: 'Pesquisa Jurisprudencial', category: 'juridico', ... },
-  { target: '[data-tour="tracking"]', title: 'Acompanhamento Processual', category: 'juridico', ... },
-  { target: '[data-tour="agenda"]', title: 'Agenda e Prazos', category: 'juridico', ... },
-  { target: '[data-tour="notifications"]', title: 'Central de Alertas', category: 'juridico', ... },
-];
-```
-
-### 3. Novo Tour Financeiro (7 steps)
-
-```typescript
-const TOUR_FINANCEIRO: TourStep[] = [
-  { target: '[data-tour="finance-dashboard"]', title: 'Painel Financeiro', category: 'financeiro', ... },
-  { target: '[data-tour="receivables"]', title: 'Contas a Receber', category: 'financeiro', ... },
-  { target: '[data-tour="payables"]', title: 'Contas a Pagar', category: 'financeiro', ... },
-  { target: '[data-tour="transactions"]', title: 'Extrato de Movimentações', category: 'financeiro', ... },
-  { target: '[data-tour="contracts"]', title: 'Contratos de Honorários', category: 'financeiro', ... },
-  { target: '[data-tour="finance-reports"]', title: 'Relatórios Gerenciais', category: 'financeiro', ... },
-  { target: '[data-tour="finance-settings"]', title: 'Configurações Financeiras', category: 'financeiro', ... },
-];
-```
-
-### 4. Checklist Gamificado com Módulos
-
-```typescript
-interface ChecklistModule {
-  id: 'juridico' | 'financeiro';
-  title: string;
-  icon: LucideIcon;
-  color: string;  // Teal para jurídico, Green para financeiro
-  tasks: ChecklistTask[];
-  badge: {
-    name: string;
-    icon: string;  // emoji ou ícone
-  };
-}
-
-const MODULES: ChecklistModule[] = [
-  {
-    id: 'juridico',
-    title: 'Módulo Jurídico',
-    icon: Scale,
-    color: 'from-teal-500 to-cyan-500',
-    badge: { name: 'Jurista Digital', icon: '⚖️' },
-    tasks: [
-      { id: 'profile', title: 'Completar perfil profissional', ... },
-      { id: 'client', title: 'Cadastrar primeiro cliente', ... },
-      { id: 'case', title: 'Registrar primeiro processo', ... },
-      { id: 'petition', title: 'Gerar petição com IA', ... },
-      { id: 'pipeline', title: 'Organizar processos no Kanban', ... },
-      { id: 'jurisprudence', title: 'Fazer pesquisa jurisprudencial', ... },
-      { id: 'tracking', title: 'Monitorar um processo', ... },
-    ],
-  },
-  {
-    id: 'financeiro',
-    title: 'Módulo Financeiro',
-    icon: Wallet,
-    color: 'from-green-500 to-emerald-500',
-    badge: { name: 'Gestor Financeiro', icon: '💰' },
-    tasks: [
-      { id: 'finance-visit', title: 'Explorar painel financeiro', ... },
-      { id: 'receivable', title: 'Criar conta a receber', ... },
-      { id: 'contract', title: 'Cadastrar contrato de honorários', ... },
-      { id: 'report', title: 'Gerar relatório financeiro', ... },
-    ],
-  },
-];
-```
-
-### 5. Sistema de Conquistas (Badges)
-
-```typescript
-interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;  // Emoji
-  condition: 'module_juridico' | 'module_financeiro' | 'all_complete';
-  unlocked: boolean;
-}
-
-const ACHIEVEMENTS: Achievement[] = [
-  {
-    id: 'jurista',
-    name: 'Jurista Digital',
-    description: 'Completou o módulo jurídico',
-    icon: '⚖️',
-    condition: 'module_juridico',
-  },
-  {
-    id: 'gestor',
-    name: 'Gestor Financeiro',
-    description: 'Completou o módulo financeiro',
-    icon: '💰',
-    condition: 'module_financeiro',
-  },
-  {
-    id: 'mestre',
-    name: 'Mestre da Práxis',
-    description: 'Dominou toda a plataforma',
-    icon: '🏆',
-    condition: 'all_complete',
-  },
-];
-```
-
-### 6. Migração do Banco de Dados
-
-Adicionar novos campos para suportar tours separados e tarefas expandidas:
-
-```sql
--- Adicionar campos para tour financeiro e tarefas expandidas
-ALTER TABLE user_onboarding_progress
-ADD COLUMN IF NOT EXISTS juridico_tour_completed BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS juridico_tour_step INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS finance_tour_completed BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS finance_tour_step INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS jurisprudence_searched BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS tracking_used BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS finance_dashboard_visited BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS first_receivable_created BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS first_contract_created BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS finance_report_generated BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS badges_earned TEXT[] DEFAULT '{}';
-```
-
-### 7. Sidebar com data-tour Attributes
-
-Atualizar o Sidebar para incluir `data-tour` em todos os itens de navegação:
-
-```typescript
-// src/components/layout/Sidebar.tsx
-const categories: NavCategory[] = [
-  {
-    id: 'juridico',
-    items: [
-      { to: '/dashboard', tourId: 'dashboard', ... },
-      { to: '/clients', tourId: 'clients', ... },
-      { to: '/cases', tourId: 'cases', ... },  // NOVO
-      { to: '/pipeline', tourId: 'pipeline', ... },
-      { to: '/petitions', tourId: 'petitions', ... },
-      { to: '/templates', tourId: 'templates', ... },  // NOVO
-      { to: '/jurisprudence', tourId: 'jurisprudence', ... },  // NOVO
-      { to: '/tracking', tourId: 'tracking', ... },  // NOVO
-      { to: '/agenda', tourId: 'agenda', ... },  // NOVO
-    ],
-  },
-  {
-    id: 'financeiro',
-    items: [
-      { to: '/financeiro', tourId: 'finance-dashboard', ... },  // NOVO
-      { to: '/financeiro/receber', tourId: 'receivables', ... },  // NOVO
-      { to: '/financeiro/pagar', tourId: 'payables', ... },  // NOVO
-      { to: '/financeiro/extrato', tourId: 'transactions', ... },  // NOVO
-      { to: '/financeiro/contratos', tourId: 'contracts', ... },  // NOVO
-      { to: '/financeiro/relatorios', tourId: 'finance-reports', ... },  // NOVO
-    ],
-  },
-];
-```
-
 ---
 
-## UI/UX Premium
-
-### Tooltip Redesenhado
+## Visualizacao da Sidebar
 
 ```text
-┌─────────────────────────────────────────┐
-│  ┌──────┐                          [×]  │
-│  │ ICON │  Central de Comando           │
-│  │      │  ─────────────────            │
-│  └──────┘  Seu painel com visão geral   │
-│            de tudo: prazos, processos   │
-│            e métricas importantes.       │
-│                                          │
-│  ┌─────────────────────────────────────┐│
-│  │ [◀ Anterior]  ●●●○○○○○○  [Próximo ▶]││
-│  └─────────────────────────────────────┘│
-│               Step 1 de 10              │
-│                                          │
-│  ┌─────────────────────────────────────┐│
-│  │        [Pular Tour Jurídico]        ││
-│  └─────────────────────────────────────┘│
-└─────────────────────────────────────────┘
-```
-
-### Checklist com Módulos
-
-```text
-┌─────────────────────────────────────────┐
-│  ✨ Primeiros Passos            [−] [×] │
-├─────────────────────────────────────────┤
-│  Progresso Total: ████████░░░░ 65%      │
-├─────────────────────────────────────────┤
-│                                         │
-│  ⚖️ MÓDULO JURÍDICO ──────── 80% ✓      │
-│  ┌─────────────────────────────────────┐│
-│  │ ✓ Completar perfil profissional    ││
-│  │ ✓ Cadastrar primeiro cliente       ││
-│  │ ✓ Registrar primeiro processo      ││
-│  │ ✓ Gerar petição com IA             ││
-│  │ ○ Organizar processos no Kanban    ││
-│  └─────────────────────────────────────┘│
-│                                         │
-│  💰 MÓDULO FINANCEIRO ────── 25%        │
-│  ┌─────────────────────────────────────┐│
-│  │ ✓ Explorar painel financeiro       ││
-│  │ ○ Criar conta a receber            ││
-│  │ ○ Cadastrar contrato de honorários ││
-│  │ ○ Gerar relatório financeiro       ││
-│  └─────────────────────────────────────┘│
-│                                         │
-│  🏆 CONQUISTAS ─────────────────────────│
-│  ┌──────┐ ┌──────┐ ┌──────┐            │
-│  │ ⚖️   │ │ 💰   │ │ 🔒   │            │
-│  │ OK!  │ │ 25%  │ │ ???  │            │
-│  └──────┘ └──────┘ └──────┘            │
-│                                         │
-│  [Ver Tutorial Financeiro]              │
-└─────────────────────────────────────────┘
+┌────────────────────────────────┐
+│  [Logo] Praxis AI         [<] │
+├────────────────────────────────┤
+│                                │
+│  v Juridico                    │  <- Categoria colapsavel
+│    > Dashboard                 │
+│    > Clientes                  │
+│    > Processos                 │
+│    > Gestao de Processos       │
+│    > Peticoes                  │
+│    > ...                       │
+│                                │
+│  v Financeiro                  │  <- Categoria colapsavel
+│    > Painel                    │
+│    > Contas a Receber          │
+│    > ...                       │
+│                                │
+│  (area scrollavel termina)     │
+│                                │
+├────────────────────────────────┤  <- Border fixo
+│  [msg] Contato                 │  <- FIXO (nao scroll)
+│  [cfg] Configuracoes           │  <- FIXO (nao scroll)
+├────────────────────────────────┤
+│  Dr. Joao Silva                │
+│  Advogado                      │
+│  [Sair]                        │
+└────────────────────────────────┘
 ```
 
 ---
 
-## Animações Premium (CSS)
+## Ordem de Implementacao
 
-```css
-/* Animação de unlock de badge */
-@keyframes badge-unlock {
-  0% { transform: scale(0) rotate(-180deg); opacity: 0; }
-  50% { transform: scale(1.2) rotate(10deg); }
-  100% { transform: scale(1) rotate(0deg); opacity: 1; }
-}
-
-.animate-badge-unlock {
-  animation: badge-unlock 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-/* Shimmer para tarefas completadas */
-@keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-
-.shimmer-complete {
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(255,255,255,0.3) 50%, 
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 2s linear infinite;
-}
-
-/* Pulse suave para próxima tarefa */
-@keyframes gentle-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4); }
-  50% { box-shadow: 0 0 0 4px hsl(var(--primary) / 0); }
-}
-
-.animate-next-task {
-  animation: gentle-pulse 2s ease-in-out infinite;
-}
-```
-
----
-
-## Welcome Modal Atualizado
-
-Adicionar opção de escolher qual módulo explorar primeiro:
-
-```text
-┌────────────────────────────────────────────┐
-│                                            │
-│         🎉 Bem-vindo, Dr(a). João!         │
-│                                            │
-│    Seu escritório está configurado e       │
-│    pronto para transformar sua prática.    │
-│                                            │
-│  ┌──────────────────────────────────────┐  │
-│  │  Escolha como deseja começar:        │  │
-│  │                                       │  │
-│  │  ┌─────────────┐ ┌─────────────┐     │  │
-│  │  │ ⚖️ Jurídico │ │ 💰 Financ.  │     │  │
-│  │  │  10 steps   │ │  7 steps    │     │  │
-│  │  │   ~4 min    │ │   ~3 min    │     │  │
-│  │  └─────────────┘ └─────────────┘     │  │
-│  │                                       │  │
-│  │  ┌─────────────────────────────┐     │  │
-│  │  │   🚀 Tour Completo (~7min)  │     │  │
-│  │  └─────────────────────────────┘     │  │
-│  └──────────────────────────────────────┘  │
-│                                            │
-│        Ou explorar por conta própria →     │
-│                                            │
-└────────────────────────────────────────────┘
-```
-
----
-
-## Ordem de Implementação
-
-1. **Migration SQL** - Adicionar novos campos ao banco
-2. **TourTooltip.tsx** - Criar componente de tooltip inteligente
-3. **ProductTour.tsx** - Refatorar com steps expandidos e viewport-aware
-4. **Sidebar.tsx** - Adicionar data-tour em todos os itens
-5. **AchievementBadge.tsx** - Criar componente de conquistas
-6. **OnboardingChecklist.tsx** - Expandir com módulos e gamificação
-7. **WelcomeModal.tsx** - Adicionar seleção de módulo
-8. **useOnboardingProgress.ts** - Atualizar hook com novos campos
-9. **index.css** - Adicionar animações premium
-10. **Testar fluxo completo** - Verificar todos os cenários
+1. Criar `WhatsAppButton.tsx` - Componente flutuante
+2. Modificar `Index.tsx` - Adicionar botao flutuante
+3. Modificar `LandingFooter.tsx` - Adicionar email e WhatsApp
+4. Criar `Contact.tsx` - Pagina interna de contato
+5. Modificar `App.tsx` - Adicionar rota /contato
+6. Modificar `Sidebar.tsx` - Reorganizar para bottom fixo
+7. Adicionar animacao CSS ao `index.css`
 
 ---
 
 ## Resultado Esperado
 
-Após a implementação:
-- Tour jurídico com 10 steps cobrindo toda a área jurídica
-- Tour financeiro com 7 steps cobrindo todo o módulo financeiro
-- Tooltips inteligentes que nunca saem da tela
-- Checklist dividido em módulos com progresso visual
-- Sistema de conquistas (badges) para gamificação
-- Celebrações visuais ao completar cada módulo
-- Experiência premium digna de advogados exigentes
+Apos a implementacao:
+- Landing page com botao flutuante do WhatsApp (canto inferior direito)
+- Footer da landing com email e WhatsApp visiveis
+- Menu interno com "Contato" e "Configuracoes" sempre fixos no bottom
+- Os links fixos permanecem visiveis independente do scroll ou collapse das categorias
+- Pagina /contato com design premium e botoes de acao direta
+- Experiencia consistente em desktop e mobile
