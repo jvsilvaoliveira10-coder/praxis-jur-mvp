@@ -22,7 +22,7 @@ export function KanbanCard({ card }: KanbanCardProps) {
       {...listeners}
       {...attributes}
       className={cn(
-        'bg-card border rounded-md p-2 shadow-sm cursor-grab active:cursor-grabbing transition-all touch-none',
+        'bg-card border rounded-md p-1.5 sm:p-2 shadow-sm cursor-grab active:cursor-grabbing transition-all touch-none',
         isDragging ? 'opacity-70 shadow-lg scale-105 ring-2 ring-primary/20' : 'hover:shadow-md'
       )}
     >

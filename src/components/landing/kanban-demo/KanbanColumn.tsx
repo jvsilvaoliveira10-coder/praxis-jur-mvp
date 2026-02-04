@@ -16,7 +16,7 @@ export function KanbanColumn({ column }: KanbanColumnProps) {
     <div 
       ref={setNodeRef}
       className={cn(
-        'flex-shrink-0 w-36 bg-muted/50 rounded-lg p-2 transition-all duration-200',
+        'w-full sm:w-36 sm:flex-shrink-0 bg-muted/50 rounded-lg p-2 transition-all duration-200',
         isOver && 'bg-muted ring-2 ring-primary/30'
       )}
     >
