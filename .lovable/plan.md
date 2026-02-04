@@ -1,129 +1,134 @@
 
 
-# Plano: Correção da Tela Branca no Fluxo de Onboarding
+# Plano: Correção Completa da Tela Branca no Onboarding
 
 ## Problema Identificado
 
-O sistema está apresentando tela branca após o primeiro formulário de cadastro devido a uma **condição de corrida** entre múltiplos hooks que carregam dados do banco simultaneamente, combinada com verificações de estado incompletas.
+Após análise profunda do código e dos dados do banco, identifiquei **múltiplos problemas** que causam a tela branca:
 
----
-
-## Causa Raiz
-
-O fluxo atual tem uma sequência problemática:
+### 1. Dependência Circular/Duplicada de Hooks
 
 ```text
-Signup → Navigate /dashboard → MainLayout monta
-                                      ↓
-                         +---------------------------+
-                         | useFirmSettings (Query 1) |
-                         +---------------------------+
-                                      ↓
-                         +---------------------------+
-                         | useOnboardingProgress     |
-                         |   ↳ useFirmSettings       |
-                         |     (Query 2 - duplicada) |
-                         +---------------------------+
-                                      ↓
-                         useEffect verifica estados
-                         antes das queries terminarem
-                                      ↓
-                              TELA BRANCA
+MainLayout
+   ├── useFirmSettings() ← Query #1
+   │      └── useAuth()
+   │
+   └── useOnboardingProgress()
+          ├── useAuth()
+          └── useFirmSettings() ← Query #2 (duplicada!)
+                 └── useAuth()
+```
+
+O hook `useOnboardingProgress` chama `useFirmSettings` internamente (linha 48), mas o `MainLayout` também chama `useFirmSettings` diretamente. Isso causa:
+- Duas queries paralelas para a mesma tabela
+- Estados de loading dessincronizados
+- Race conditions nos cálculos
+
+### 2. Estado de Loading Inconsistente
+
+No `useOnboardingProgress`:
+- `isLoading` é setado para `false` após buscar `user_onboarding_progress`
+- MAS o `firmSettings` interno ainda pode estar carregando
+- Resultado: `calculatePercent()` retorna 0 e `shouldShowWelcome` fica incorreto
+
+### 3. Cálculo de shouldShowWelcome Falha
+
+```typescript
+// Quando firmSettings ainda é null (carregando), retorna false incorretamente
+const shouldShowWelcome = !!(
+  firmSettings?.onboarding_completed &&  // null?.prop = undefined = false
+  progress &&
+  !progress.welcome_modal_seen
+);
 ```
 
 ---
 
-## Correções Necessárias
+## Solução Proposta
 
-### 1. Adicionar Estado de Loading Global no MainLayout
+### Estratégia: Passar `firmSettings` como Dependência Externa
 
-**Arquivo:** `src/components/layout/MainLayout.tsx`
+Em vez do `useOnboardingProgress` chamar `useFirmSettings` internamente, ele deve **receber os dados de firmSettings como parâmetro** do `MainLayout`, garantindo consistência.
 
-Aguardar que TODOS os dados necessários estejam carregados antes de renderizar qualquer componente de onboarding.
+---
 
-**Antes (problemático):**
-```typescript
-const { firmSettings, isLoading: loadingSettings } = useFirmSettings();
-const { shouldShowWelcome, ... } = useOnboardingProgress();
+## Mudanças Detalhadas
 
-// Apenas verifica loading do auth
-if (loading) { return <Spinner /> }
-```
-
-**Depois (corrigido):**
-```typescript
-const { firmSettings, isLoading: loadingSettings } = useFirmSettings();
-const { shouldShowWelcome, isLoading: loadingOnboarding, ... } = useOnboardingProgress();
-
-// Verifica TODOS os loadings
-if (loading || loadingSettings || loadingOnboarding) {
-  return <Spinner />
-}
-```
-
-### 2. Corrigir Verificação no useEffect do Wizard
-
-**Arquivo:** `src/components/layout/MainLayout.tsx`
-
-**Antes:**
-```typescript
-useEffect(() => {
-  if (!loadingSettings && firmSettings && !firmSettings.onboarding_completed) {
-    setShowOnboarding(true);
-  }
-}, [firmSettings, loadingSettings]);
-```
-
-**Depois:**
-```typescript
-useEffect(() => {
-  // Só verificar quando o loading terminar E firmSettings existir
-  if (!loadingSettings) {
-    if (firmSettings && !firmSettings.onboarding_completed) {
-      setShowOnboarding(true);
-    } else {
-      setShowOnboarding(false);
-    }
-  }
-}, [firmSettings, loadingSettings]);
-```
-
-### 3. Corrigir Rotas no OnboardingChecklist
-
-**Arquivo:** `src/components/onboarding/OnboardingChecklist.tsx`
-
-As rotas estão em português mas deveriam estar em inglês:
-
-| Errado | Correto |
-|--------|---------|
-| `/clientes/novo` | `/clients/new` |
-| `/processos/novo` | `/cases/new` |
-| `/peticoes/nova` | `/petitions/new` |
-| `/configuracoes` | `/configuracoes` (este está correto) |
-
-### 4. Corrigir useEffect sem Dependências
-
-**Arquivo:** `src/components/onboarding/OnboardingChecklist.tsx`
-
-**Antes:**
-```typescript
-useEffect(() => {
-  checkAndUpdateProgress();
-}, []); // ESLint warning: missing dependency
-```
-
-**Depois:**
-```typescript
-useEffect(() => {
-  checkAndUpdateProgress();
-}, [checkAndUpdateProgress]);
-```
-
-### 5. Exportar isLoading do Hook
+### 1. Modificar o Hook `useOnboardingProgress`
 
 **Arquivo:** `src/hooks/useOnboardingProgress.ts`
 
-Garantir que o `isLoading` está sendo retornado e usado corretamente no MainLayout.
+**Mudanças:**
+- Remover a chamada interna a `useFirmSettings`
+- Aceitar `firmSettings` e `loadingSettings` como parâmetros
+- Incluir `loadingSettings` no cálculo de `isLoading`
+- Usar `firmSettings` do parâmetro para cálculos
+
+**Antes:**
+```typescript
+export const useOnboardingProgress = (): UseOnboardingProgressReturn => {
+  const { user } = useAuth();
+  const { firmSettings } = useFirmSettings();  // <- Problema aqui
+  // ...
+}
+```
+
+**Depois:**
+```typescript
+interface UseOnboardingProgressParams {
+  firmSettings: FirmSettings | null;
+  loadingSettings: boolean;
+}
+
+export const useOnboardingProgress = (
+  params: UseOnboardingProgressParams
+): UseOnboardingProgressReturn => {
+  const { user } = useAuth();
+  const { firmSettings, loadingSettings } = params;
+  // ...
+  
+  // Incluir loadingSettings no isLoading geral
+  const combinedLoading = isLoading || loadingSettings;
+  
+  return {
+    isLoading: combinedLoading,
+    // ...
+  };
+}
+```
+
+### 2. Atualizar o MainLayout
+
+**Arquivo:** `src/components/layout/MainLayout.tsx`
+
+**Mudanças:**
+- Passar `firmSettings` e `loadingSettings` para o hook
+- Garantir que o loading global espera TODOS os estados
+
+**Antes:**
+```typescript
+const { firmSettings, isLoading: loadingSettings } = useFirmSettings();
+const { isLoading: loadingOnboarding, ... } = useOnboardingProgress();
+```
+
+**Depois:**
+```typescript
+const { firmSettings, isLoading: loadingSettings } = useFirmSettings();
+const { isLoading: loadingOnboarding, ... } = useOnboardingProgress({
+  firmSettings,
+  loadingSettings,
+});
+```
+
+### 3. Atualizar o OnboardingChecklist
+
+**Arquivo:** `src/components/onboarding/OnboardingChecklist.tsx`
+
+**Mudanças:**
+- Passar `firmSettings` como parâmetro (já que o componente precisa dele)
+- OU buscar `firmSettings` diretamente já que é um componente independente
+
+Como o Checklist é um componente independente que não recebe props do MainLayout, podemos mantê-lo chamando `useFirmSettings` diretamente, pois ele já aguarda o loading global do MainLayout antes de renderizar.
 
 ---
 
@@ -131,151 +136,150 @@ Garantir que o `isLoading` está sendo retornado e usado corretamente no MainLay
 
 | Arquivo | Modificação |
 |---------|-------------|
-| `src/components/layout/MainLayout.tsx` | Adicionar verificação de loading completa |
-| `src/components/onboarding/OnboardingChecklist.tsx` | Corrigir rotas e dependências do useEffect |
-| `src/hooks/useOnboardingProgress.ts` | Garantir retorno correto do isLoading |
+| `src/hooks/useOnboardingProgress.ts` | Aceitar firmSettings como parâmetro externo |
+| `src/components/layout/MainLayout.tsx` | Passar firmSettings para o hook |
 
 ---
 
 ## Fluxo Corrigido
 
 ```text
-Signup → Navigate /dashboard → MainLayout monta
-                                      ↓
-                         +---------------------------+
-                         | loading = true            |
-                         | Mostra Spinner            |
-                         +---------------------------+
-                                      ↓
-                         Todas as queries terminam:
-                         - Auth loading = false
-                         - firmSettings loaded
-                         - onboarding progress loaded
-                                      ↓
-                         +---------------------------+
-                         | loading = false           |
-                         | Renderiza UI corretamente |
-                         +---------------------------+
+MainLayout monta
+       ↓
+useFirmSettings() → loadingSettings = true
+       ↓
+useOnboardingProgress({ firmSettings, loadingSettings })
+       ↓
+if (loading || loadingSettings || loadingOnboarding) {
+  return <Spinner />  ← Todos os loadings verificados
+}
+       ↓
+Todas queries terminam
+       ↓
+shouldShowWelcome calcula corretamente
+       ↓
+UI renderiza corretamente
 ```
 
 ---
 
-## Seção Técnica
+## Validação dos Dados
 
-### Código Completo da Correção no MainLayout
+Confirmado no banco que o usuário de teste tem:
+- `law_firm_settings.onboarding_completed = true`
+- `user_onboarding_progress.welcome_modal_seen = false`
+
+Após a correção, o `WelcomeModal` deve aparecer corretamente.
+
+---
+
+## Código Completo das Correções
+
+### Hook useOnboardingProgress
+
+```typescript
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { FirmSettings } from '@/hooks/useFirmSettings';
+
+interface OnboardingProgress {
+  id: string;
+  user_id: string;
+  welcome_modal_seen: boolean;
+  product_tour_completed: boolean;
+  product_tour_step: number;
+  first_client_created: boolean;
+  first_case_created: boolean;
+  first_petition_generated: boolean;
+  pipeline_visited: boolean;
+  checklist_dismissed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface UseOnboardingProgressParams {
+  firmSettings: FirmSettings | null;
+  loadingSettings: boolean;
+}
+
+interface UseOnboardingProgressReturn {
+  progress: OnboardingProgress | null;
+  isLoading: boolean;
+  percentComplete: number;
+  
+  markWelcomeModalSeen: () => Promise<void>;
+  markTourCompleted: () => Promise<void>;
+  updateTourStep: (step: number) => Promise<void>;
+  dismissChecklist: () => Promise<void>;
+  startTour: () => void;
+  stopTour: () => void;
+  
+  checkAndUpdateProgress: () => Promise<void>;
+  markPipelineVisited: () => Promise<void>;
+  
+  shouldShowWelcome: boolean;
+  shouldShowTour: boolean;
+  shouldShowChecklist: boolean;
+  isTourActive: boolean;
+  currentTourStep: number;
+}
+
+export const useOnboardingProgress = (
+  params: UseOnboardingProgressParams
+): UseOnboardingProgressReturn => {
+  const { user } = useAuth();
+  const { firmSettings, loadingSettings } = params;
+  
+  const [progress, setProgress] = useState<OnboardingProgress | null>(null);
+  const [isLoadingProgress, setIsLoadingProgress] = useState(true);
+  const [isTourActive, setIsTourActive] = useState(false);
+  const [currentTourStep, setCurrentTourStep] = useState(0);
+
+  // ... resto do código permanece igual, mas usando firmSettings do params ...
+
+  // Loading combinado
+  const isLoading = isLoadingProgress || loadingSettings;
+
+  return {
+    progress,
+    isLoading,
+    // ...
+  };
+};
+```
+
+### MainLayout
 
 ```typescript
 const MainLayout = () => {
   const { user, loading } = useAuth();
-  const location = useLocation();
-  const isMobile = useIsMobile();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { firmSettings, isLoading: loadingSettings, refetch } = useFirmSettings();
-  const [showOnboarding, setShowOnboarding] = useState(false);
   
+  // Passar dependências para o hook
   const {
-    isLoading: loadingOnboarding,  // <- ADICIONAR
+    isLoading: loadingOnboarding,
     shouldShowWelcome,
-    shouldShowChecklist,
-    isTourActive,
-    currentTourStep,
-    markWelcomeModalSeen,
-    markTourCompleted,
-    updateTourStep,
-    startTour,
-    stopTour,
-    markPipelineVisited,
-    checkAndUpdateProgress,
-  } = useOnboardingProgress();
+    // ...
+  } = useOnboardingProgress({
+    firmSettings,
+    loadingSettings,
+  });
 
-  // Check if onboarding wizard should be shown
-  useEffect(() => {
-    if (!loadingSettings) {
-      if (firmSettings && !firmSettings.onboarding_completed) {
-        setShowOnboarding(true);
-      } else {
-        setShowOnboarding(false);
-      }
-    }
-  }, [firmSettings, loadingSettings]);
-
-  // ... outros useEffects ...
-
-  // CORREÇÃO: Aguardar TODOS os loadings
-  if (loading || loadingSettings || loadingOnboarding) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
+  // Verificação de loading já inclui tudo
+  if (loading || loadingOnboarding) {
+    return <Spinner />;
   }
-
-  // ... resto do componente ...
+  
+  // ...
 };
 ```
 
-### Código da Correção no OnboardingChecklist
-
-```typescript
-const tasks: ChecklistTask[] = [
-  {
-    id: 'profile',
-    title: 'Completar perfil',
-    description: 'Preencha seus dados profissionais',
-    icon: User,
-    completed: !!(firmSettings?.lawyer_name && firmSettings?.oab_number),
-    action: () => navigate('/configuracoes'),  // Correto
-    actionLabel: 'Configurações',
-  },
-  {
-    id: 'client',
-    title: 'Cadastrar primeiro cliente',
-    description: 'Adicione seu primeiro cliente',
-    icon: Users,
-    completed: progress?.first_client_created ?? false,
-    action: () => navigate('/clients/new'),  // CORRIGIDO
-    actionLabel: 'Novo Cliente',
-  },
-  {
-    id: 'case',
-    title: 'Criar primeiro processo',
-    description: 'Registre um processo judicial',
-    icon: FileText,
-    completed: progress?.first_case_created ?? false,
-    action: () => navigate('/cases/new'),  // CORRIGIDO
-    actionLabel: 'Novo Processo',
-  },
-  {
-    id: 'petition',
-    title: 'Gerar primeira petição',
-    description: 'Use a IA para criar uma petição',
-    icon: FileText,
-    completed: progress?.first_petition_generated ?? false,
-    action: () => navigate('/petitions/new'),  // CORRIGIDO
-    actionLabel: 'Nova Petição',
-  },
-  // ...
-];
-```
-
 ---
 
-## Ordem de Execução
+## Ordem de Implementação
 
-1. Modificar `MainLayout.tsx` para aguardar todos os loadings
-2. Corrigir rotas no `OnboardingChecklist.tsx`
-3. Corrigir dependência do useEffect no `OnboardingChecklist.tsx`
-4. Testar fluxo completo de signup → onboarding
-
----
-
-## Resultado Esperado
-
-Após as correções:
-1. Usuário faz signup
-2. É redirecionado para `/dashboard`
-3. Vê spinner enquanto dados carregam
-4. Wizard de onboarding aparece corretamente
-5. Após completar wizard, Welcome Modal aparece
-6. Checklist funciona com rotas corretas
+1. Modificar `useOnboardingProgress.ts` para aceitar parâmetros
+2. Atualizar `MainLayout.tsx` para passar os parâmetros
+3. Testar fluxo completo de signup → wizard → welcome modal
 
