@@ -49,86 +49,124 @@ const STJ_DATASETS: Record<string, { name: string; datasetId: string }> = {
   },
 };
 
+// Estrutura REAL do JSON do Portal de Dados Abertos do STJ
 interface STJAcordaoRaw {
-  id?: number | string;
-  numeroProcesso?: string;
-  processo?: string;
-  classe?: string;
-  relator?: string;
-  orgaoJulgador?: string;
-  dataJulgamento?: string;
-  dataPublicacao?: string;
-  ementa?: string;
-  palavrasDestaque?: string[] | string;
-  notasJurisprudencia?: string;
-  referenciaLegislativa?: string[] | string;
-  [key: string]: unknown;
+  id: string;                      // "000897322"
+  numeroProcesso: string;          // "2583484"
+  numeroRegistro: string;          // "202400682179"
+  siglaClasse: string;             // "RCD no AgInt no AREsp"
+  descricaoClasse: string;         // "PEDIDO DE RECONSIDERACAO..."
+  nomeOrgaoJulgador: string;       // "TERCEIRA TURMA"
+  ministroRelator: string;         // "RICARDO VILLAS BOAS CUEVA"
+  dataPublicacao: string | null;   // "2024-12-20" ou null
+  ementa: string;                  // Texto da ementa
+  tipoDeDecisao: string;           // "ACORDAO"
+  dataDecisao: string;             // "20241209" (YYYYMMDD)
+  decisao: string;                 // Texto completo da decisão
+  jurisprudenciaCitada: string | null;
+  notas: string | null;
+  informacoesComplementares: string | null;
+  termosAuxiliares: string | null; // Keywords separadas
+  teseJuridica: string | null;
+  tema: string | null;
+  referenciasLegislativas: string[];
+  acordaosSimilares: string[];
 }
 
-interface SyncResult {
-  orgao: string;
-  arquivo: string;
-  registrosImportados: number;
-  registrosTotal: number;
-  status: 'success' | 'error' | 'skipped';
-  message?: string;
+// Estrutura CKAN
+interface CKANResource {
+  id: string;
+  name: string;
+  format: string;
+  url: string;
+  created: string;
+  last_modified: string;
 }
 
-// Função para tentar diferentes formatos de data
-function parseDate(dateStr: string | undefined): string | null {
+interface CKANPackageResponse {
+  success: boolean;
+  result: {
+    id: string;
+    name: string;
+    resources: CKANResource[];
+  };
+}
+
+// Parser de data no formato YYYYMMDD usado pelo STJ
+function parseDateYYYYMMDD(dateStr: string | null): string | null {
   if (!dateStr) return null;
   
-  // Tenta diferentes formatos
-  const formats = [
-    /^(\d{4})-(\d{2})-(\d{2})/, // YYYY-MM-DD
-    /^(\d{2})\/(\d{2})\/(\d{4})/, // DD/MM/YYYY
-    /^(\d{2})-(\d{2})-(\d{4})/, // DD-MM-YYYY
-  ];
+  // Formato YYYYMMDD (ex: 20241209)
+  if (dateStr.length === 8 && /^\d{8}$/.test(dateStr)) {
+    const year = dateStr.substring(0, 4);
+    const month = dateStr.substring(4, 6);
+    const day = dateStr.substring(6, 8);
+    return `${year}-${month}-${day}`;
+  }
   
-  for (const format of formats) {
-    const match = dateStr.match(format);
-    if (match) {
-      if (format === formats[0]) {
-        return `${match[1]}-${match[2]}-${match[3]}`;
-      } else {
-        return `${match[3]}-${match[2]}-${match[1]}`;
-      }
-    }
+  // Já está no formato ISO
+  if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+    return dateStr.substring(0, 10);
   }
   
   return null;
 }
 
-// Normaliza array de strings
-function normalizeStringArray(value: string[] | string | undefined): string[] {
+// Normaliza termosAuxiliares (string separada por vírgulas/ponto e vírgula)
+function normalizeKeywords(value: string | null): string[] {
   if (!value) return [];
-  if (Array.isArray(value)) return value.filter(v => typeof v === 'string' && v.trim());
-  if (typeof value === 'string') {
-    // Pode ser uma string separada por vírgulas ou ponto e vírgula
-    return value.split(/[,;]/).map(s => s.trim()).filter(Boolean);
-  }
-  return [];
+  return value
+    .split(/[,;|]/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0 && s.length < 100);
 }
 
-// Mapeia um acórdão raw para o formato do banco
-function mapAcordao(raw: STJAcordaoRaw, orgaoNome: string, sourceFile: string) {
-  const stjId = String(raw.id || raw.numeroProcesso || `${orgaoNome}-${Date.now()}-${Math.random()}`);
-  const processo = raw.numeroProcesso || raw.processo || null;
+// Mapeia um acórdão raw para o formato do banco (campos REAIS do STJ)
+function mapAcordao(raw: STJAcordaoRaw, orgaoFallback: string, sourceFile: string) {
+  const stjId = String(raw.id);
+  const processo = raw.siglaClasse && raw.numeroProcesso 
+    ? `${raw.siglaClasse} ${raw.numeroProcesso}`
+    : raw.numeroProcesso || null;
   
   return {
     stj_id: stjId,
     processo,
-    classe: raw.classe || null,
-    relator: raw.relator || null,
-    orgao_julgador: raw.orgaoJulgador || orgaoNome,
-    data_julgamento: parseDate(raw.dataJulgamento),
-    data_publicacao: parseDate(raw.dataPublicacao),
+    classe: raw.siglaClasse || null,
+    relator: raw.ministroRelator || null,
+    orgao_julgador: raw.nomeOrgaoJulgador || orgaoFallback,
+    data_julgamento: parseDateYYYYMMDD(raw.dataDecisao),
+    data_publicacao: parseDateYYYYMMDD(raw.dataPublicacao),
     ementa: raw.ementa || '',
-    palavras_destaque: normalizeStringArray(raw.palavrasDestaque),
-    referencias_legais: normalizeStringArray(raw.referenciaLegislativa),
-    notas: raw.notasJurisprudencia || null,
+    palavras_destaque: normalizeKeywords(raw.termosAuxiliares),
+    referencias_legais: raw.referenciasLegislativas || [],
+    notas: raw.notas || raw.teseJuridica || null,
     source_file: sourceFile,
   };
+}
+
+// Busca lista de recursos JSON de um dataset via API CKAN
+async function fetchCKANResources(datasetId: string): Promise<CKANResource[]> {
+  const url = `https://dadosabertos.web.stj.jus.br/api/3/action/package_show?id=${datasetId}`;
+  console.log(`Consultando API CKAN: ${url}`);
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Erro ao consultar CKAN: ${response.status}`);
+  }
+  
+  const data: CKANPackageResponse = await response.json();
+  
+  if (!data.success || !data.result?.resources) {
+    throw new Error('Resposta inválida da API CKAN');
+  }
+  
+  // Filtra apenas arquivos JSON (não ZIP) com nome no formato YYYYMMDD.json
+  return data.result.resources
+    .filter(r => 
+      r.format?.toLowerCase() === 'json' && 
+      /^\d{8}\.json$/i.test(r.name)
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 Deno.serve(async (req) => {
@@ -143,7 +181,45 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parâmetros da requisição
-    const { orgao, jsonUrl, force = false, testData } = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({}));
+    const { 
+      orgao, 
+      jsonUrl, 
+      force = false, 
+      testData,
+      discoverOnly = false,
+      datasetId
+    } = body;
+
+    // Modo: Descobrir recursos disponíveis via CKAN
+    if (discoverOnly && datasetId) {
+      const resources = await fetchCKANResources(datasetId);
+      
+      // Busca arquivos já importados
+      const { data: imported } = await supabase
+        .from('stj_sync_log')
+        .select('arquivo')
+        .eq('status', 'success');
+      
+      const importedFiles = new Set((imported || []).map(i => i.arquivo));
+      
+      const resourcesWithStatus = resources.map(r => ({
+        ...r,
+        imported: importedFiles.has(r.name),
+      }));
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          datasetId,
+          totalResources: resources.length,
+          importedCount: resourcesWithStatus.filter(r => r.imported).length,
+          pendingCount: resourcesWithStatus.filter(r => !r.imported).length,
+          resources: resourcesWithStatus,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Modo de teste: inserir dados de exemplo
     if (testData) {
@@ -214,12 +290,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Modo normal: sincronizar do Portal STJ
+    // Modo normal: sincronizar de URL específica
     if (jsonUrl) {
-      // Sincronização de URL específica
       console.log(`Baixando JSON de: ${jsonUrl}`);
       
-      const response = await fetch(jsonUrl);
+      const response = await fetch(jsonUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Praxis-Juridico/1.0 (Sistema de Gestão Jurídica)',
+        },
+      });
+      
       if (!response.ok) {
         throw new Error(`Falha ao baixar: ${response.status} ${response.statusText}`);
       }
@@ -263,15 +344,15 @@ Deno.serve(async (req) => {
         .select()
         .single();
 
-      // Processa em lotes
-      const BATCH_SIZE = 100;
+      // Processa em lotes menores para evitar timeout
+      const BATCH_SIZE = 200;
       let imported = 0;
       let errors = 0;
 
       for (let i = 0; i < acordaos.length; i += BATCH_SIZE) {
         const batch = acordaos.slice(i, i + BATCH_SIZE);
         const mappedBatch = batch
-          .filter(a => a.ementa) // Só importa se tiver ementa
+          .filter(a => a.ementa && a.id) // Só importa se tiver ementa e ID
           .map(a => mapAcordao(a, orgaoNome, fileName));
 
         if (mappedBatch.length === 0) continue;
@@ -288,6 +369,7 @@ Deno.serve(async (req) => {
           errors++;
         } else {
           imported += mappedBatch.length;
+          console.log(`Importados ${imported}/${acordaos.length}...`);
         }
       }
 

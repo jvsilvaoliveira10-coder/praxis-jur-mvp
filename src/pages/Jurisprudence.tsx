@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Scale, Sparkles, Rocket, Database, FlaskConical } from 'lucide-react';
+import { Scale, Sparkles, Rocket, Database, FlaskConical, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -10,6 +10,7 @@ import JurisprudenceSearch from '@/components/jurisprudence/JurisprudenceSearch'
 import JurisprudenceResults from '@/components/jurisprudence/JurisprudenceResults';
 import STJSearch from '@/components/jurisprudence/STJSearch';
 import STJResults from '@/components/jurisprudence/STJResults';
+import { STJSyncPanel } from '@/components/jurisprudence/STJSyncPanel';
 
 const Jurisprudence = () => {
   const { toast } = useToast();
@@ -176,14 +177,18 @@ const Jurisprudence = () => {
 
       {/* Tabs para selecionar fonte */}
       <Tabs defaultValue="stj" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
+        <TabsList className="grid w-full grid-cols-3 max-w-lg">
           <TabsTrigger value="stj" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
-            STJ (Dados Reais)
+            STJ (Real)
           </TabsTrigger>
           <TabsTrigger value="tjsp" className="flex items-center gap-2">
             <FlaskConical className="h-4 w-4" />
             TJSP (Demo)
+          </TabsTrigger>
+          <TabsTrigger value="admin" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Admin
           </TabsTrigger>
         </TabsList>
 
@@ -267,6 +272,22 @@ const Jurisprudence = () => {
             selectedIds={tjspSelectedIds}
             onSelect={handleTjspSelect}
           />
+        </TabsContent>
+
+        {/* Admin Tab - Painel de Sincronização */}
+        <TabsContent value="admin" className="space-y-6">
+          <Alert className="border-muted bg-muted/50">
+            <Settings className="h-5 w-5 text-muted-foreground" />
+            <AlertTitle className="text-foreground font-semibold">
+              Administração da Base de Dados
+            </AlertTitle>
+            <AlertDescription className="text-muted-foreground mt-2">
+              Gerencie a importação de acórdãos do Portal de Dados Abertos do STJ. 
+              A sincronização importa arquivos JSON mensais automaticamente.
+            </AlertDescription>
+          </Alert>
+
+          <STJSyncPanel />
         </TabsContent>
       </Tabs>
 

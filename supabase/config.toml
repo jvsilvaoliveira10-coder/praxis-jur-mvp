@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.search-stj-jurisprudence]
 verify_jwt = false
+
+[functions.auto-sync-stj]
+verify_jwt = false
