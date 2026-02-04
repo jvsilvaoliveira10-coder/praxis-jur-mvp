@@ -114,7 +114,9 @@ const TopHeader = () => {
         </div>
 
         {/* Notifications */}
-        <NotificationBell />
+        <div data-tour="notifications">
+          <NotificationBell />
+        </div>
 
         {/* User Avatar Dropdown */}
         <DropdownMenu>

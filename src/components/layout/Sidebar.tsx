@@ -38,6 +38,7 @@ interface NavItem {
   to: string;
   icon: LucideIcon;
   label: string;
+  tourId?: string;
 }
 
 interface NavCategory {
@@ -66,11 +67,11 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
       label: 'Jurídico',
       icon: Scale,
       items: [
-        { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { to: '/clients', icon: Users, label: 'Clientes' },
+        { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', tourId: 'dashboard' },
+        { to: '/clients', icon: Users, label: 'Clientes', tourId: 'clients' },
         { to: '/cases', icon: FolderOpen, label: 'Processos' },
-        { to: '/pipeline', icon: Kanban, label: 'Gestão de Processos' },
-        { to: '/petitions', icon: FileText, label: 'Petições' },
+        { to: '/pipeline', icon: Kanban, label: 'Gestão de Processos', tourId: 'pipeline' },
+        { to: '/petitions', icon: FileText, label: 'Petições', tourId: 'petitions' },
         { to: '/templates', icon: BookTemplate, label: 'Modelos' },
         { to: '/jurisprudence', icon: Search, label: 'Jurisprudência' },
         { to: '/tracking', icon: Radar, label: 'Acompanhamento' },
@@ -134,6 +135,7 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
       key={item.to}
       to={item.to}
       onClick={handleNavClick}
+      data-tour={item.tourId}
       className={cn(
         "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
         isActive(item.to)
