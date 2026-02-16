@@ -16,12 +16,15 @@ import {
   MaritalStatus
 } from '@/types/database';
 import { 
-  generatePetition, 
+  generatePetition as generatePetitionTemplate, 
   getDefaultFacts, 
   getDefaultLegalBasis, 
   getDefaultRequests 
 } from '@/lib/petition-templates';
 import { exportToPDF } from '@/lib/pdf-export';
+import { usePetitionGeneration } from '@/hooks/usePetitionGeneration';
+import { PetitionGenerationProgress } from '@/components/petitions/PetitionGenerationProgress';
+import { PetitionMetadataCard } from '@/components/petitions/PetitionMetadataCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,11 +50,21 @@ const PetitionForm = () => {
   const isEdit = !!id;
 
   const [loading, setLoading] = useState(false);
-  const [aiGenerating, setAiGenerating] = useState(false);
   const [cases, setCases] = useState<(Case & { client: Client })[]>([]);
   const [selectedCase, setSelectedCase] = useState<(Case & { client: Client }) | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<PetitionTemplate | null>(null);
   const [activeTab, setActiveTab] = useState('form');
+
+  const {
+    isGenerating,
+    generatedContent,
+    metadata,
+    currentStage,
+    stages,
+    error: generationError,
+    generatePetition: generateWithAI,
+    setGeneratedContent,
+  } = usePetitionGeneration();
 
   const [form, setForm] = useState({
     case_id: '',
@@ -65,6 +78,36 @@ const PetitionForm = () => {
     template_id: '',
     userContext: '',
   });
+
+  // Sync generatedContent from hook into form
+  useEffect(() => {
+    if (generatedContent) {
+      setForm(prev => ({ ...prev, content: generatedContent }));
+    }
+  }, [generatedContent]);
+
+  // Show error toast
+  useEffect(() => {
+    if (generationError) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao gerar petição',
+        description: generationError,
+      });
+    }
+  }, [generationError, toast]);
+
+  // Show success toast when generation completes
+  useEffect(() => {
+    if (!isGenerating && generatedContent && !generationError) {
+      toast({
+        title: 'Petição gerada com IA!',
+        description: metadata?.legislationFound?.length 
+          ? `Fundamentada com ${metadata.legislationFound.length} referências legais e ${metadata.jurisprudenceFound?.length || 0} jurisprudências.`
+          : 'Revise o texto gerado e faça os ajustes necessários.',
+      });
+    }
+  }, [isGenerating]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: templates } = useQuery({
     queryKey: ['petition-templates-active'],
@@ -203,7 +246,7 @@ const PetitionForm = () => {
         description: 'O modelo foi aplicado. Revise e faça os ajustes necessários.',
       });
     } else {
-      content = generatePetition({
+      content = generatePetitionTemplate({
         client: selectedCase.client,
         case: selectedCase,
         petitionType: form.petition_type,
@@ -240,151 +283,60 @@ const PetitionForm = () => {
       return;
     }
 
-    setAiGenerating(true);
     setForm(prev => ({ ...prev, content: '' }));
     setActiveTab('editor');
 
-    try {
-      const client = selectedCase.client;
-      
-      const addressParts: string[] = [];
-      if (client.address_street) {
-        let line = client.address_street;
-        if (client.address_number) line += `, nº ${client.address_number}`;
-        if (client.address_complement) line += `, ${client.address_complement}`;
-        addressParts.push(line);
-      }
-      if (client.address_neighborhood) addressParts.push(client.address_neighborhood);
-      if (client.address_city && client.address_state) {
-        addressParts.push(`${client.address_city}/${client.address_state}`);
-      }
-      if (client.address_zip) addressParts.push(`CEP ${client.address_zip}`);
+    const client = selectedCase.client;
 
-      const requestBody = {
-        templateContent: selectedTemplate?.content,
-        templateTitle: selectedTemplate?.title,
-        caseData: {
-          court: selectedCase.court,
-          processNumber: selectedCase.process_number,
-          actionType: ACTION_TYPE_LABELS[selectedCase.action_type],
-          opposingParty: selectedCase.opposing_party,
-        },
-        clientData: {
-          name: client.name,
-          document: client.document,
-          type: client.type,
-          nationality: client.nationality,
-          maritalStatus: client.marital_status ? MARITAL_STATUS_LABELS[client.marital_status as MaritalStatus] : undefined,
-          profession: client.profession,
-          rg: client.rg,
-          issuingBody: client.issuing_body,
-          email: client.email,
-          phone: client.phone,
-          address: addressParts.join(', '),
-          tradeName: client.trade_name,
-          legalRepName: client.legal_rep_name,
-          legalRepCpf: client.legal_rep_cpf,
-          legalRepPosition: client.legal_rep_position,
-        },
-        petitionType: PETITION_TYPE_LABELS[form.petition_type],
-        userContext: form.userContext,
-        facts: form.facts,
-        legalBasis: form.legalBasis,
-        requests: form.requests,
-        opposingPartyQualification: form.opposingPartyQualification,
-      };
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-petition`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify(requestBody),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao gerar petição');
-      }
-
-      if (!response.body) {
-        throw new Error('Resposta sem corpo');
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let textBuffer = '';
-      let generatedContent = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        textBuffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-
-          if (line.endsWith('\r')) line = line.slice(0, -1);
-          if (line.startsWith(':') || line.trim() === '') continue;
-          if (!line.startsWith('data: ')) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) {
-              generatedContent += content;
-              setForm(prev => ({ ...prev, content: generatedContent }));
-            }
-          } catch {
-            textBuffer = line + '\n' + textBuffer;
-            break;
-          }
-        }
-      }
-
-      if (textBuffer.trim()) {
-        for (let raw of textBuffer.split('\n')) {
-          if (!raw) continue;
-          if (raw.endsWith('\r')) raw = raw.slice(0, -1);
-          if (raw.startsWith(':') || raw.trim() === '') continue;
-          if (!raw.startsWith('data: ')) continue;
-          const jsonStr = raw.slice(6).trim();
-          if (jsonStr === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) {
-              generatedContent += content;
-              setForm(prev => ({ ...prev, content: generatedContent }));
-            }
-          } catch { /* ignore */ }
-        }
-      }
-
-      toast({
-        title: 'Petição gerada com IA!',
-        description: 'Revise o texto gerado e faça os ajustes necessários.',
-      });
-    } catch (error) {
-      console.error('AI generation error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao gerar petição',
-        description: error instanceof Error ? error.message : 'Tente novamente mais tarde',
-      });
-    } finally {
-      setAiGenerating(false);
+    const addressParts: string[] = [];
+    if (client.address_street) {
+      let line = client.address_street;
+      if (client.address_number) line += `, nº ${client.address_number}`;
+      if (client.address_complement) line += `, ${client.address_complement}`;
+      addressParts.push(line);
     }
+    if (client.address_neighborhood) addressParts.push(client.address_neighborhood);
+    if (client.address_city && client.address_state) {
+      addressParts.push(`${client.address_city}/${client.address_state}`);
+    }
+    if (client.address_zip) addressParts.push(`CEP ${client.address_zip}`);
+
+    await generateWithAI({
+      userId: user?.id || '',
+      caseId: selectedCase.id,
+      caseData: {
+        court: selectedCase.court,
+        processNumber: selectedCase.process_number,
+        actionType: ACTION_TYPE_LABELS[selectedCase.action_type],
+        opposingParty: selectedCase.opposing_party,
+      },
+      clientData: {
+        name: client.name,
+        document: client.document,
+        type: client.type,
+        nationality: client.nationality,
+        maritalStatus: client.marital_status ? MARITAL_STATUS_LABELS[client.marital_status as MaritalStatus] : undefined,
+        profession: client.profession,
+        rg: client.rg,
+        issuingBody: client.issuing_body,
+        email: client.email,
+        phone: client.phone,
+        address: addressParts.join(', '),
+        tradeName: client.trade_name,
+        legalRepName: client.legal_rep_name,
+        legalRepCpf: client.legal_rep_cpf,
+        legalRepPosition: client.legal_rep_position,
+      },
+      petitionType: PETITION_TYPE_LABELS[form.petition_type],
+      userContext: form.userContext,
+      facts: form.facts,
+      legalBasis: form.legalBasis,
+      requests: form.requests,
+      opposingPartyQualification: form.opposingPartyQualification,
+      selectedTemplateId: form.template_id || undefined,
+      templateContent: selectedTemplate?.content,
+      templateTitle: selectedTemplate?.title,
+    });
   };
 
   const applyTemplateToCase = (
@@ -552,7 +504,7 @@ const PetitionForm = () => {
             <FileText className="w-4 h-4 mr-2" />
             Formulário
           </TabsTrigger>
-          <TabsTrigger value="editor" disabled={!form.content && !isEdit} className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm h-10 px-4">
+          <TabsTrigger value="editor" disabled={!form.content && !isEdit && !isGenerating} className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm h-10 px-4">
             <Wand2 className="w-4 h-4 mr-2" />
             Editor
           </TabsTrigger>
@@ -797,10 +749,10 @@ const PetitionForm = () => {
               <Button 
                 onClick={handleGenerateWithAI} 
                 className="w-full btn-premium h-12"
-                disabled={!selectedCase || aiGenerating}
+                disabled={!selectedCase || isGenerating}
                 size="lg"
               >
-                {aiGenerating ? (
+                {isGenerating ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Gerando com IA...
@@ -865,7 +817,7 @@ const PetitionForm = () => {
                 onClick={handleGenerate} 
                 className="w-full h-11 rounded-xl"
                 variant="outline"
-                disabled={!selectedCase || aiGenerating}
+                disabled={!selectedCase || isGenerating}
               >
                 <Wand2 className="w-4 h-4 mr-2" />
                 {selectedTemplate ? 'Gerar Manual com Modelo' : 'Gerar Petição Manual'}
@@ -874,7 +826,21 @@ const PetitionForm = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="editor" className="mt-6">
+        <TabsContent value="editor" className="mt-6 space-y-4">
+          {/* Progress indicator while generating */}
+          {isGenerating && (
+            <PetitionGenerationProgress 
+              stages={stages} 
+              currentStage={currentStage}
+              error={generationError}
+            />
+          )}
+
+          {/* Metadata card after generation */}
+          {metadata && !isGenerating && (
+            <PetitionMetadataCard metadata={metadata} />
+          )}
+
           <Card className="card-premium">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
@@ -884,7 +850,7 @@ const PetitionForm = () => {
                     Revise e edite o texto gerado. Você pode fazer alterações livremente.
                   </CardDescription>
                 </div>
-                {aiGenerating && (
+                {isGenerating && (
                   <Badge variant="outline" className="animate-pulse">
                     <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                     Gerando...
@@ -895,10 +861,13 @@ const PetitionForm = () => {
             <CardContent>
               <Textarea
                 value={form.content}
-                onChange={(e) => setForm({ ...form, content: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, content: e.target.value });
+                  setGeneratedContent(e.target.value);
+                }}
                 className="min-h-[600px] font-mono text-sm leading-relaxed scrollbar-legal rounded-xl border-border/50"
-                placeholder={aiGenerating ? "A petição está sendo gerada pela IA..." : "O conteúdo da petição aparecerá aqui..."}
-                disabled={aiGenerating}
+                placeholder={isGenerating ? "A petição está sendo gerada pela IA..." : "O conteúdo da petição aparecerá aqui..."}
+                disabled={isGenerating}
               />
             </CardContent>
           </Card>
