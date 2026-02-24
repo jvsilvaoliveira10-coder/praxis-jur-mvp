@@ -1,237 +1,144 @@
 
 
-# Plano: 3 Funcionalidades Premium + Alertas WhatsApp/Email
+# Plano: Edge Functions de Alerta por Email + Resumo Diario
 
 ## Visao Geral
 
-Implementar as 3 funcionalidades premium ja aprovadas (Painel de Prazos, Modelos de Peticao com IA, Relatorios PDF para Clientes) e adicionar integracao de alertas via WhatsApp e email com dois fluxos:
-- **Alertas urgentes** (prazos com menos de 24h): enviados imediatamente via WhatsApp e email
-- **Resumo diario**: email enviado 1x por dia com todos os processos que tiveram novas movimentacoes
+Criar as duas Edge Functions de envio de email via Resend, integrar com `check-deadlines`, adicionar UNIQUE constraint na tabela `notification_preferences`, e garantir que usuarios existentes tenham notificacoes por email desativadas por padrao enquanto novos usuarios recebem ativadas.
 
 ---
 
-## 1. Painel de Prazos Inteligente com Countdown
+## Passo 1: Solicitar RESEND_API_KEY
 
-### Novo arquivo
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/components/dashboard/DeadlineCountdownPanel.tsx` | Componente colapsavel com cards de countdown coloridos |
-
-### Arquivo modificado
-| Arquivo | Mudanca |
-|---------|---------|
-| `src/pages/Dashboard.tsx` | Adicionar `<DeadlineCountdownPanel />` apos o AIInsightsCard |
-
-### Logica
-- Buscar proximos 10 prazos do usuario (`deadlines` com `deadline_datetime > now()`)
-- Cards com countdown em tempo real (atualizado a cada minuto via `setInterval`)
-- Cores: vermelho (menos de 24h), amarelo (1-3 dias), verde (mais de 3 dias), cinza (vencido)
-- Badge com tipo do prazo, link para `/agenda`
-- Colapsavel igual ao AIInsightsCard (abre ao clicar)
+Usar a ferramenta de secrets para pedir ao usuario a chave API do Resend.
 
 ---
 
-## 2. Modelos de Peticao com Preenchimento Automatico por IA
+## Passo 2: Migracao de Banco
 
-### Novos arquivos
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/components/petitions/PetitionTemplateLibrary.tsx` | Sheet com grade de modelos disponiveis |
-| `src/lib/petition-ai-templates.ts` | Prompts especializados por tipo de peticao |
+Duas mudancas na tabela `notification_preferences`:
 
-### Arquivo modificado
-| Arquivo | Mudanca |
-|---------|---------|
-| `src/pages/PetitionForm.tsx` | Adicionar botao "Usar Modelo IA" que abre a biblioteca |
+1. **UNIQUE constraint** em `user_id` para permitir `upsert` na tela de configuracoes
+2. **Trigger para novos usuarios**: criar automaticamente uma linha em `notification_preferences` com `email_alerts_enabled = true` quando um novo usuario se registra (via trigger no `auth.users`)
 
-### Modelos disponiveis
-Peticao Inicial, Contestacao, Recurso de Apelacao, Agravo de Instrumento, Embargos de Declaracao, Habeas Corpus, Mandado de Seguranca, Peticao Intercorrente
-
-### Logica
-- Cada modelo tem prompt especializado (ex: Embargos foca em omissao/contradicao/obscuridade)
-- Ao selecionar: seta `petition_type`, pre-preenche campos guia, injeta dados do caso/cliente
-- Usa o hook `usePetitionGeneration` e a edge function `generate-petition` existentes
-
----
-
-## 3. Relatorios PDF Executivos para Clientes
-
-### Novos arquivos
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/lib/client-report-export.ts` | Funcao que gera PDF com jsPDF (cabecalho branded, movimentacoes, prazos, financeiro) |
-| `src/components/reports/ClientReportDialog.tsx` | Dialog para selecionar secoes a incluir |
-
-### Arquivo modificado
-| Arquivo | Mudanca |
-|---------|---------|
-| `src/pages/LegalReports.tsx` | Nova aba "Relatorio para Cliente" com selecao de processo e botao de geracao |
-
-### Estrutura do PDF
-Cabecalho com logo/OAB do escritorio, resumo do processo, ultimas 10 movimentacoes, proximos prazos, situacao financeira (honorarios pagos/pendentes), assinatura do advogado.
-
----
-
-## 4. Alertas via WhatsApp e Email
-
-### 4a. Infraestrutura de Email (Resend)
-
-Sera necessario configurar um servico de envio de email. O Resend eh a opcao mais simples e tem plano gratuito com 100 emails/dia.
-
-**Secret necessario:** `RESEND_API_KEY` (sera solicitado ao usuario)
-
-### 4b. Integracao WhatsApp (API do WhatsApp Business / Twilio)
-
-Para envio de mensagens no WhatsApp, sera necessario um provedor como Twilio ou a API oficial do WhatsApp Business.
-
-**Secrets necessarios:** `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` (sera solicitado ao usuario)
-
-### 4c. Tabela de preferencias de notificacao
-
-Nova tabela `notification_preferences` para armazenar:
-- `user_id` (referencia)
-- `email_alerts_enabled` (boolean, default true)
-- `whatsapp_alerts_enabled` (boolean, default false)
-- `whatsapp_number` (text, numero do usuario)
-- `daily_digest_enabled` (boolean, default true)
-- `urgent_alerts_enabled` (boolean, default true)
-- RLS: acesso exclusivo do proprietario
-
-### 4d. Edge Function: `send-urgent-alerts`
-
-Nova edge function que sera chamada pela `check-deadlines` existente quando um prazo tem menos de 24h:
-- Busca preferencias do usuario na `notification_preferences`
-- Se `email_alerts_enabled`: envia email via Resend com detalhes do prazo urgente
-- Se `whatsapp_alerts_enabled`: envia mensagem via Twilio/WhatsApp
-- Template de mensagem: "URGENTE: Prazo [titulo] vence [hoje/amanha]. Processo: [numero]."
-
-### 4e. Edge Function: `send-daily-digest`
-
-Nova edge function agendada via `pg_cron` para rodar 1x por dia as 07:00 BRT:
-- Para cada usuario com `daily_digest_enabled = true`:
-  - Busca movimentacoes das ultimas 24h na tabela `process_movements`
-  - Se houver movimentacoes, monta email HTML com:
-    - Lista de processos com novas movimentacoes
-    - Detalhes de cada movimentacao (nome, data, orgao julgador)
-    - Link para a plataforma
-  - Envia via Resend
-
-### 4f. Modificacoes nas Edge Functions existentes
-
-| Arquivo | Mudanca |
-|---------|---------|
-| `supabase/functions/check-deadlines/index.ts` | Apos criar notificacao de 1 dia, chamar `send-urgent-alerts` para o usuario |
-| `supabase/functions/check-movements/index.ts` | Nenhuma mudanca (o digest roda separado) |
-
-### 4g. Tela de Configuracao
-
-| Arquivo | Mudanca |
-|---------|---------|
-| `src/pages/Settings.tsx` | Nova aba "Notificacoes" com toggles para email/WhatsApp, campo de numero WhatsApp, toggle de resumo diario |
-
----
-
-## Secao Tecnica
-
-### Ordem de implementacao
-
-1. Painel de Prazos (componente isolado, sem dependencias)
-2. Modelos de Peticao com IA (usa infra existente)
-3. Relatorios PDF para Clientes (usa jsPDF existente)
-4. Tabela `notification_preferences` + tela de configuracao
-5. Edge Function `send-urgent-alerts` (apos usuario configurar RESEND_API_KEY e opcionalmente Twilio)
-6. Edge Function `send-daily-digest` + agendamento via pg_cron
-7. Integrar `check-deadlines` com alertas urgentes
-
-### Migracao de banco necessaria
+Para usuarios existentes que ainda nao tem linha na tabela, a UI vai mostrar email desativado por padrao (mudanca no componente `NotificationPreferencesTab`).
 
 ```sql
-CREATE TABLE public.notification_preferences (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL,
-  email_alerts_enabled BOOLEAN NOT NULL DEFAULT true,
-  whatsapp_alerts_enabled BOOLEAN NOT NULL DEFAULT false,
-  whatsapp_number TEXT,
-  daily_digest_enabled BOOLEAN NOT NULL DEFAULT true,
-  urgent_alerts_enabled BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+-- Unique constraint
+ALTER TABLE public.notification_preferences 
+  ADD CONSTRAINT notification_preferences_user_id_key UNIQUE (user_id);
+
+-- Trigger para auto-criar preferencias para novos usuarios (com email ativado)
+CREATE OR REPLACE FUNCTION public.handle_new_user_notification_preferences()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  INSERT INTO public.notification_preferences (user_id, email_alerts_enabled)
+  VALUES (NEW.id, true);
+  RETURN NEW;
+END;
+$$;
+
+-- Nota: o trigger sera criado no auth.users via a mesma abordagem dos triggers existentes
+```
+
+---
+
+## Passo 3: Mudanca no Frontend - Default para usuarios existentes
+
+No componente `NotificationPreferencesTab` em `Settings.tsx`, mudar o estado inicial de `email_alerts_enabled` de `true` para `false`. Assim:
+
+- **Usuarios existentes** (sem linha na tabela): verao email desativado
+- **Novos usuarios** (com linha auto-criada pelo trigger): verao email ativado (valor do banco)
+
+Mudanca na linha 61:
+```typescript
+// De:
+email_alerts_enabled: true,
+// Para:
+email_alerts_enabled: false,
+```
+
+---
+
+## Passo 4: Edge Function `send-urgent-alerts`
+
+**Arquivo:** `supabase/functions/send-urgent-alerts/index.ts`
+
+Recebe `user_id`, `deadline_title`, `message` no body. Logica:
+
+1. Busca `notification_preferences` do usuario (via service role)
+2. Se `email_alerts_enabled` e `urgent_alerts_enabled` estao ativos:
+   - Busca email do usuario na tabela `profiles`
+   - Envia email HTML via Resend com template de alerta urgente (fundo vermelho, dados do prazo)
+3. Retorna status do envio
+
+Template do email:
+- Assunto: "URGENTE: Prazo vence hoje/amanha"
+- Corpo: alerta visual com detalhes do prazo e link para a plataforma
+
+---
+
+## Passo 5: Edge Function `send-daily-digest`
+
+**Arquivo:** `supabase/functions/send-daily-digest/index.ts`
+
+Funcao para ser chamada via cron (1x/dia as 07:00 BRT). Logica:
+
+1. Busca todos usuarios com `daily_digest_enabled = true`
+2. Para cada usuario:
+   - Busca `tracked_processes` ativos
+   - Busca `process_movements` das ultimas 24h desses processos
+   - Se nao houver movimentacoes, pula
+   - Busca email em `profiles`
+   - Monta email HTML com lista de processos e movimentacoes
+   - Envia via Resend
+3. Retorna contadores
+
+Template do email:
+- Assunto: "Resumo Diario - X processos com movimentacao"
+- Corpo: tabela com cada processo e suas movimentacoes do dia
+
+---
+
+## Passo 6: Integrar `check-deadlines` com alertas
+
+Modificar `supabase/functions/check-deadlines/index.ts`:
+
+Apos inserir notificacoes de prazo urgente (1 dia), fazer chamada HTTP interna para `send-urgent-alerts` para cada usuario afetado, passando os dados do prazo.
+
+---
+
+## Passo 7: Agendar digest diario via pg_cron
+
+Criar cron job para chamar `send-daily-digest` diariamente as 10:00 UTC (07:00 BRT):
+
+```sql
+SELECT cron.schedule(
+  'send-daily-digest-7am',
+  '0 10 * * *',
+  $$ SELECT net.http_post(...) $$
 );
-
-ALTER TABLE public.notification_preferences ENABLE ROW LEVEL SECURITY;
-
--- Politicas RLS
-CREATE POLICY "Users can view their own preferences"
-  ON public.notification_preferences FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own preferences"
-  ON public.notification_preferences FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own preferences"
-  ON public.notification_preferences FOR UPDATE
-  USING (auth.uid() = user_id);
 ```
 
-### Secrets necessarios
+---
 
-| Secret | Servico | Obrigatorio |
-|--------|---------|-------------|
-| `RESEND_API_KEY` | Resend (email) | Sim, para email |
-| `TWILIO_ACCOUNT_SID` | Twilio (WhatsApp) | Opcional |
-| `TWILIO_AUTH_TOKEN` | Twilio (WhatsApp) | Opcional |
-| `TWILIO_WHATSAPP_FROM` | Twilio (WhatsApp) | Opcional |
+## Resumo de Arquivos
 
-### Dependencias existentes (nenhuma nova)
+| Acao | Arquivo |
+|------|---------|
+| Criar | `supabase/functions/send-urgent-alerts/index.ts` |
+| Criar | `supabase/functions/send-daily-digest/index.ts` |
+| Modificar | `supabase/functions/check-deadlines/index.ts` (adicionar chamada ao send-urgent-alerts) |
+| Modificar | `src/pages/Settings.tsx` (mudar default email_alerts_enabled para false) |
+| Migracao | UNIQUE constraint + trigger para novos usuarios |
 
-jsPDF, date-fns, lucide-react, recharts - todos ja instalados.
+## Secrets necessarios
 
-### Fluxo de alertas urgentes
-
-```text
-pg_cron (diario 06:00)
-  |
-  v
-check-deadlines (edge function)
-  |
-  |--> Prazo <= 24h detectado
-  |      |
-  |      v
-  |    Cria notificacao in-app (notifications table)
-  |      |
-  |      v
-  |    Chama send-urgent-alerts
-  |      |
-  |      |--> Busca notification_preferences do usuario
-  |      |--> Email habilitado? --> Envia via Resend
-  |      |--> WhatsApp habilitado? --> Envia via Twilio
-  |
-  v
-check-movements (edge function separada)
-  |
-  |--> Novas movimentacoes detectadas
-  |      |
-  |      v
-  |    Cria notificacao in-app
-  |    (movimentacoes serao consolidadas no digest)
-```
-
-### Fluxo do resumo diario
-
-```text
-pg_cron (diario 07:00)
-  |
-  v
-send-daily-digest (nova edge function)
-  |
-  |--> Para cada usuario com daily_digest_enabled = true:
-  |      |
-  |      v
-  |    Busca process_movements das ultimas 24h
-  |    (via tracked_processes do usuario)
-  |      |
-  |      |--> Sem movimentacoes? --> Pula usuario
-  |      |--> Com movimentacoes? --> Monta HTML e envia email via Resend
-```
+| Secret | Status |
+|--------|--------|
+| `RESEND_API_KEY` | Precisa ser adicionado pelo usuario |
 
