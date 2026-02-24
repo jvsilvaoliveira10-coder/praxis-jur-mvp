@@ -25,8 +25,8 @@ const faqs = [
     answer: 'Atualmente, a plataforma é focada em direito cível, com suporte para ações de obrigação de fazer, cobrança e indenização por danos morais. Estamos expandindo para outras áreas do direito.',
   },
   {
-    question: 'Como funciona o período gratuito?',
-    answer: 'Durante o período de lançamento, a plataforma é totalmente gratuita. Você pode criar sua conta, cadastrar clientes, gerar petições e usar todas as funcionalidades sem nenhum custo ou necessidade de cartão de crédito.',
+    question: 'Como funciona a garantia de 7 dias?',
+    answer: 'Ao assinar qualquer plano, você tem 7 dias para testar a plataforma completa. Se por qualquer motivo não estiver satisfeito, basta enviar um e-mail e devolvemos 100% do valor pago, sem perguntas e sem burocracia.',
   },
   {
     question: 'Preciso instalar algum software?',
