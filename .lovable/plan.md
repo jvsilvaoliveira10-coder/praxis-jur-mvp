@@ -1,63 +1,78 @@
 
-# Reforcar a Garantia de 7 Dias - Risco Zero
+
+# Redesign Premium dos Cards de Preco + Limpeza de Textos "Gratis"
 
 ## Objetivo
 
-Transformar a garantia de 7 dias de um simples banner discreto em um elemento de destaque que transmita confianca absoluta ao visitante. A mensagem central: **"Voce nao tem nenhum risco. Se nao gostar, devolvemos 100% do seu dinheiro em ate 7 dias."**
+1. Redesenhar os cards de plano (tanto na landing page quanto na pagina `/pricing`) com visual premium e sofisticado
+2. Redesenhar o bloco de garantia de 7 dias para ser mais impactante e imersivo
+3. Remover todas as referencias a "gratis", "sem cartao de credito" e "periodo gratuito" em toda a landing page
 
 ---
 
 ## Mudancas
 
-### 1. Pagina `/pricing` (`src/pages/Pricing.tsx`)
+### 1. Cards de Plano - Visual Premium (ambos os arquivos)
 
-Substituir o banner discreto atual (linha 170-177) por um bloco de garantia grande e visualmente impactante:
+Redesenhar os cards em `PricingSection.tsx` e `Pricing.tsx` com:
 
-- Card com borda verde/primary, icone de escudo grande (32px+), fundo com gradiente sutil
-- Titulo em destaque: "Garantia Absoluta de 7 Dias"
-- Subtitulo explicativo: "Teste o Praxis Jur sem nenhum risco. Se nao estiver 100% satisfeito nos primeiros 7 dias, basta enviar um e-mail e devolvemos cada centavo. Sem perguntas, sem burocracia."
-- Checklist visual com 3 pontos:
-  - "Reembolso integral, sem perguntas"
-  - "Cancele por e-mail a qualquer momento"
-  - "Sem risco nenhum para voce"
+- Fundo com gradiente sutil diferenciado por plano (neutro para Essencial, primary para Profissional, escuro/sofisticado para Escritorio)
+- Card do plano Profissional (destacado) com fundo gradiente primary, texto claro, borda luminosa e sombra colorida
+- Icone decorativo por plano no topo do card (ex: Scale, Crown, Building2)
+- Separador visual entre preco e features
+- Badge de economia com fundo colorido mais forte
+- Botao do plano destacado com gradiente e efeito hover
+- Rounded-2xl com padding maior para respirar
+- Feature list com checks em circulos preenchidos ao inves de simples
 
-### 2. Landing Page - Nova secao de garantia (`src/components/landing/PricingSection.tsx`)
+### 2. Bloco de Garantia - Visual Impactante (ambos os arquivos)
 
-Criar o componente `PricingSection` que inclui:
+Redesenhar o bloco de garantia para ser mais grandioso:
 
-- Toggle anual/mensal + 3 cards de plano (reutilizando dados de `stripe-plans.ts`)
-- Botoes "Ver planos" que direcionam para `/pricing`
-- Logo abaixo dos cards, o **mesmo bloco de garantia robusto** descrito acima, com animacao de entrada (useInView)
-- `id="precos"` para scroll suave do header
+- Borda dupla com gradiente animado sutil (pulse)
+- Icone do escudo maior (48px) com fundo em gradiente e sombra
+- Tipografia maior e mais bold no titulo
+- Os 3 pontos da checklist em cards individuais com icone, titulo e subtitulo
+- Fundo com pattern decorativo (dots ou grid sutil)
 
-### 3. Landing Page - Inserir secao (`src/pages/Index.tsx`)
+### 3. HeroSection.tsx - Remover referencias a "gratis"
 
-Importar e renderizar `<PricingSection />` entre `TargetAudienceSection` e `FAQSection`.
+- Badge "Gratis por tempo limitado" -> "Plataforma juridica completa" ou "Hub 360 para advogados"
+- Botao "Comecar Gratuitamente" -> "Comecar Agora" direcionando para `/pricing`
+- Trust indicator "Sem cartao de credito" -> "Garantia de 7 dias" ou "Risco zero"
 
-### 4. CTA Section (`src/components/landing/CTASection.tsx`)
+### 4. FAQSection.tsx - Atualizar FAQ sobre periodo gratuito
 
-- Trocar o botao "Criar Conta Gratuita" por "Comece Agora" direcionando para `#precos` ou `/pricing`
-- Substituir o texto "Sem cartao de credito / Gratis por tempo limitado" por uma frase de garantia: "7 dias de garantia absoluta - seu dinheiro de volta se nao gostar"
-
-### 5. Header da Landing (`src/components/landing/LandingHeader.tsx`)
-
-- Mudar o link "Precos" de rota `/pricing` para ancora `#precos` (scroll suave na propria landing)
+- Mudar pergunta "Como funciona o periodo gratuito?" para "Como funciona a garantia de 7 dias?"
+- Atualizar resposta explicando que ao assinar, a pessoa tem 7 dias para testar e, se nao gostar, recebe reembolso integral sem perguntas
 
 ---
 
 ## Secao Tecnica
 
-### Arquivos criados
-
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/components/landing/PricingSection.tsx` | Secao completa de precos + garantia para a landing page |
-
 ### Arquivos modificados
 
 | Arquivo | Mudanca |
-|---------|---------|
-| `src/pages/Pricing.tsx` | Substituir banner de garantia discreto por bloco grande e impactante |
-| `src/pages/Index.tsx` | Importar e renderizar PricingSection |
-| `src/components/landing/CTASection.tsx` | Atualizar botao e texto para refletir modelo pago com garantia |
-| `src/components/landing/LandingHeader.tsx` | Link "Precos" como ancora `#precos` |
+|---------|-----------|
+| `src/components/landing/PricingSection.tsx` | Cards premium + garantia impactante |
+| `src/pages/Pricing.tsx` | Cards premium + garantia impactante (mesmo estilo) |
+| `src/components/landing/HeroSection.tsx` | Remover "gratis", "sem cartao", atualizar CTA |
+| `src/components/landing/FAQSection.tsx` | Atualizar FAQ sobre periodo gratuito -> garantia 7 dias |
+
+### Nenhum arquivo novo necessario
+
+Todas as mudancas sao em arquivos existentes.
+
+### Design dos cards por tier
+
+- **Essencial**: Card com fundo `bg-card`, borda normal, icone Scale em muted
+- **Profissional**: Card com fundo gradiente primary (`from-primary to-primary/90`), texto branco, borda primary com glow (`shadow-primary/25`), badge "Mais Popular" branco, icone Crown
+- **Escritorio**: Card com fundo `bg-card` com borda mais forte, icone Building2 em foreground
+
+### Garantia - layout dos 3 pontos
+
+Em vez de uma lista simples, os 3 pontos de garantia serao apresentados como mini-cards lado a lado, cada um com:
+- Icone em circulo (ShieldCheck, Mail, ThumbsUp)
+- Titulo bold
+- Subtitulo em muted
+
