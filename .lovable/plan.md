@@ -1,102 +1,47 @@
 
+# Reforcar a Garantia de 7 Dias - Risco Zero
 
-# Implementar Monetizacao com Stripe - 3 Planos de Assinatura
+## Objetivo
 
-## Visao Geral
-
-Integrar o Stripe para cobrar assinaturas mensais e anuais com 3 tiers. O preco anual e exibido por padrao na UI. Cobranca imediata com garantia de reembolso em 7 dias (via email).
-
----
-
-## Precos Finais
-
-| Plano | Anual (por mes) | Total Anual | Mensal |
-|-------|-----------------|-------------|--------|
-| Essencial | R$59,90/mes | R$718,80/ano | R$79,90/mes |
-| Profissional | R$99,90/mes | R$1.198,80/ano | R$119,90/mes |
-| Escritorio | R$149,90/mes | R$1.798,80/ano | R$179,90/mes |
+Transformar a garantia de 7 dias de um simples banner discreto em um elemento de destaque que transmita confianca absoluta ao visitante. A mensagem central: **"Voce nao tem nenhum risco. Se nao gostar, devolvemos 100% do seu dinheiro em ate 7 dias."**
 
 ---
 
-## Etapas de Implementacao
+## Mudancas
 
-### 1. Criar Produtos e Precos no Stripe
+### 1. Pagina `/pricing` (`src/pages/Pricing.tsx`)
 
-3 produtos com 2 precos cada (6 precos no total):
+Substituir o banner discreto atual (linha 170-177) por um bloco de garantia grande e visualmente impactante:
 
-- **Essencial**: mensal R$79,90 (7990 centavos) + anual R$718,80 (71880 centavos)
-- **Profissional**: mensal R$119,90 (11990 centavos) + anual R$1.198,80 (119880 centavos)
-- **Escritorio**: mensal R$179,90 (17990 centavos) + anual R$1.798,80 (179880 centavos)
+- Card com borda verde/primary, icone de escudo grande (32px+), fundo com gradiente sutil
+- Titulo em destaque: "Garantia Absoluta de 7 Dias"
+- Subtitulo explicativo: "Teste o Praxis Jur sem nenhum risco. Se nao estiver 100% satisfeito nos primeiros 7 dias, basta enviar um e-mail e devolvemos cada centavo. Sem perguntas, sem burocracia."
+- Checklist visual com 3 pontos:
+  - "Reembolso integral, sem perguntas"
+  - "Cancele por e-mail a qualquer momento"
+  - "Sem risco nenhum para voce"
 
-### 2. Edge Function: `check-subscription`
+### 2. Landing Page - Nova secao de garantia (`src/components/landing/PricingSection.tsx`)
 
-Verifica se o usuario tem assinatura ativa no Stripe (busca por email). Retorna:
-- `subscribed` (boolean)
-- `product_id` (identifica o tier)
-- `subscription_end` (data)
+Criar o componente `PricingSection` que inclui:
 
-Chamada automaticamente no login, page load e a cada minuto.
+- Toggle anual/mensal + 3 cards de plano (reutilizando dados de `stripe-plans.ts`)
+- Botoes "Ver planos" que direcionam para `/pricing`
+- Logo abaixo dos cards, o **mesmo bloco de garantia robusto** descrito acima, com animacao de entrada (useInView)
+- `id="precos"` para scroll suave do header
 
-### 3. Edge Function: `create-checkout`
+### 3. Landing Page - Inserir secao (`src/pages/Index.tsx`)
 
-Recebe `price_id`, cria ou reutiliza customer no Stripe vinculado ao email do usuario, retorna URL do Stripe Checkout (abre em nova aba).
+Importar e renderizar `<PricingSection />` entre `TargetAudienceSection` e `FAQSection`.
 
-### 4. Edge Function: `customer-portal`
+### 4. CTA Section (`src/components/landing/CTASection.tsx`)
 
-Cria sessao do Stripe Customer Portal para gerenciar cartao, faturas e cancelamento.
+- Trocar o botao "Criar Conta Gratuita" por "Comece Agora" direcionando para `#precos` ou `/pricing`
+- Substituir o texto "Sem cartao de credito / Gratis por tempo limitado" por uma frase de garantia: "7 dias de garantia absoluta - seu dinheiro de volta se nao gostar"
 
-### 5. Atualizar AuthContext
+### 5. Header da Landing (`src/components/landing/LandingHeader.tsx`)
 
-Adicionar ao estado global:
-- `subscribed` (boolean)
-- `subscriptionTier` ("essencial" | "profissional" | "escritorio" | null)
-- `subscriptionEnd` (string | null)
-
-Chamar `check-subscription` apos login e periodicamente.
-
-### 6. Nova pagina `/pricing`
-
-- Toggle Anual/Mensal (anual por padrao)
-- 3 cards com nome, preco, badge "Economize R$X" no anual
-- Badge "Mais Popular" no Profissional
-- Lista de funcionalidades por plano
-- Botao "Assinar" que redireciona para Stripe Checkout
-- Nota: "Garantia de 7 dias - cancele e receba reembolso integral"
-
-**Funcionalidades por plano:**
-
-**Essencial:**
-- Ate 30 processos ativos
-- Gestao de clientes e prazos
-- Templates manuais de peticoes
-- Monitoramento de 10 processos (DataJud)
-- 1 usuario
-
-**Profissional (Mais Popular):**
-- Processos ilimitados
-- Geracao de peticoes com IA (8 modelos)
-- Alertas por email automaticos
-- Relatorios PDF para clientes
-- Modulo financeiro completo
-- Ate 3 usuarios
-
-**Escritorio:**
-- Tudo do Profissional
-- Usuarios ilimitados
-- Dashboards financeiros avancados (DRE, Fluxo de Caixa)
-- Insights de IA para o negocio
-- Suporte prioritario
-
-### 7. Atualizar Settings - Aba Assinatura
-
-- Plano atual, status, proxima cobranca
-- Botao "Gerenciar Assinatura" (Customer Portal)
-- Se nao tem assinatura, link para `/pricing`
-
-### 8. Landing Header + Rota
-
-- Adicionar "Precos" no nav do `LandingHeader.tsx`
-- Adicionar rota `/pricing` no `App.tsx`
+- Mudar o link "Precos" de rota `/pricing` para ancora `#precos` (scroll suave na propria landing)
 
 ---
 
@@ -106,29 +51,13 @@ Chamar `check-subscription` apos login e periodicamente.
 
 | Arquivo | Descricao |
 |---------|-----------|
-| `src/pages/Pricing.tsx` | Pagina de precos com toggle anual/mensal |
-| `supabase/functions/check-subscription/index.ts` | Verifica assinatura via Stripe API |
-| `supabase/functions/create-checkout/index.ts` | Cria sessao de checkout |
-| `supabase/functions/customer-portal/index.ts` | Cria sessao do portal do cliente |
+| `src/components/landing/PricingSection.tsx` | Secao completa de precos + garantia para a landing page |
 
 ### Arquivos modificados
 
 | Arquivo | Mudanca |
 |---------|---------|
-| `src/App.tsx` | Rota `/pricing` |
-| `src/contexts/AuthContext.tsx` | Estado de subscription + check automatico |
-| `src/pages/Settings.tsx` | Aba Assinatura com dados reais |
-| `src/components/landing/LandingHeader.tsx` | Link "Precos" |
-
-### Mapeamento de tiers
-
-Constante no frontend com product_ids e price_ids do Stripe para cada plano, permitindo identificar qual tier o usuario possui e qual preco enviar ao checkout.
-
-### Sem tabela de subscriptions
-
-Verificacao feita diretamente via API do Stripe (por email), sem tabela local.
-
-### Sem webhook
-
-Arquitetura usa polling via `check-subscription`.
-
+| `src/pages/Pricing.tsx` | Substituir banner de garantia discreto por bloco grande e impactante |
+| `src/pages/Index.tsx` | Importar e renderizar PricingSection |
+| `src/components/landing/CTASection.tsx` | Atualizar botao e texto para refletir modelo pago com garantia |
+| `src/components/landing/LandingHeader.tsx` | Link "Precos" como ancora `#precos` |
