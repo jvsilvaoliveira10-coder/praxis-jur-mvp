@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Scale, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import logoColor from '@/assets/praxis_jur_logo_color.svg';
 
 const navLinks = [
   { label: 'Funcionalidades', href: '#funcionalidades' },
@@ -37,7 +38,7 @@ export function LandingHeader() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-10" />
+            <img src={logoColor} alt="Práxis Jur" className="h-10" />
           </div>
 
           {/* Desktop Navigation */}

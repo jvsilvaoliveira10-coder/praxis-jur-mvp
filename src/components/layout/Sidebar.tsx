@@ -1,4 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import logoWhite from '@/assets/praxis_jur_logo_white.svg';
+import logoIcon from '@/assets/praxis_jur_icon_only.svg';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { 
@@ -210,11 +212,9 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
     <div className="h-full bg-sidebar text-sidebar-foreground flex flex-col">
       {/* Logo - altura fixa de 72px para alinhar com TopHeader */}
       <div className="h-[72px] px-4 flex items-center border-b border-sidebar-border">
-        <div>
-          <div className="flex items-center gap-3">
-            <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-10" />
-          </div>
-          <p className="text-[10px] text-sidebar-foreground/50 mt-0.5">Por: João Oliveira</p>
+        <div className="flex flex-col items-center w-full">
+          <img src={logoWhite} alt="Práxis Jur" className="h-10" />
+          <p className="text-[10px] text-white font-bold mt-0.5 text-center">Por: João Oliveira</p>
         </div>
       </div>
 
@@ -262,16 +262,14 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
     >
       {/* Logo + botão de recolher - altura fixa de 72px para alinhar com TopHeader */}
       <div className="h-[72px] px-4 flex items-center justify-between border-b border-sidebar-border">
-        <div>
-          <div className="flex items-center gap-3">
-            {isCollapsed ? (
-              <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-8" />
-            ) : (
-              <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-10" />
-            )}
-          </div>
-          {!isCollapsed && (
-            <p className="text-[10px] text-sidebar-foreground/50 mt-0.5">Por: João Oliveira</p>
+        <div className={cn("flex flex-col items-center", isCollapsed ? "w-full" : "")}>
+          {isCollapsed ? (
+            <img src={logoIcon} alt="Práxis Jur" className="h-8" />
+          ) : (
+            <>
+              <img src={logoWhite} alt="Práxis Jur" className="h-10" />
+              <p className="text-[10px] text-white font-bold mt-0.5 text-center">Por: João Oliveira</p>
+            </>
           )}
         </div>
         {/* Botão de recolher no header */}
