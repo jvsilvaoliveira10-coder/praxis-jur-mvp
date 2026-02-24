@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Scale, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -8,15 +8,23 @@ const navLinks = [
   { label: 'Funcionalidades', href: '#funcionalidades' },
   { label: 'Gestão de Processos', href: '#gestao-processos' },
   { label: 'Financeiro', href: '#financeiro' },
+  { label: 'Preços', href: '/pricing', isRoute: true },
   { label: 'FAQ', href: '#faq' },
 ];
 
 export function LandingHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
-  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, link: typeof navLinks[0]) => {
+    if ((link as any).isRoute) {
+      e.preventDefault();
+      navigate(link.href);
+      setMobileMenuOpen(false);
+      return;
+    }
     e.preventDefault();
-    const element = document.querySelector(href);
+    const element = document.querySelector(link.href);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
@@ -38,7 +46,7 @@ export function LandingHeader() {
               <a
                 key={link.href}
                 href={link.href}
-                onClick={(e) => handleNavClick(e, link.href)}
+                onClick={(e) => handleNavClick(e, link)}
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 {link.label}
@@ -79,7 +87,7 @@ export function LandingHeader() {
               <a
                 key={link.href}
                 href={link.href}
-                onClick={(e) => handleNavClick(e, link.href)}
+                onClick={(e) => handleNavClick(e, link)}
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 {link.label}

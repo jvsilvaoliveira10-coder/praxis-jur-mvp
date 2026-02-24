@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   User, Building2, Users, CreditCard, Save, Loader2, Upload, 
-  Phone, Mail, Globe, MapPin, Scale, FileText, X, Bell 
+  Phone, Mail, Globe, MapPin, Scale, FileText, X, Bell, ExternalLink, Crown
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useDropzone } from 'react-dropzone';
@@ -177,6 +178,78 @@ const NotificationPreferencesTab = () => {
         <Button onClick={handleSaveNotif} disabled={savingNotif}>
           {savingNotif ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
           Salvar Preferências
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
+
+import { getPlanByTier } from '@/lib/stripe-plans';
+import { Badge } from '@/components/ui/badge';
+
+const SubscriptionTab = () => {
+  const { subscribed, subscriptionTier, subscriptionEnd, checkSubscription } = useAuth();
+  const [loadingPortal, setLoadingPortal] = useState(false);
+
+  const handleManageSubscription = async () => {
+    setLoadingPortal(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+      if (error) throw error;
+      if (data?.url) window.open(data.url, '_blank');
+    } catch (error: any) {
+      toast.error('Erro ao abrir portal: ' + (error.message || 'Tente novamente'));
+    } finally {
+      setLoadingPortal(false);
+    }
+  };
+
+  const plan = subscriptionTier ? getPlanByTier(subscriptionTier) : null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CreditCard className="w-5 h-5" />
+          Assinatura
+        </CardTitle>
+        <CardDescription>Gerencie seu plano e pagamento</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {subscribed && plan ? (
+          <>
+            <div className="flex items-center justify-between p-4 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="flex items-center gap-3">
+                <Crown className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="font-semibold text-foreground">Plano {plan.name}</p>
+                  {subscriptionEnd && (
+                    <p className="text-sm text-muted-foreground">
+                      Próxima cobrança: {new Date(subscriptionEnd).toLocaleDateString('pt-BR')}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <Badge className="bg-primary/10 text-primary border-primary/20">Ativo</Badge>
+            </div>
+            <Button variant="outline" onClick={handleManageSubscription} disabled={loadingPortal}>
+              {loadingPortal ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ExternalLink className="w-4 h-4 mr-2" />}
+              Gerenciar Assinatura
+            </Button>
+          </>
+        ) : (
+          <div className="text-center py-6 space-y-4">
+            <p className="text-muted-foreground">Você ainda não possui um plano ativo.</p>
+            <Button asChild>
+              <Link to="/pricing">
+                <Crown className="w-4 h-4 mr-2" />
+                Ver Planos
+              </Link>
+            </Button>
+          </div>
+        )}
+        <Button variant="ghost" size="sm" onClick={checkSubscription} className="text-xs text-muted-foreground">
+          Atualizar status
         </Button>
       </CardContent>
     </Card>
@@ -855,26 +928,7 @@ const Settings = () => {
 
         {/* Subscription Tab */}
         <TabsContent value="subscription" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Plano Atual</CardTitle>
-              <CardDescription>Gerencie sua assinatura</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                <div>
-                  <p className="font-medium">Plano Trial</p>
-                  <p className="text-sm text-muted-foreground">Acesso completo por 14 dias</p>
-                </div>
-                <Button variant="outline" disabled>
-                  Em breve
-                </Button>
-              </div>
-              <p className="text-sm text-muted-foreground mt-4">
-                Opções de assinatura estarão disponíveis em breve.
-              </p>
-            </CardContent>
-          </Card>
+          <SubscriptionTab />
         </TabsContent>
 
         {/* Notifications Tab */}
