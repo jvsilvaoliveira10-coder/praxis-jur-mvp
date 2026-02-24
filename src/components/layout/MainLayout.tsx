@@ -14,6 +14,7 @@ import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
 import WelcomeModal from '@/components/onboarding/WelcomeModal';
 import ProductTour from '@/components/onboarding/ProductTour';
 import OnboardingChecklist from '@/components/onboarding/OnboardingChecklist';
+import LegalChatWidget from '@/components/chat/LegalChatWidget';
 
 const MainLayout = () => {
   const { user, loading } = useAuth();
@@ -177,6 +178,7 @@ const MainLayout = () => {
 
         {/* Floating Checklist */}
         {shouldShowChecklist && <OnboardingChecklist />}
+        <LegalChatWidget />
       </>
     );
   }
@@ -217,6 +219,7 @@ const MainLayout = () => {
 
       {/* Floating Checklist */}
       {shouldShowChecklist && <OnboardingChecklist />}
+      <LegalChatWidget />
     </>
   );
 };
