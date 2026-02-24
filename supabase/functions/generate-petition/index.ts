@@ -129,9 +129,17 @@ serve(async (req) => {
       firmSettings,
     } = body;
 
-    // Input validation
+    // Validate required fields exist and are strings
+    const MAX_TEXT_LENGTH = 10000;
+    const validPetitionTypes = ['peticao_inicial', 'contestacao', 'peticao_simples', 'recurso', 'agravo', 'apelacao', 'embargos', 'manifestacao', 'outros'];
+
     if (!facts || typeof facts !== 'string' || facts.trim().length < 10) {
       return new Response(JSON.stringify({ error: 'Fatos devem ter pelo menos 10 caracteres.' }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (facts.length > MAX_TEXT_LENGTH) {
+      return new Response(JSON.stringify({ error: `Fatos excedem o limite de ${MAX_TEXT_LENGTH} caracteres.` }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -140,17 +148,42 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    if (legalBasis.length > MAX_TEXT_LENGTH) {
+      return new Response(JSON.stringify({ error: `Fundamento jurídico excede o limite de ${MAX_TEXT_LENGTH} caracteres.` }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     if (!requests || typeof requests !== 'string' || requests.trim().length < 10) {
       return new Response(JSON.stringify({ error: 'Pedidos devem ter pelo menos 10 caracteres.' }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const MAX_TEXT_LENGTH = 10000;
-    const safeFacts = facts.substring(0, MAX_TEXT_LENGTH);
-    const safeLegalBasis = legalBasis.substring(0, MAX_TEXT_LENGTH);
-    const safeRequests = requests.substring(0, MAX_TEXT_LENGTH);
-    const safeUserContext = userContext ? userContext.substring(0, 5000) : '';
-    const safeTemplateContent = templateContent ? templateContent.substring(0, 15000) : undefined;
+    if (requests.length > MAX_TEXT_LENGTH) {
+      return new Response(JSON.stringify({ error: `Pedidos excedem o limite de ${MAX_TEXT_LENGTH} caracteres.` }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!petitionType || typeof petitionType !== 'string' || !validPetitionTypes.includes(petitionType)) {
+      return new Response(JSON.stringify({ error: 'Tipo de petição inválido.' }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!caseData || typeof caseData !== 'object' || !caseData.court || !caseData.actionType || !caseData.opposingParty) {
+      return new Response(JSON.stringify({ error: 'Dados do processo incompletos (court, actionType, opposingParty obrigatórios).' }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!clientData || typeof clientData !== 'object' || !clientData.name || !clientData.document || !clientData.type) {
+      return new Response(JSON.stringify({ error: 'Dados do cliente incompletos (name, document, type obrigatórios).' }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const safeFacts = facts.trim();
+    const safeLegalBasis = legalBasis.trim();
+    const safeRequests = requests.trim();
+    const safeUserContext = userContext ? String(userContext).substring(0, 5000) : '';
+    const safeTemplateContent = templateContent ? String(templateContent).substring(0, 15000) : undefined;
 
     // Determine model based on petition complexity
     const model = getModelForPetitionType(petitionType);

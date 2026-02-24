@@ -165,16 +165,38 @@ Deno.serve(async (req) => {
       )
     }
 
-    const { processNumber, tribunal: providedTribunal } = await req.json()
+    const body = await req.json()
+    const { processNumber, tribunal: providedTribunal } = body
 
-    if (!processNumber) {
+    if (!processNumber || typeof processNumber !== 'string') {
       return new Response(
         JSON.stringify({ error: 'Número do processo é obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+    if (processNumber.length > 50) {
+      return new Response(
+        JSON.stringify({ error: 'Número do processo inválido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     const cleanNumber = cleanProcessNumber(processNumber)
+
+    // Validate cleaned number contains only digits and is valid CNJ length
+    if (cleanNumber.length < 10 || cleanNumber.length > 20 || !/^\d+$/.test(cleanNumber)) {
+      return new Response(
+        JSON.stringify({ error: 'Formato de número de processo inválido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (providedTribunal && (typeof providedTribunal !== 'string' || !tribunalEndpoints[providedTribunal.toUpperCase()])) {
+      return new Response(
+        JSON.stringify({ error: 'Tribunal informado não é suportado' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
     
     // Tentar extrair tribunal do número ou usar o fornecido
     const tribunal = providedTribunal || extractTribunalFromCNJ(processNumber)
