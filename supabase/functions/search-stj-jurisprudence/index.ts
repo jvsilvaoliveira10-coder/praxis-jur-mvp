@@ -7,7 +7,6 @@ const corsHeaders = {
 
 // API pública do Datajud (CNJ)
 const DATAJUD_API_URL = 'https://api-publica.datajud.cnj.jus.br/api_publica_stj/_search';
-const DATAJUD_API_KEY = 'cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==';
 
 interface SearchParams {
   query: string;
@@ -154,6 +153,12 @@ async function searchLocal(
 
 // Busca na API Datajud (tempo real)
 async function searchDatajud(query: string, limit: number = 20): Promise<STJAcordao[]> {
+  const DATAJUD_API_KEY = Deno.env.get('DATAJUD_API_KEY');
+  if (!DATAJUD_API_KEY) {
+    console.error('DATAJUD_API_KEY not configured');
+    return [];
+  }
+
   console.log('Buscando na API Datajud:', query);
 
   const esQuery = {
