@@ -8,7 +8,7 @@ const navLinks = [
   { label: 'Funcionalidades', href: '#funcionalidades' },
   { label: 'Gestão de Processos', href: '#gestao-processos' },
   { label: 'Financeiro', href: '#financeiro' },
-  { label: 'Preços', href: '/pricing', isRoute: true },
+  { label: 'Preços', href: '#precos' },
   { label: 'FAQ', href: '#faq' },
 ];
 
