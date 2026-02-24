@@ -1,81 +1,100 @@
 
+# Pagina de Integracoes BYOK (Bring Your Own Key)
 
-# Modelos do Escritorio como Base para IA
+## Por que comecar por aqui
 
-## Situacao Atual
+Esta pagina e a **base obrigatoria** para qualquer integracao futura (D4Sign, DocuSign, PJe, certificado digital). Sem ela, nao existe onde o advogado cadastre suas credenciais. Implementar primeiro maximiza reuso e evita retrabalho.
 
-O sistema ja tem:
-- Tabela `petition_templates` onde o advogado cadastra modelos
-- No formulario de peticao, um dropdown para selecionar um modelo ativo
-- A edge function `generate-petition` ja recebe `templateContent` e injeta no prompt como "MODELO DO ESCRITORIO"
+## O que sera construido
 
-Porem, a experiencia atual tem lacunas:
-1. O advogado so pode criar modelos pelo editor de texto -- nao pode **subir um arquivo** (DOCX/PDF)
-2. O template so e usado se o advogado manualmente selecionar no dropdown
-3. Nao ha auto-matching: se o tipo de peticao bate com um modelo, deveria sugerir automaticamente
+Uma nova aba "Integracoes" dentro da pagina de Configuracoes (`/configuracoes`), onde o advogado pode:
 
-## Melhorias Propostas
+1. Cadastrar API keys de provedores de assinatura digital (D4Sign, DocuSign, Clicksign)
+2. Fazer upload do certificado digital A1 (.pfx) para uso futuro com tribunais
+3. Ver status de cada integracao (conectado/desconectado)
+4. Testar a conexao antes de salvar
 
-### 1. Upload de Arquivos de Modelos
+## Escopo Tecnico
 
-Permitir que o advogado faca upload de arquivos `.docx` e `.txt` na pagina de criacao de template (`/templates/new`), alem do editor manual. O conteudo do arquivo sera extraido e inserido no campo de conteudo do template.
+### 1. Banco de Dados
 
-### 2. Auto-sugestao de Modelo
+**Nova tabela: `user_integrations`**
+- `id` (uuid, PK)
+- `user_id` (uuid, NOT NULL) -- referencia ao usuario logado
+- `provider` (text, NOT NULL) -- ex: 'd4sign', 'docusign', 'clicksign'
+- `api_key_encrypted` (text) -- API key criptografada via pgcrypto
+- `api_secret_encrypted` (text) -- secret criptografado (quando aplicavel)
+- `environment` (text, default 'sandbox') -- 'sandbox' ou 'production'
+- `is_active` (boolean, default true)
+- `last_tested_at` (timestamptz) -- ultima vez que conexao foi testada
+- `test_status` (text) -- 'success', 'failed', null
+- `created_at` / `updated_at` (timestamptz)
+- Constraint UNIQUE em (user_id, provider)
 
-Quando o advogado selecionar o tipo de peticao no formulario, se existir um modelo ativo do mesmo tipo, exibir um banner sugerindo usa-lo automaticamente como base para a IA.
+**RLS**: Todas as operacoes (SELECT, INSERT, UPDATE, DELETE) restritas a `auth.uid() = user_id`.
 
-### 3. Indicador Visual no Formulario
+**Criptografia**: Usar `pgp_sym_encrypt` / `pgp_sym_decrypt` com uma chave armazenada como secret do projeto (INTEGRATIONS_ENCRYPTION_KEY). A API key nunca e armazenada em texto plano.
 
-Mostrar claramente quando um modelo do escritorio sera usado como base, com badge "Usando modelo do escritorio" e preview resumido.
+**Novo bucket de storage: `user-certificates`**
+- Privado (public = false)
+- RLS: somente o dono pode fazer upload/download
+- Aceita apenas arquivos `.pfx` e `.p12`
 
----
+### 2. Edge Function: `test-integration`
 
-## Secao Tecnica
+Nova edge function que recebe `{ provider, api_key, api_secret?, environment }` e testa a conexao com a API do provedor:
+- **D4Sign**: chama `GET /api/v1/safes` com o token
+- **DocuSign**: chama endpoint de userinfo
+- **Clicksign**: chama endpoint de health
 
-### Arquivos Modificados
+Retorna `{ success: boolean, message: string }`.
 
-| Arquivo | Mudanca |
-|---------|---------|
-| `src/pages/TemplateForm.tsx` | Adicionar zona de upload (DOCX/TXT) usando react-dropzone; extrair texto e preencher o editor |
-| `src/pages/PetitionForm.tsx` | Auto-selecionar template quando `petition_type` bater com um modelo ativo; banner de sugestao |
-| `supabase/functions/extract-template/index.ts` | (Novo) Edge function para extrair texto de DOCX usando a lib `mammoth` no Deno |
+### 3. Frontend: Nova aba em Settings
 
-### Upload de DOCX - Fluxo
+**Arquivo modificado: `src/pages/Settings.tsx`**
+- Adicionar 6a aba "Integracoes" com icone `Plug` (lucide)
+- Ajustar `grid-cols-5` para `grid-cols-6` no TabsList
 
-1. Advogado arrasta um `.docx` ou `.txt` na zona de upload em `/templates/new`
-2. Para `.txt`: leitura direta no browser via `FileReader`
-3. Para `.docx`: enviar para edge function `extract-template` que usa `mammoth` para converter DOCX para HTML/texto
-4. Conteudo extraido e inserido no RichTextEditor para revisao antes de salvar
+**Novo componente: `src/components/settings/IntegrationsTab.tsx`**
 
-### Auto-sugestao no PetitionForm
+Conteudo da aba:
+- Card para cada provedor (D4Sign, DocuSign, Clicksign) com:
+  - Campo de API Key (mascarado por padrao, toggle para revelar)
+  - Campo de API Secret (quando aplicavel)
+  - Select de ambiente (Sandbox / Producao)
+  - Botao "Testar Conexao" que chama a edge function
+  - Indicador visual de status (verde/vermelho/cinza)
+  - Botao Salvar
 
-```text
-Quando petition_type muda:
-  -> Filtrar templates ativos do mesmo piece_type
-  -> Se encontrar 1+ template:
-     -> Mostrar banner: "Voce tem X modelo(s) para este tipo de peticao. Usar como base?"
-     -> Ao clicar, auto-seleciona o primeiro (ou abre seletor se >1)
-  -> Template selecionado e passado para a IA no campo templateContent (ja funciona)
-```
+- Card separado "Certificado Digital A1":
+  - Zona de upload drag-and-drop (.pfx/.p12)
+  - Campo de senha do certificado (criptografado)
+  - Indicador de arquivo atual (nome, data de upload)
+  - Botao para remover certificado
 
-### Edge Function: extract-template
+### 4. Arquivos Criados/Modificados
 
-Nova edge function para processar uploads DOCX:
+| Arquivo | Acao | Descricao |
+|---------|------|-----------|
+| Migracao SQL | Criar | Tabela `user_integrations`, bucket `user-certificates`, habilitar pgcrypto |
+| `supabase/functions/test-integration/index.ts` | Criar | Edge function para testar conexao com provedores |
+| `src/components/settings/IntegrationsTab.tsx` | Criar | Componente da aba de integracoes |
+| `src/pages/Settings.tsx` | Modificar | Adicionar aba "Integracoes" ao TabsList |
+| `supabase/config.toml` | Modificar | Registrar nova edge function |
 
-```typescript
-// supabase/functions/extract-template/index.ts
-// Recebe o arquivo DOCX como base64
-// Usa mammoth para converter para HTML
-// Retorna o HTML extraido
-```
+### 5. Seguranca
 
-### Dependencias
+- API keys criptografadas no banco com pgcrypto (nunca em texto plano)
+- Certificados .pfx em bucket privado com RLS por user_id
+- Edge function valida JWT antes de processar
+- A chave de criptografia e um secret do projeto (INTEGRATIONS_ENCRYPTION_KEY) -- sera solicitada ao usuario
+- Nenhuma credencial e exposta no frontend apos salvar (apenas mascarada)
 
-- `react-dropzone` (ja instalado no projeto)
-- Nenhuma nova dependencia frontend necessaria
-- `mammoth` via esm.sh no edge function para parsing DOCX
+### 6. Sequencia de Implementacao
 
-### Nenhuma alteracao de banco
-
-A tabela `petition_templates` ja suporta tudo que precisamos -- o campo `content` (text) armazena o conteudo do modelo independente de como foi criado (digitado ou uploaded).
-
+1. Solicitar ao usuario o secret INTEGRATIONS_ENCRYPTION_KEY
+2. Criar migracao SQL (tabela + bucket + RLS + pgcrypto)
+3. Criar edge function `test-integration`
+4. Criar componente `IntegrationsTab.tsx`
+5. Modificar `Settings.tsx` para incluir a nova aba
+6. Deploy da edge function
