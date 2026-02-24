@@ -6,10 +6,11 @@ import { cn } from '@/lib/utils';
 
 const benefits = [
   'Petições geradas em segundos, não em horas',
+  '8 modelos especializados com prompts otimizados',
+  'Preenchimento automático de dados do caso e cliente',
+  'Fundamentação com legislação brasileira',
   'Aprende com os modelos do seu escritório',
   'Mantém seu estilo e padrão de qualidade',
-  'Fundamentação com legislação brasileira',
-  'Qualificação automática das partes',
   'Formatação pronta para protocolo',
 ];
 

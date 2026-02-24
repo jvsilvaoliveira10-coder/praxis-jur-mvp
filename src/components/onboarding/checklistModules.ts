@@ -11,6 +11,8 @@ import {
   ArrowDownCircle,
   FileSignature,
   BarChart3,
+  BookTemplate,
+  FileDown,
 } from 'lucide-react';
 
 export interface ChecklistTask {
@@ -83,11 +85,29 @@ export const CHECKLIST_MODULES: ChecklistModule[] = [
       {
         id: 'petition',
         title: 'Gerar petição com IA',
-        description: 'Use a IA para criar uma petição',
+        description: 'Use a IA com 8 modelos especializados',
         icon: FileText,
         route: '/petitions/new',
         actionLabel: 'Nova Petição',
         progressField: 'first_petition_generated',
+      },
+      {
+        id: 'ai-template',
+        title: 'Usar modelo de petição IA',
+        description: 'Gere uma petição usando um modelo especializado',
+        icon: BookTemplate,
+        route: '/petitions/new',
+        actionLabel: 'Usar Modelo',
+        progressField: 'ai_template_used',
+      },
+      {
+        id: 'client-report',
+        title: 'Gerar relatório para cliente',
+        description: 'Crie um relatório PDF executivo',
+        icon: FileDown,
+        route: '/reports',
+        actionLabel: 'Gerar Relatório',
+        progressField: 'client_report_generated',
       },
       {
         id: 'pipeline',

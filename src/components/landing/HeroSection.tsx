@@ -80,7 +80,7 @@ export function HeroSection() {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-primary" />
-              <span className="text-sm">100% adaptado ao foro brasileiro</span>
+              <span className="text-sm">Alertas por email em tempo real</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-primary" />

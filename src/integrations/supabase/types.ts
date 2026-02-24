@@ -1728,8 +1728,10 @@ export type Database = {
       }
       user_onboarding_progress: {
         Row: {
+          ai_template_used: boolean | null
           badges_earned: string[] | null
           checklist_dismissed: boolean
+          client_report_generated: boolean | null
           created_at: string
           finance_dashboard_visited: boolean | null
           finance_report_generated: boolean | null
@@ -1753,8 +1755,10 @@ export type Database = {
           welcome_modal_seen: boolean
         }
         Insert: {
+          ai_template_used?: boolean | null
           badges_earned?: string[] | null
           checklist_dismissed?: boolean
+          client_report_generated?: boolean | null
           created_at?: string
           finance_dashboard_visited?: boolean | null
           finance_report_generated?: boolean | null
@@ -1778,8 +1782,10 @@ export type Database = {
           welcome_modal_seen?: boolean
         }
         Update: {
+          ai_template_used?: boolean | null
           badges_earned?: string[] | null
           checklist_dismissed?: boolean
+          client_report_generated?: boolean | null
           created_at?: string
           finance_dashboard_visited?: boolean | null
           finance_report_generated?: boolean | null
