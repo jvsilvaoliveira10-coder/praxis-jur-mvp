@@ -43,6 +43,9 @@ import LegalReports from "./pages/LegalReports";
 // Settings
 import Settings from "./pages/Settings";
 
+// Pricing
+import Pricing from "./pages/Pricing";
+
 // Contact
 import Contact from "./pages/Contact";
 
@@ -62,6 +65,7 @@ const App = () => (
             {/* Public routes */}
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/pricing" element={<Pricing />} />
             
             {/* Protected routes */}
             <Route element={<MainLayout />}>
