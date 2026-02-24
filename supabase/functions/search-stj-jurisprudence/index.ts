@@ -355,26 +355,47 @@ Deno.serve(async (req) => {
     const params: SearchParams = await req.json();
     const {
       query,
-      page = 1,
-      limit = 20,
       fetchRemote = false,
       minLocalResults = 5,
     } = params;
 
-    if (!query || query.trim().length < 3) {
+    // Validate and sanitize inputs
+    if (!query || typeof query !== 'string' || query.trim().length < 3) {
       return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Query deve ter pelo menos 3 caracteres',
-        }),
+        JSON.stringify({ success: false, error: 'Query deve ter pelo menos 3 caracteres' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (query.length > 500) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Query excede o limite de 500 caracteres' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const page = Math.max(1, Math.min(100, Math.floor(Number(params.page) || 1)));
+    const limit = Math.max(1, Math.min(50, Math.floor(Number(params.limit) || 20)));
+
+    if (params.orgao && (typeof params.orgao !== 'string' || params.orgao.length > 200)) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Parâmetro orgao inválido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (params.classe && (typeof params.classe !== 'string' || params.classe.length > 100)) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Parâmetro classe inválido' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     console.log('Busca híbrida STJ:', { query, fetchRemote, minLocalResults });
 
+    // Override params with sanitized values
+    const sanitizedParams = { ...params, page, limit };
+
     // 1. Busca local primeiro
-    const localResult = await searchLocal(supabase, params);
+    const localResult = await searchLocal(supabase, sanitizedParams);
     console.log(`Busca local: ${localResult.data.length} resultados (total: ${localResult.total})`);
 
     // 2. Se tem resultados suficientes e não forçou busca remota, retorna local
