@@ -6,6 +6,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+interface FirmSettings {
+  lawyerName?: string;
+  oabNumber?: string;
+  oabState?: string;
+  firmName?: string;
+  city?: string;
+  state?: string;
+  phone?: string;
+  email?: string;
+  signatureText?: string;
+}
+
 interface GeneratePetitionRequest {
   templateContent?: string;
   templateTitle?: string;
@@ -33,11 +45,37 @@ interface GeneratePetitionRequest {
     legalRepPosition?: string;
   };
   petitionType: string;
-  userContext: string; // User's contextualização
+  userContext: string;
   facts: string;
   legalBasis: string;
   requests: string;
   opposingPartyQualification?: string;
+  firmSettings?: FirmSettings;
+}
+
+// Determine which model to use based on petition type
+function getModelForPetitionType(petitionType: string): string {
+  const complexTypes = ['recurso', 'agravo', 'apelação', 'apelacao', 'embargos'];
+  const isComplex = complexTypes.some(t => petitionType.toLowerCase().includes(t));
+  return isComplex ? 'google/gemini-2.5-pro' : 'google/gemini-3-flash-preview';
+}
+
+// Build search keywords from case data
+function buildSearchQuery(caseData: { actionType: string }, facts: string, legalBasis: string): string {
+  const keywords: string[] = [];
+  keywords.push(caseData.actionType);
+  
+  // Extract key terms from facts (first 200 chars)
+  const factSnippet = facts.substring(0, 200).replace(/[^\w\sáàãâéêíóôõúçÁÀÃÂÉÊÍÓÔÕÚÇ]/g, ' ');
+  keywords.push(factSnippet);
+  
+  // Extract key terms from legal basis (first 150 chars)
+  if (legalBasis) {
+    const legalSnippet = legalBasis.substring(0, 150).replace(/[^\w\sáàãâéêíóôõúçÁÀÃÂÉÊÍÓÔÕÚÇ]/g, ' ');
+    keywords.push(legalSnippet);
+  }
+  
+  return keywords.join(' ').trim();
 }
 
 serve(async (req) => {
@@ -55,11 +93,12 @@ serve(async (req) => {
       });
     }
 
-    const authClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    const authClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: authHeader } },
+    });
 
     const token = authHeader.replace('Bearer ', '');
     const { data: claimsData, error: claimsError } = await authClient.auth.getUser(token);
@@ -87,9 +126,76 @@ serve(async (req) => {
       legalBasis,
       requests,
       opposingPartyQualification,
+      firmSettings,
     } = body;
 
-    // Build the system prompt for legal petition generation
+    // Determine model based on petition complexity
+    const model = getModelForPetitionType(petitionType);
+    console.log(`Using model: ${model} for petition type: ${petitionType}`);
+
+    // ===== RAG: Search legal references and jurisprudence =====
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+    const searchQuery = buildSearchQuery(caseData, facts, legalBasis);
+    
+    console.log(`RAG search query: ${searchQuery.substring(0, 100)}...`);
+
+    // Search in parallel
+    const [legalRefsResult, jurisprudenceResult] = await Promise.all([
+      serviceClient.rpc('search_legal_references', {
+        search_query: searchQuery,
+        result_limit: 10,
+        include_articles: true,
+        include_sumulas: true,
+      }),
+      serviceClient.rpc('search_stj_acordaos', {
+        search_query: searchQuery,
+        result_limit: 5,
+      }),
+    ]);
+
+    const legalRefs = legalRefsResult.data || [];
+    const jurisprudence = jurisprudenceResult.data || [];
+
+    console.log(`RAG found: ${legalRefs.length} legal refs, ${jurisprudence.length} jurisprudence`);
+
+    // Build RAG context block
+    let ragContext = '';
+    
+    if (legalRefs.length > 0) {
+      ragContext += `\n\nFUNDAMENTAÇÃO JURÍDICA REAL (da base de dados - USE ESTAS REFERÊNCIAS PREFERENCIALMENTE):`;
+      for (const ref of legalRefs) {
+        ragContext += `\n\n${ref.ref_label} (${ref.ref_source}):\n"${ref.ref_content}"`;
+      }
+    }
+
+    if (jurisprudence.length > 0) {
+      ragContext += `\n\nJURISPRUDÊNCIA RELEVANTE (do STJ - USE ESTAS DECISÕES COMO REFERÊNCIA):`;
+      for (const j of jurisprudence) {
+        ragContext += `\n\n${j.classe || 'Acórdão'} ${j.processo || ''} - Rel. ${j.relator || 'N/I'} - ${j.orgao_julgador}:`;
+        ragContext += `\n"${(j.ementa || '').substring(0, 500)}"`;
+      }
+    }
+
+    // Prepare metadata for SSE event
+    const ragMetadata = {
+      legislationFound: legalRefs.map((r: any) => ({ label: r.ref_label, source: r.ref_source })),
+      jurisprudenceFound: jurisprudence.map((j: any) => ({
+        label: `${j.classe || 'Acórdão'} ${j.processo || ''} - ${j.orgao_julgador}`,
+        source: `Rel. ${j.relator || 'N/I'}`,
+      })),
+      model,
+      templateUsed: templateTitle || undefined,
+    };
+
+    // ===== Build enriched prompt =====
+    const lawyerName = firmSettings?.lawyerName || '[NOME DO ADVOGADO]';
+    const oabInfo = firmSettings?.oabNumber && firmSettings?.oabState
+      ? `OAB/${firmSettings.oabState} nº ${firmSettings.oabNumber}`
+      : 'OAB/[UF] nº [NÚMERO]';
+    const localInfo = firmSettings?.city && firmSettings?.state
+      ? `${firmSettings.city}/${firmSettings.state}`
+      : '[LOCAL]';
+
     const systemPrompt = `Você é um advogado experiente especializado em redação de peças processuais brasileiras. 
 Sua tarefa é gerar petições jurídicas completas, profissionais e tecnicamente precisas.
 
@@ -97,16 +203,20 @@ REGRAS OBRIGATÓRIAS:
 1. Use linguagem jurídica formal e técnica apropriada para o foro brasileiro
 2. Siga a estrutura padrão de petições brasileiras (endereçamento, qualificação, fatos, direito, pedidos)
 3. Use pronomes de tratamento corretos (Vossa Excelência, Meritíssimo, etc.)
-4. Cite artigos de lei quando apropriado (CPC, CC, CDC, CF, etc.)
-5. Mantenha coerência argumentativa entre fatos, fundamentos e pedidos
-6. Use formatação adequada com parágrafos bem estruturados
-7. Inclua todos os elementos formais necessários (local, data, assinatura)
+4. CITE OS ARTIGOS DE LEI E SÚMULAS fornecidos na seção "FUNDAMENTAÇÃO JURÍDICA REAL" quando aplicáveis
+5. CITE AS DECISÕES JURISPRUDENCIAIS fornecidas quando relevantes
+6. Mantenha coerência argumentativa entre fatos, fundamentos e pedidos
+7. Use formatação adequada com parágrafos bem estruturados
+8. Inclua todos os elementos formais necessários (local, data, assinatura)
+9. Use "${lawyerName}" como nome do advogado
+10. Use "${oabInfo}" como identificação profissional
+11. Use "${localInfo}" como local
 
 FORMATO DE SAÍDA:
 - Gere a petição completa em texto corrido
 - Use quebras de linha para separar seções
 - NÃO use markdown ou formatação especial
-- Mantenha os placeholders [NOME DO ADVOGADO], [OAB/UF], [NÚMERO], [LOCAL], [VALOR DA CAUSA] quando apropriado`;
+- Preencha automaticamente os dados do advogado com as informações fornecidas`;
 
     // Build the context message
     let contextMessage = `DADOS DO PROCESSO:
@@ -143,6 +253,11 @@ ${legalBasis}
 PEDIDOS:
 ${requests}`;
 
+    // Add RAG context
+    if (ragContext) {
+      contextMessage += ragContext;
+    }
+
     if (templateContent) {
       contextMessage += `
 
@@ -165,18 +280,18 @@ Use estas informações adicionais para enriquecer a petição com detalhes espe
 
     contextMessage += `
 
-TAREFA: Gere uma ${petitionType} completa e profissional com base em todas as informações acima. A petição deve estar pronta para uso, necessitando apenas de revisão final e preenchimento dos dados do advogado.`;
+TAREFA: Gere uma ${petitionType} completa e profissional com base em todas as informações acima. A petição deve estar pronta para uso. Preencha os dados do advogado (${lawyerName}, ${oabInfo}) e local (${localInfo}) automaticamente.`;
 
-    console.log("Generating petition with AI...");
+    console.log("Generating petition with AI + RAG...");
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: contextMessage },
@@ -185,28 +300,65 @@ TAREFA: Gere uma ${petitionType} completa e profissional com base em todas as in
       }),
     });
 
-    if (!response.ok) {
-      if (response.status === 429) {
+    if (!aiResponse.ok) {
+      if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns minutos." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
+      if (aiResponse.status === 402) {
         return new Response(JSON.stringify({ error: "Créditos insuficientes. Adicione créditos à sua conta." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      const errorText = await aiResponse.text();
+      console.error("AI gateway error:", aiResponse.status, errorText);
       return new Response(JSON.stringify({ error: "Erro ao gerar petição com IA" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(response.body, {
+    // Create a TransformStream to prepend metadata before the AI stream
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    const encoder = new TextEncoder();
+
+    // Send metadata as first SSE event, then pipe AI stream
+    (async () => {
+      try {
+        // Send stage updates
+        await writer.write(encoder.encode(`data: ${JSON.stringify({ stage: 'legislation', stageStatus: 'done' })}\n\n`));
+        await writer.write(encoder.encode(`data: ${JSON.stringify({ stage: 'jurisprudence', stageStatus: 'done' })}\n\n`));
+        await writer.write(encoder.encode(`data: ${JSON.stringify({ stage: 'template', stageStatus: 'done' })}\n\n`));
+        await writer.write(encoder.encode(`data: ${JSON.stringify({ stage: 'generate', stageStatus: 'running' })}\n\n`));
+
+        // Send RAG metadata
+        await writer.write(encoder.encode(`data: ${JSON.stringify({ metadata: ragMetadata })}\n\n`));
+
+        // Pipe the AI response
+        if (aiResponse.body) {
+          const reader = aiResponse.body.getReader();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            await writer.write(value);
+          }
+        }
+
+        // Send completion stages
+        await writer.write(encoder.encode(`data: ${JSON.stringify({ stage: 'generate', stageStatus: 'done' })}\n\n`));
+        await writer.write(encoder.encode(`data: ${JSON.stringify({ stage: 'validate', stageStatus: 'done' })}\n\n`));
+      } catch (e) {
+        console.error('Stream error:', e);
+      } finally {
+        await writer.close();
+      }
+    })();
+
+    return new Response(readable, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (error) {

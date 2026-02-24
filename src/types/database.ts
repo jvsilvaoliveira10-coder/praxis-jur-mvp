@@ -2,8 +2,8 @@
 
 export type UserRole = 'admin' | 'advogado';
 export type ClientType = 'pessoa_fisica' | 'pessoa_juridica';
-export type ActionType = 'obrigacao_de_fazer' | 'cobranca' | 'indenizacao_danos_morais';
-export type PetitionType = 'peticao_inicial' | 'contestacao' | 'peticao_simples';
+export type ActionType = 'obrigacao_de_fazer' | 'cobranca' | 'indenizacao_danos_morais' | 'trabalhista' | 'familia' | 'consumidor' | 'tributaria' | 'criminal' | 'previdenciaria' | 'execucao' | 'inventario' | 'usucapiao' | 'despejo' | 'outros';
+export type PetitionType = 'peticao_inicial' | 'contestacao' | 'peticao_simples' | 'recurso' | 'agravo' | 'apelacao' | 'embargos' | 'manifestacao' | 'outros';
 export type DeadlineType = 'prazo_processual' | 'audiencia' | 'compromisso';
 export type MaritalStatus = 'solteiro' | 'casado' | 'divorciado' | 'viuvo' | 'uniao_estavel' | 'separado';
 export type PieceType = 'peticao_inicial' | 'contestacao' | 'peticao_simples' | 'recurso' | 'agravo' | 'apelacao' | 'embargos' | 'manifestacao' | 'outros';
@@ -24,7 +24,6 @@ export interface Client {
   name: string;
   document: string;
   type: ClientType;
-  // Qualificação completa - Pessoa Física
   nationality?: string;
   marital_status?: MaritalStatus;
   profession?: string;
@@ -32,7 +31,6 @@ export interface Client {
   issuing_body?: string;
   email?: string;
   phone?: string;
-  // Endereço
   address_street?: string;
   address_number?: string;
   address_complement?: string;
@@ -40,14 +38,11 @@ export interface Client {
   address_city?: string;
   address_state?: string;
   address_zip?: string;
-  // Campos PJ
   trade_name?: string;
   state_registration?: string;
-  // Representante legal (PJ)
   legal_rep_name?: string;
   legal_rep_cpf?: string;
   legal_rep_position?: string;
-  // Timestamps
   created_at: string;
   updated_at: string;
 }
@@ -156,12 +151,29 @@ export const ACTION_TYPE_LABELS: Record<ActionType, string> = {
   obrigacao_de_fazer: 'Obrigação de Fazer',
   cobranca: 'Cobrança',
   indenizacao_danos_morais: 'Indenização por Danos Morais',
+  trabalhista: 'Trabalhista',
+  familia: 'Família',
+  consumidor: 'Consumidor',
+  tributaria: 'Tributária',
+  criminal: 'Criminal',
+  previdenciaria: 'Previdenciária',
+  execucao: 'Execução',
+  inventario: 'Inventário',
+  usucapiao: 'Usucapião',
+  despejo: 'Despejo',
+  outros: 'Outros',
 };
 
 export const PETITION_TYPE_LABELS: Record<PetitionType, string> = {
   peticao_inicial: 'Petição Inicial',
   contestacao: 'Contestação',
   peticao_simples: 'Petição Simples',
+  recurso: 'Recurso',
+  agravo: 'Agravo',
+  apelacao: 'Apelação',
+  embargos: 'Embargos',
+  manifestacao: 'Manifestação',
+  outros: 'Outros',
 };
 
 export const CLIENT_TYPE_LABELS: Record<ClientType, string> = {

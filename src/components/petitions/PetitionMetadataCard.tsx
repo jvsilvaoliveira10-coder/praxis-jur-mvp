@@ -69,7 +69,7 @@ export const PetitionMetadataCard = ({ metadata }: PetitionMetadataCardProps) =>
 
         {metadata.legislationFound.length === 0 && metadata.jurisprudenceFound.length === 0 && (
           <p className="text-xs text-muted-foreground italic">
-            Nenhuma referência adicional encontrada. Ative o n8n para fundamentação automática.
+            Nenhuma referência encontrada na base jurídica local para este tema.
           </p>
         )}
       </CardContent>

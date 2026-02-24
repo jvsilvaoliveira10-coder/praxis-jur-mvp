@@ -125,12 +125,7 @@ const PetitionForm = () => {
   });
 
   const filteredTemplates = templates?.filter(t => {
-    const pieceTypeMap: Record<PetitionType, PieceType> = {
-      peticao_inicial: 'peticao_inicial',
-      contestacao: 'contestacao',
-      peticao_simples: 'peticao_simples',
-    };
-    return t.piece_type === pieceTypeMap[form.petition_type];
+    return t.piece_type === form.petition_type;
   }) || [];
 
   useEffect(() => {

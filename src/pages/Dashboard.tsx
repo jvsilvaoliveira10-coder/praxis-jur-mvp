@@ -42,13 +42,10 @@ const Dashboard = () => {
 
       // Process cases by action type
       if (casesRes.data) {
-        const typeCounts: Record<ActionType, number> = {
-          obrigacao_de_fazer: 0,
-          cobranca: 0,
-          indenizacao_danos_morais: 0,
-        };
+        const typeCounts: Record<string, number> = {};
         casesRes.data.forEach((c) => {
-          typeCounts[c.action_type as ActionType]++;
+          const at = c.action_type as ActionType;
+          typeCounts[at] = (typeCounts[at] || 0) + 1;
         });
         const chartData = (Object.entries(typeCounts) as [ActionType, number][])
           .filter(([_, count]) => count > 0)
