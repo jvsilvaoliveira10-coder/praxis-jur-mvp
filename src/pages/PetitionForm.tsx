@@ -44,6 +44,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import PremiumFormHeader from '@/components/forms/PremiumFormHeader';
+import PetitionTemplateLibrary from '@/components/petitions/PetitionTemplateLibrary';
+import { type AITemplate } from '@/lib/petition-ai-templates';
 
 const PetitionForm = () => {
   const { id } = useParams();
@@ -58,6 +60,7 @@ const PetitionForm = () => {
   const [selectedCase, setSelectedCase] = useState<(Case & { client: Client }) | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<PetitionTemplate | null>(null);
   const [activeTab, setActiveTab] = useState('form');
+  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
 
   const {
     isGenerating,
@@ -493,6 +496,10 @@ const PetitionForm = () => {
           backPath="/petitions"
         />
         <div className="flex gap-2 ml-auto">
+          <Button variant="outline" onClick={() => setShowTemplateLibrary(true)} className="h-11 rounded-xl">
+            <Sparkles className="w-4 h-4 mr-2" />
+            Modelos IA
+          </Button>
           {form.content && (
             <>
               <Button variant="outline" onClick={handleExportPDF} className="h-11 rounded-xl">
@@ -886,6 +893,28 @@ const PetitionForm = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <PetitionTemplateLibrary
+        open={showTemplateLibrary}
+        onOpenChange={setShowTemplateLibrary}
+        onSelectTemplate={(template: AITemplate) => {
+          setForm(prev => ({
+            ...prev,
+            petition_type: template.petitionType as PetitionType,
+            facts: template.defaultFacts,
+            legalBasis: template.defaultLegalBasis,
+            requests: template.defaultRequests,
+            userContext: template.promptHint,
+            title: selectedCase
+              ? `${template.name} - ${selectedCase.client.name}`
+              : template.name,
+          }));
+          toast({
+            title: `Modelo "${template.name}" aplicado`,
+            description: 'Os campos foram preenchidos. Selecione um processo e clique em Gerar com IA.',
+          });
+        }}
+      />
     </div>
   );
 };

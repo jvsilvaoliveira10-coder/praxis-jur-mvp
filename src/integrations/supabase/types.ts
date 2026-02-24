@@ -908,6 +908,42 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          daily_digest_enabled: boolean
+          email_alerts_enabled: boolean
+          id: string
+          updated_at: string
+          urgent_alerts_enabled: boolean
+          user_id: string
+          whatsapp_alerts_enabled: boolean
+          whatsapp_number: string | null
+        }
+        Insert: {
+          created_at?: string
+          daily_digest_enabled?: boolean
+          email_alerts_enabled?: boolean
+          id?: string
+          updated_at?: string
+          urgent_alerts_enabled?: boolean
+          user_id: string
+          whatsapp_alerts_enabled?: boolean
+          whatsapp_number?: string | null
+        }
+        Update: {
+          created_at?: string
+          daily_digest_enabled?: boolean
+          email_alerts_enabled?: boolean
+          id?: string
+          updated_at?: string
+          urgent_alerts_enabled?: boolean
+          user_id?: string
+          whatsapp_alerts_enabled?: boolean
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
