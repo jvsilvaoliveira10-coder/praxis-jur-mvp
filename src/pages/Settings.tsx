@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   User, Building2, Users, CreditCard, Save, Loader2, Upload, 
-  Phone, Mail, Globe, MapPin, Scale, FileText, X, Bell, ExternalLink, Crown
+  Phone, Mail, Globe, MapPin, Scale, FileText, X, Bell, ExternalLink, Crown, Plug
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useDropzone } from 'react-dropzone';
@@ -20,6 +20,7 @@ import { useFirmSettings, FirmSettings } from '@/hooks/useFirmSettings';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import IntegrationsTab from '@/components/settings/IntegrationsTab';
 
 const brazilianStates = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
@@ -488,7 +489,7 @@ const Settings = () => {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="w-4 h-4" />
             <span className="hidden sm:inline">Perfil</span>
@@ -504,6 +505,10 @@ const Settings = () => {
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="w-4 h-4" />
             <span className="hidden sm:inline">Notificações</span>
+          </TabsTrigger>
+          <TabsTrigger value="integrations" className="flex items-center gap-2">
+            <Plug className="w-4 h-4" />
+            <span className="hidden sm:inline">Integrações</span>
           </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="w-4 h-4" />
@@ -934,6 +939,11 @@ const Settings = () => {
         {/* Notifications Tab */}
         <TabsContent value="notifications" className="space-y-6">
           <NotificationPreferencesTab />
+        </TabsContent>
+
+        {/* Integrations Tab */}
+        <TabsContent value="integrations" className="space-y-6">
+          <IntegrationsTab />
         </TabsContent>
       </Tabs>
     </div>
