@@ -18,7 +18,11 @@ import {
   TrendingUp,
   FileSignature,
   BarChart3,
-  FileSpreadsheet
+  FileSpreadsheet,
+  BookTemplate,
+  FileText,
+  Timer,
+  Mail
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,14 +60,14 @@ const modules: Module[] = [
         description: 'Petições completas geradas automaticamente com inteligência artificial.',
       },
       {
-        icon: Upload,
-        title: 'Upload de Modelos',
-        description: 'Faça upload dos modelos próprios do seu escritório em PDF, DOCX ou TXT.',
+        icon: BookTemplate,
+        title: 'Modelos de Petição com IA',
+        description: 'Escolha entre 8 modelos especializados (Habeas Corpus, Embargos, etc.) com preenchimento automático por IA.',
       },
       {
-        icon: Brain,
-        title: 'IA que Aprende',
-        description: 'A IA utiliza seus modelos como referência de estilo e estrutura.',
+        icon: FileText,
+        title: 'Relatórios PDF para Clientes',
+        description: 'Gere relatórios executivos em PDF com movimentações, prazos e situação financeira do processo.',
       },
       {
         icon: FolderTree,
@@ -110,14 +114,14 @@ const modules: Module[] = [
         description: 'Veja prazos e compromissos de todos os processos em uma única agenda.',
       },
       {
-        icon: Bell,
-        title: 'Acompanhamento Automático',
-        description: 'Monitoramento via DataJud com notificações de novas movimentações.',
+        icon: Timer,
+        title: 'Prazos com Countdown',
+        description: 'Veja seus prazos em countdown em tempo real com alertas visuais por urgência (vermelho, amarelo, verde).',
       },
       {
-        icon: Flag,
-        title: 'Prioridades e Prazos',
-        description: 'Defina prioridades e prazos por etapa para nunca perder um deadline.',
+        icon: Mail,
+        title: 'Alertas por Email',
+        description: 'Receba alertas urgentes e resumo diário de movimentações por email automaticamente.',
       },
     ],
   },
