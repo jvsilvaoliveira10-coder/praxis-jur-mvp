@@ -372,44 +372,26 @@ const IntegrationsTab = () => {
 
     const existing = integrations[data.provider];
 
-    if (existing?.id) {
-      // Update - only send non-empty keys (means user typed new ones)
-      const updatePayload: any = {
-        environment: data.environment,
-        is_active: data.is_active,
-      };
-      if (data.api_key) updatePayload.api_key_encrypted = data.api_key;
-      if (data.api_secret) updatePayload.api_secret_encrypted = data.api_secret;
-
-      const { error } = await supabase
-        .from('user_integrations')
-        .update(updatePayload)
-        .eq('id', existing.id);
-
-      if (error) {
-        toast.error('Erro ao atualizar integração');
-        return;
-      }
-    } else {
-      const { error } = await supabase
-        .from('user_integrations')
-        .insert({
-          user_id: user.id,
+    try {
+      const { data: result, error } = await supabase.functions.invoke('manage-integration', {
+        body: {
+          action: 'save',
           provider: data.provider,
-          api_key_encrypted: data.api_key,
-          api_secret_encrypted: data.api_secret || null,
+          api_key: data.api_key,
+          api_secret: data.api_secret || undefined,
           environment: data.environment,
-          is_active: true,
-        });
+          integration_id: existing?.id || undefined,
+        },
+      });
 
-      if (error) {
-        toast.error('Erro ao salvar integração');
-        return;
-      }
+      if (error) throw error;
+      if (!result?.success) throw new Error(result?.error || 'Erro desconhecido');
+
+      toast.success(`${data.provider.toUpperCase()} salvo com sucesso!`);
+      await loadIntegrations();
+    } catch (error: any) {
+      toast.error('Erro ao salvar integração: ' + (error.message || 'Tente novamente'));
     }
-
-    toast.success(`${data.provider.toUpperCase()} salvo com sucesso!`);
-    await loadIntegrations();
   };
 
   const handleTest = async (data: IntegrationData) => {
