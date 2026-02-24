@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import ClientReportDialog from '@/components/reports/ClientReportDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -259,6 +260,8 @@ const LegalReports = () => {
     }
   };
 
+  const [showReportDialog, setShowReportDialog] = useState(false);
+
   const reports = [
     { id: 'clients', label: 'Clientes', icon: Users },
     { id: 'cases', label: 'Processos', icon: FolderOpen },
@@ -288,7 +291,11 @@ const LegalReports = () => {
             Métricas de produtividade e desempenho
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button onClick={() => setShowReportDialog(true)} variant="outline">
+            <FileText className="mr-2 h-4 w-4" />
+            Relatório para Cliente
+          </Button>
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" className="justify-start">
@@ -525,6 +532,7 @@ const LegalReports = () => {
           </>
         )}
       </Tabs>
+      <ClientReportDialog open={showReportDialog} onOpenChange={setShowReportDialog} />
     </div>
   );
 };

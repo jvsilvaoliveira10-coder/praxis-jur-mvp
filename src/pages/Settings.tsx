@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,8 +11,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   User, Building2, Users, CreditCard, Save, Loader2, Upload, 
-  Phone, Mail, Globe, MapPin, Scale, FileText, X 
+  Phone, Mail, Globe, MapPin, Scale, FileText, X, Bell 
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useDropzone } from 'react-dropzone';
 import { useFirmSettings, FirmSettings } from '@/hooks/useFirmSettings';
 import { useAuth } from '@/contexts/AuthContext';
@@ -50,6 +52,136 @@ const courts = [
   { id: 'tst', label: 'TST' },
   { id: 'juizado', label: 'Juizados Especiais' },
 ];
+
+const NotificationPreferencesTab = () => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [savingNotif, setSavingNotif] = useState(false);
+  const [prefs, setPrefs] = useState({
+    email_alerts_enabled: true,
+    whatsapp_alerts_enabled: false,
+    whatsapp_number: '',
+    daily_digest_enabled: true,
+    urgent_alerts_enabled: true,
+  });
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('notification_preferences')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setPrefs({
+            email_alerts_enabled: data.email_alerts_enabled,
+            whatsapp_alerts_enabled: data.whatsapp_alerts_enabled,
+            whatsapp_number: data.whatsapp_number || '',
+            daily_digest_enabled: data.daily_digest_enabled,
+            urgent_alerts_enabled: data.urgent_alerts_enabled,
+          });
+        }
+        setLoading(false);
+      });
+  }, [user]);
+
+  const handleSaveNotif = async () => {
+    if (!user) return;
+    setSavingNotif(true);
+    const { error } = await supabase
+      .from('notification_preferences')
+      .upsert({
+        user_id: user.id,
+        ...prefs,
+      } as any, { onConflict: 'user_id' });
+
+    if (error) {
+      toast.error('Erro ao salvar preferências');
+    } else {
+      toast.success('Preferências de notificação salvas!');
+    }
+    setSavingNotif(false);
+  };
+
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Bell className="w-5 h-5" />
+          Preferências de Notificação
+        </CardTitle>
+        <CardDescription>Configure como deseja receber alertas sobre prazos e movimentações</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">Alertas por E-mail</p>
+              <p className="text-xs text-muted-foreground">Receba alertas urgentes por e-mail</p>
+            </div>
+            <Switch
+              checked={prefs.email_alerts_enabled}
+              onCheckedChange={(v) => setPrefs(p => ({ ...p, email_alerts_enabled: v }))}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">Alertas por WhatsApp</p>
+              <p className="text-xs text-muted-foreground">Receba alertas urgentes no WhatsApp</p>
+            </div>
+            <Switch
+              checked={prefs.whatsapp_alerts_enabled}
+              onCheckedChange={(v) => setPrefs(p => ({ ...p, whatsapp_alerts_enabled: v }))}
+            />
+          </div>
+
+          {prefs.whatsapp_alerts_enabled && (
+            <div className="space-y-2 pl-4 border-l-2 border-primary/20">
+              <Label htmlFor="whatsapp_number">Número WhatsApp</Label>
+              <Input
+                id="whatsapp_number"
+                placeholder="(11) 99999-9999"
+                value={prefs.whatsapp_number}
+                onChange={(e) => setPrefs(p => ({ ...p, whatsapp_number: e.target.value }))}
+              />
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">Alertas Urgentes</p>
+              <p className="text-xs text-muted-foreground">Notificar quando prazos vencem em menos de 24h</p>
+            </div>
+            <Switch
+              checked={prefs.urgent_alerts_enabled}
+              onCheckedChange={(v) => setPrefs(p => ({ ...p, urgent_alerts_enabled: v }))}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">Resumo Diário por E-mail</p>
+              <p className="text-xs text-muted-foreground">Receba um resumo diário dos processos com novas movimentações</p>
+            </div>
+            <Switch
+              checked={prefs.daily_digest_enabled}
+              onCheckedChange={(v) => setPrefs(p => ({ ...p, daily_digest_enabled: v }))}
+            />
+          </div>
+        </div>
+
+        <Button onClick={handleSaveNotif} disabled={savingNotif}>
+          {savingNotif ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+          Salvar Preferências
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
 
 const Settings = () => {
   const { user, profile } = useAuth();
@@ -283,7 +415,7 @@ const Settings = () => {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="w-4 h-4" />
             <span className="hidden sm:inline">Perfil</span>
@@ -295,6 +427,10 @@ const Settings = () => {
           <TabsTrigger value="structure" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
             <span className="hidden sm:inline">Estrutura</span>
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <Bell className="w-4 h-4" />
+            <span className="hidden sm:inline">Notificações</span>
           </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="w-4 h-4" />
@@ -739,6 +875,11 @@ const Settings = () => {
               </p>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Notifications Tab */}
+        <TabsContent value="notifications" className="space-y-6">
+          <NotificationPreferencesTab />
         </TabsContent>
       </Tabs>
     </div>

@@ -11,6 +11,7 @@ import { ACTION_TYPE_LABELS, PETITION_TYPE_LABELS } from '@/types/database';
 import type { Database } from '@/integrations/supabase/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AIInsightsCard from '@/components/dashboard/AIInsightsCard';
+import DeadlineCountdownPanel from '@/components/dashboard/DeadlineCountdownPanel';
 
 type ActionType = Database['public']['Enums']['action_type'];
 type PetitionType = Database['public']['Enums']['petition_type'];
@@ -141,6 +142,9 @@ const Dashboard = () => {
 
       {/* AI Insights */}
       <AIInsightsCard />
+
+      {/* Deadline Countdown */}
+      <DeadlineCountdownPanel />
 
       {/* Stats grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
