@@ -1726,6 +1726,57 @@ export type Database = {
           },
         ]
       }
+      user_integrations: {
+        Row: {
+          api_key_encrypted: string | null
+          api_secret_encrypted: string | null
+          certificate_name: string | null
+          certificate_path: string | null
+          certificate_uploaded_at: string | null
+          created_at: string
+          environment: string
+          id: string
+          is_active: boolean
+          last_tested_at: string | null
+          provider: string
+          test_status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key_encrypted?: string | null
+          api_secret_encrypted?: string | null
+          certificate_name?: string | null
+          certificate_path?: string | null
+          certificate_uploaded_at?: string | null
+          created_at?: string
+          environment?: string
+          id?: string
+          is_active?: boolean
+          last_tested_at?: string | null
+          provider: string
+          test_status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key_encrypted?: string | null
+          api_secret_encrypted?: string | null
+          certificate_name?: string | null
+          certificate_path?: string | null
+          certificate_uploaded_at?: string | null
+          created_at?: string
+          environment?: string
+          id?: string
+          is_active?: boolean
+          last_tested_at?: string | null
+          provider?: string
+          test_status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_onboarding_progress: {
         Row: {
           ai_template_used: boolean | null
