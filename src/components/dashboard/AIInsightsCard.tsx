@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +23,7 @@ const AIInsightsCard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadCached = useCallback(() => {
+  const loadCached = () => {
     try {
       const raw = localStorage.getItem(CACHE_KEY);
       if (raw) {
@@ -35,9 +35,9 @@ const AIInsightsCard = () => {
       }
     } catch { /* ignore */ }
     return false;
-  }, []);
+  };
 
-  const fetchInsights = useCallback(async () => {
+  const fetchInsights = async () => {
     if (!user) return;
     setLoading(true);
     setError(null);
@@ -72,17 +72,19 @@ const AIInsightsCard = () => {
       setData(insights);
       localStorage.setItem(CACHE_KEY, JSON.stringify(insights));
     } catch (e) {
+      console.error('AI Insights error:', e);
       setError(e instanceof Error ? e.message : 'Erro desconhecido');
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  };
 
   useEffect(() => {
+    if (!user) return;
     if (!loadCached()) {
       fetchInsights();
     }
-  }, [loadCached, fetchInsights]);
+  }, [user]);
 
   const severityColor = (s: string) => {
     switch (s) {
