@@ -1,0 +1,87 @@
+.legal-editor .tiptap {
+  font-family: 'Times New Roman', Times, Georgia, serif;
+  font-size: 14px;
+  line-height: 1.8;
+  color: hsl(var(--foreground));
+  padding: 1.5rem;
+  min-height: 600px;
+  outline: none;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0 0 0.75rem 0.75rem;
+  background: hsl(var(--background));
+}
+
+.legal-editor .tiptap p {
+  text-align: justify;
+  text-indent: 2em;
+  margin-bottom: 0.5em;
+}
+
+.legal-editor .tiptap h1 {
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  margin: 1em 0 0.5em;
+  text-indent: 0;
+}
+
+.legal-editor .tiptap h2 {
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  margin: 1em 0 0.5em;
+  text-indent: 0;
+}
+
+.legal-editor .tiptap h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0.8em 0 0.4em;
+  text-indent: 0;
+}
+
+.legal-editor .tiptap blockquote {
+  border-left: 3px solid hsl(var(--primary) / 0.3);
+  padding-left: 1.5em;
+  margin: 1em 0 1em 2em;
+  font-style: italic;
+  color: hsl(var(--muted-foreground));
+}
+
+.legal-editor .tiptap blockquote p {
+  text-indent: 0;
+}
+
+.legal-editor .tiptap ul,
+.legal-editor .tiptap ol {
+  margin: 0.5em 0 0.5em 2em;
+}
+
+.legal-editor .tiptap li {
+  margin-bottom: 0.25em;
+}
+
+.legal-editor .tiptap li p {
+  text-indent: 0;
+  margin-bottom: 0;
+}
+
+.legal-editor .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  height: 0;
+  font-style: italic;
+}
+
+.legal-editor .tiptap .is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  height: 0;
+  font-style: italic;
+}

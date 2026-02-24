@@ -22,6 +22,9 @@ import {
   getDefaultRequests 
 } from '@/lib/petition-templates';
 import { exportToPDF } from '@/lib/pdf-export';
+import { exportToDocx } from '@/lib/docx-export';
+import RichTextEditor from '@/components/editor/RichTextEditor';
+import { useFirmSettings } from '@/hooks/useFirmSettings';
 import { usePetitionGeneration } from '@/hooks/usePetitionGeneration';
 import { PetitionGenerationProgress } from '@/components/petitions/PetitionGenerationProgress';
 import { PetitionMetadataCard } from '@/components/petitions/PetitionMetadataCard';
@@ -33,7 +36,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Save, FileText, Download, Wand2, BookTemplate, Info, Sparkles, Loader2, Briefcase, Type, Users } from 'lucide-react';
+import { Save, FileText, Download, Wand2, BookTemplate, Info, Sparkles, Loader2, Briefcase, Type, Users, FileDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,
@@ -50,6 +53,7 @@ const PetitionForm = () => {
   const isEdit = !!id;
 
   const [loading, setLoading] = useState(false);
+  const { firmSettings } = useFirmSettings();
   const [cases, setCases] = useState<(Case & { client: Client })[]>([]);
   const [selectedCase, setSelectedCase] = useState<(Case & { client: Client }) | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<PetitionTemplate | null>(null);
@@ -470,6 +474,15 @@ const PetitionForm = () => {
     toast({ title: 'PDF exportado com sucesso!' });
   };
 
+  const handleExportDocx = async () => {
+    if (!form.content) {
+      toast({ variant: 'destructive', title: 'Não há conteúdo para exportar' });
+      return;
+    }
+    await exportToDocx(form.content, form.title, firmSettings);
+    toast({ title: 'Documento Word exportado com sucesso!' });
+  };
+
   return (
     <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -481,10 +494,16 @@ const PetitionForm = () => {
         />
         <div className="flex gap-2 ml-auto">
           {form.content && (
-            <Button variant="outline" onClick={handleExportPDF} className="h-11 rounded-xl">
-              <Download className="w-4 h-4 mr-2" />
-              Exportar PDF
-            </Button>
+            <>
+              <Button variant="outline" onClick={handleExportPDF} className="h-11 rounded-xl">
+                <Download className="w-4 h-4 mr-2" />
+                PDF
+              </Button>
+              <Button variant="outline" onClick={handleExportDocx} className="h-11 rounded-xl">
+                <FileDown className="w-4 h-4 mr-2" />
+                Word
+              </Button>
+            </>
           )}
           <Button onClick={handleSave} disabled={loading || !form.content} className="btn-premium">
             <Save className="w-4 h-4 mr-2" />
@@ -854,14 +873,13 @@ const PetitionForm = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <Textarea
-                value={form.content}
-                onChange={(e) => {
-                  setForm({ ...form, content: e.target.value });
-                  setGeneratedContent(e.target.value);
+              <RichTextEditor
+                content={form.content}
+                onChange={(html) => {
+                  setForm(prev => ({ ...prev, content: html }));
+                  setGeneratedContent(html);
                 }}
-                className="min-h-[600px] font-mono text-sm leading-relaxed scrollbar-legal rounded-xl border-border/50"
-                placeholder={isGenerating ? "A petição está sendo gerada pela IA..." : "O conteúdo da petição aparecerá aqui..."}
+                placeholder={isGenerating ? "A petição está sendo gerada pela IA..." : "Comece a escrever sua petição..."}
                 disabled={isGenerating}
               />
             </CardContent>
