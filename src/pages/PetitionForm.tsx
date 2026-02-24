@@ -230,6 +230,29 @@ const PetitionForm = () => {
     setSelectedTemplate(null);
   };
 
+  // Auto-suggest template when petition_type matches an active template
+  const [showTemplateSuggestion, setShowTemplateSuggestion] = useState(true);
+  
+  useEffect(() => {
+    // Reset suggestion visibility when type changes
+    setShowTemplateSuggestion(true);
+  }, [form.petition_type]);
+
+  const handleAcceptSuggestion = () => {
+    if (filteredTemplates.length === 1) {
+      setForm(prev => ({ ...prev, template_id: filteredTemplates[0].id }));
+      setSelectedTemplate(filteredTemplates[0]);
+      setShowTemplateSuggestion(false);
+      toast({
+        title: 'Modelo do escritório selecionado',
+        description: `"${filteredTemplates[0].title}" será usado como base para a IA.`,
+      });
+    } else if (filteredTemplates.length > 1) {
+      // Just dismiss suggestion, user will pick from dropdown
+      setShowTemplateSuggestion(false);
+    }
+  };
+
   const handleGenerate = () => {
     if (!selectedCase) {
       toast({
@@ -681,6 +704,40 @@ const PetitionForm = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Auto-suggestion banner */}
+              {filteredTemplates.length > 0 && !form.template_id && showTemplateSuggestion && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20">
+                  <BookTemplate className="w-5 h-5 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">
+                      Você tem {filteredTemplates.length} modelo{filteredTemplates.length > 1 ? 's' : ''} para {PETITION_TYPE_LABELS[form.petition_type].toLowerCase()}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {filteredTemplates.length === 1 
+                        ? `"${filteredTemplates[0].title}" — usar como base para a IA?`
+                        : 'Selecione um abaixo para usar como base para a IA.'
+                      }
+                    </p>
+                  </div>
+                  {filteredTemplates.length === 1 && (
+                    <Button size="sm" variant="default" className="shrink-0" onClick={handleAcceptSuggestion}>
+                      Usar modelo
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {/* Active template indicator */}
+              {selectedTemplate && (
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/10 border border-primary/20">
+                  <Badge variant="secondary" className="shrink-0">
+                    ✓ Usando modelo do escritório
+                  </Badge>
+                  <span className="text-xs text-muted-foreground truncate">
+                    {selectedTemplate.title}
+                  </span>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label className="label-premium">Modelo de {PETITION_TYPE_LABELS[form.petition_type]}</Label>
                 <Select 
