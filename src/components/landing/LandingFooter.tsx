@@ -15,7 +15,7 @@ export function LandingFooter() {
             {/* Logo */}
             <div className="flex flex-col items-center">
               <img src={logoColor} alt="Práxis Jur" className="h-10" />
-              <p className="text-[10px] text-foreground font-bold mt-0.5 text-center">Por: João Oliveira</p>
+              <p className="text-[8px] text-foreground/75 font-bold mt-0.5 text-center">Por: João Oliveira</p>
             </div>
 
             {/* Links */}
