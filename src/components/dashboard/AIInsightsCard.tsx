@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, AlertTriangle, Lightbulb, Target, RefreshCw } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Sparkles, AlertTriangle, Lightbulb, Target, RefreshCw, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -22,6 +22,8 @@ const AIInsightsCard = () => {
   const [data, setData] = useState<Insights | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [fetched, setFetched] = useState(false);
 
   const loadCached = () => {
     try {
@@ -79,12 +81,16 @@ const AIInsightsCard = () => {
     }
   };
 
-  useEffect(() => {
-    if (!user) return;
-    if (!loadCached()) {
-      fetchInsights();
+  // Fetch only on first open
+  const handleToggle = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (isOpen && !fetched && user) {
+      setFetched(true);
+      if (!loadCached()) {
+        fetchInsights();
+      }
     }
-  }, [user]);
+  };
 
   const severityColor = (s: string) => {
     switch (s) {
@@ -95,93 +101,100 @@ const AIInsightsCard = () => {
   };
 
   return (
-    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 overflow-hidden">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-primary" />
+    <Collapsible open={open} onOpenChange={handleToggle}>
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 overflow-hidden">
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between px-6 py-4 hover:bg-primary/5 transition-colors cursor-pointer">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-foreground">Resumo Inteligente</p>
+                <p className="text-xs text-muted-foreground">Clique para ver a análise do seu escritório</p>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-base">Resumo Inteligente</CardTitle>
-              <p className="text-xs text-muted-foreground">Análise automática do seu escritório</p>
+            <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
+          </button>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent>
+          <CardContent className="pt-0 pb-4">
+            <div className="flex justify-end mb-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1"
+                onClick={fetchInsights}
+                disabled={loading}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
             </div>
-          </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8" 
-            onClick={fetchInsights} 
-            disabled={loading}
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        {loading && !data && (
-          <div className="space-y-3">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-3/4" />
-            <Skeleton className="h-10 w-5/6" />
-          </div>
-        )}
 
-        {error && !data && (
-          <p className="text-sm text-muted-foreground py-2">{error}</p>
-        )}
-
-        {data && (
-          <div className="space-y-4">
-            {/* Alerts */}
-            {data.alerts.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <AlertTriangle className="w-3.5 h-3.5" /> Alertas
-                </div>
-                {data.alerts.map((a, i) => (
-                  <div key={i} className={`text-sm px-3 py-2 rounded-lg border ${severityColor(a.severity)}`}>
-                    {a.text}
-                  </div>
-                ))}
+            {loading && !data && (
+              <div className="space-y-3">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-3/4" />
+                <Skeleton className="h-10 w-5/6" />
               </div>
             )}
 
-            {/* Insights */}
-            {data.insights.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <Lightbulb className="w-3.5 h-3.5" /> Insights
-                </div>
-                {data.insights.map((t, i) => (
-                  <div key={i} className="text-sm px-3 py-2 rounded-lg bg-blue-500/5 border border-blue-500/10 text-foreground">
-                    {t}
-                  </div>
-                ))}
-              </div>
+            {error && !data && (
+              <p className="text-sm text-muted-foreground py-2">{error}</p>
             )}
 
-            {/* Suggestions */}
-            {data.suggestions.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <Target className="w-3.5 h-3.5" /> Sugestões
-                </div>
-                {data.suggestions.map((t, i) => (
-                  <div key={i} className="text-sm px-3 py-2 rounded-lg bg-green-500/5 border border-green-500/10 text-foreground">
-                    {t}
+            {data && (
+              <div className="space-y-4">
+                {data.alerts.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <AlertTriangle className="w-3.5 h-3.5" /> Alertas
+                    </div>
+                    {data.alerts.map((a, i) => (
+                      <div key={i} className={`text-sm px-3 py-2 rounded-lg border ${severityColor(a.severity)}`}>
+                        {a.text}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+
+                {data.insights.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <Lightbulb className="w-3.5 h-3.5" /> Insights
+                    </div>
+                    {data.insights.map((t, i) => (
+                      <div key={i} className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border text-foreground">
+                        {t}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {data.suggestions.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <Target className="w-3.5 h-3.5" /> Sugestões
+                    </div>
+                    {data.suggestions.map((t, i) => (
+                      <div key={i} className="text-sm px-3 py-2 rounded-lg bg-accent/30 border border-accent/20 text-foreground">
+                        {t}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {data.alerts.length === 0 && data.insights.length === 0 && data.suggestions.length === 0 && (
+                  <p className="text-sm text-muted-foreground py-2">Tudo em dia! Nenhum alerta ou insight no momento.</p>
+                )}
               </div>
             )}
-
-            {data.alerts.length === 0 && data.insights.length === 0 && data.suggestions.length === 0 && (
-              <p className="text-sm text-muted-foreground py-2">Tudo em dia! Nenhum alerta ou insight no momento.</p>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 };
 
