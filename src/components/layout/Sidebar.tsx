@@ -210,8 +210,11 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
     <div className="h-full bg-sidebar text-sidebar-foreground flex flex-col">
       {/* Logo - altura fixa de 72px para alinhar com TopHeader */}
       <div className="h-[72px] px-4 flex items-center border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-10" />
+        <div>
+          <div className="flex items-center gap-3">
+            <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-10" />
+          </div>
+          <p className="text-[10px] text-sidebar-foreground/50 mt-0.5">Por: João Oliveira</p>
         </div>
       </div>
 
@@ -259,11 +262,16 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
     >
       {/* Logo + botão de recolher - altura fixa de 72px para alinhar com TopHeader */}
       <div className="h-[72px] px-4 flex items-center justify-between border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          {isCollapsed ? (
-            <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-8" />
-          ) : (
-            <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-10" />
+        <div>
+          <div className="flex items-center gap-3">
+            {isCollapsed ? (
+              <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-8" />
+            ) : (
+              <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-10" />
+            )}
+          </div>
+          {!isCollapsed && (
+            <p className="text-[10px] text-sidebar-foreground/50 mt-0.5">Por: João Oliveira</p>
           )}
         </div>
         {/* Botão de recolher no header */}
