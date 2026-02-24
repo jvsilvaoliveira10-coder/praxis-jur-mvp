@@ -18,8 +18,9 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Upload, Loader2, Folder, FolderX } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, Folder, FolderX, FileText, CheckCircle2 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
+import { Badge } from '@/components/ui/badge';
 
 const TemplateForm = () => {
   const { id } = useParams();
@@ -35,6 +36,7 @@ const TemplateForm = () => {
   const [active, setActive] = useState(true);
   const [folderId, setFolderId] = useState<string>('');
   const [isExtracting, setIsExtracting] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 
   // Fetch folders
   const { data: folders = [] } = useQuery({
@@ -115,28 +117,62 @@ const TemplateForm = () => {
     },
   });
 
-  const extractTextFromFile = async (file: File): Promise<string> => {
-    if (file.type === 'text/plain') {
-      return await file.text();
-    }
-    
-    throw new Error('Por favor, copie o conteúdo do arquivo e cole no campo de texto abaixo.');
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove data URL prefix (e.g., "data:application/...;base64,")
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
 
     const file = acceptedFiles[0];
+    const ext = file.name.toLowerCase().split('.').pop();
     setIsExtracting(true);
+    setUploadedFileName(null);
 
     try {
-      const text = await extractTextFromFile(file);
-      setContent(text);
-      toast({ title: 'Conteúdo extraído com sucesso' });
+      if (ext === 'txt') {
+        // Read TXT directly in browser
+        const text = await file.text();
+        setContent(text);
+        setUploadedFileName(file.name);
+        toast({ title: 'Conteúdo extraído com sucesso', description: file.name });
+      } else if (ext === 'docx') {
+        // Send to edge function for DOCX extraction
+        const base64 = await fileToBase64(file);
+        
+        const { data, error } = await supabase.functions.invoke('extract-template', {
+          body: { fileBase64: base64, fileName: file.name },
+        });
+
+        if (error) throw error;
+        
+        // Use HTML if available, fallback to text
+        const extractedContent = data.html || data.text || '';
+        setContent(extractedContent);
+        setUploadedFileName(file.name);
+        toast({ title: 'Conteúdo extraído com sucesso', description: file.name });
+      } else {
+        toast({ 
+          title: 'Formato não suportado', 
+          description: 'Use arquivos .docx ou .txt',
+          variant: 'destructive'
+        });
+      }
     } catch (error) {
+      console.error('Error extracting file:', error);
       toast({ 
-        title: 'Aviso', 
-        description: error instanceof Error ? error.message : 'Erro ao extrair texto',
+        title: 'Erro ao extrair conteúdo', 
+        description: error instanceof Error ? error.message : 'Tente novamente',
         variant: 'destructive'
       });
     } finally {
@@ -148,7 +184,6 @@ const TemplateForm = () => {
     onDrop,
     accept: {
       'text/plain': ['.txt'],
-      'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
     },
     maxFiles: 1,
@@ -281,7 +316,7 @@ const TemplateForm = () => {
           <CardHeader>
             <CardTitle>Conteúdo do Modelo</CardTitle>
             <CardDescription>
-              Cole o texto do modelo ou faça upload de um arquivo (.txt, .pdf, .docx)
+              Faça upload de um arquivo do escritório (.docx, .txt) ou cole o texto manualmente
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -297,7 +332,19 @@ const TemplateForm = () => {
               {isExtracting ? (
                 <div className="flex flex-col items-center gap-2">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">Extraindo texto...</p>
+                  <p className="text-sm text-muted-foreground">Extraindo conteúdo do arquivo...</p>
+                </div>
+              ) : uploadedFileName ? (
+                <div className="flex flex-col items-center gap-2">
+                  <CheckCircle2 className="h-8 w-8 text-green-500" />
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm font-medium">{uploadedFileName}</p>
+                    <Badge variant="secondary" className="text-xs">Extraído</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Arraste outro arquivo para substituir
+                  </p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-2">
@@ -305,11 +352,11 @@ const TemplateForm = () => {
                   <p className="text-sm text-muted-foreground">
                     {isDragActive 
                       ? 'Solte o arquivo aqui...'
-                      : 'Arraste um arquivo ou clique para selecionar'
+                      : 'Arraste um arquivo do escritório ou clique para selecionar'
                     }
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Formatos aceitos: .txt, .pdf, .docx
+                    Formatos aceitos: .docx, .txt
                   </p>
                 </div>
               )}
