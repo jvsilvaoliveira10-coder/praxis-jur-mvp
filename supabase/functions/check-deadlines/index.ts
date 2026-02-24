@@ -28,6 +28,16 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Require service role authorization (for scheduled/cron calls)
+  const authHeader = req.headers.get('Authorization');
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!authHeader || !authHeader.includes(serviceRoleKey || '')) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -170,10 +180,9 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("[check-deadlines] Error:", errorMessage);
+    console.error("[check-deadlines] Error:", error instanceof Error ? error.message : error);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: "Erro interno ao processar prazos" }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,

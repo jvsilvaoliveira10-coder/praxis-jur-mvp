@@ -132,6 +132,16 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Require service role authorization
+  const authHeader = req.headers.get('Authorization');
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!authHeader || !authHeader.includes(serviceRoleKey || '')) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -289,11 +299,11 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Erro no auto-sync:', error);
+    console.error('Erro no auto-sync:', error instanceof Error ? error.message : error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        error: 'Erro interno na sincronização automática',
       }),
       { 
         status: 500,

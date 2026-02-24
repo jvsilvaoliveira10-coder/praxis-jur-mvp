@@ -320,7 +320,30 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Validate user authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await authClient.auth.getUser(token);
+    if (claimsError || !claimsData?.user) {
+      return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Use service role for RPC calls and data import
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase: AnySupabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -405,11 +428,11 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Erro na busca STJ:', error);
+    console.error('Erro na busca STJ:', error instanceof Error ? error.message : error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        error: 'Erro interno na busca de jurisprudência',
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
