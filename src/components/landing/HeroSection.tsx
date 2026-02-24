@@ -28,7 +28,7 @@ export function HeroSection() {
             className="mb-6 px-4 py-2 text-sm font-medium bg-secondary/20 text-secondary-foreground border border-secondary/30 animate-fade-in"
           >
             <Sparkles className="w-4 h-4 mr-2 inline" />
-            Grátis por tempo limitado
+            Hub 360° para advogados
           </Badge>
 
           {/* Headline */}
@@ -54,8 +54,8 @@ export function HeroSection() {
             style={{ animationDelay: '300ms' }}
           >
             <Button size="lg" asChild className="text-lg px-8">
-              <Link to="/auth">
-                Começar Gratuitamente
+              <Link to="/pricing">
+                Começar Agora
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
             </Button>
@@ -84,7 +84,7 @@ export function HeroSection() {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-primary" />
-              <span className="text-sm">Sem cartão de crédito</span>
+              <span className="text-sm">Garantia de 7 dias — risco zero</span>
             </div>
           </div>
         </div>
