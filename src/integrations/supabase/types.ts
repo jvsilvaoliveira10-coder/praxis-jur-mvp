@@ -1825,6 +1825,17 @@ export type Database = {
         | "obrigacao_de_fazer"
         | "cobranca"
         | "indenizacao_danos_morais"
+        | "trabalhista"
+        | "familia"
+        | "consumidor"
+        | "tributaria"
+        | "criminal"
+        | "previdenciaria"
+        | "execucao"
+        | "inventario"
+        | "usucapiao"
+        | "despejo"
+        | "outros"
       case_activity_type:
         | "stage_change"
         | "note"
@@ -1874,7 +1885,16 @@ export type Database = {
         | "dinheiro"
         | "cheque"
       payment_status: "pendente" | "pago" | "atrasado" | "cancelado" | "parcial"
-      petition_type: "peticao_inicial" | "contestacao" | "peticao_simples"
+      petition_type:
+        | "peticao_inicial"
+        | "contestacao"
+        | "peticao_simples"
+        | "recurso"
+        | "agravo"
+        | "apelacao"
+        | "embargos"
+        | "manifestacao"
+        | "outros"
       piece_type:
         | "peticao_inicial"
         | "contestacao"
@@ -2028,6 +2048,17 @@ export const Constants = {
         "obrigacao_de_fazer",
         "cobranca",
         "indenizacao_danos_morais",
+        "trabalhista",
+        "familia",
+        "consumidor",
+        "tributaria",
+        "criminal",
+        "previdenciaria",
+        "execucao",
+        "inventario",
+        "usucapiao",
+        "despejo",
+        "outros",
       ],
       case_activity_type: [
         "stage_change",
@@ -2083,7 +2114,17 @@ export const Constants = {
         "cheque",
       ],
       payment_status: ["pendente", "pago", "atrasado", "cancelado", "parcial"],
-      petition_type: ["peticao_inicial", "contestacao", "peticao_simples"],
+      petition_type: [
+        "peticao_inicial",
+        "contestacao",
+        "peticao_simples",
+        "recurso",
+        "agravo",
+        "apelacao",
+        "embargos",
+        "manifestacao",
+        "outros",
+      ],
       piece_type: [
         "peticao_inicial",
         "contestacao",

@@ -19,7 +19,7 @@ const caseSchema = z.object({
   client_id: z.string().min(1, 'Selecione um cliente'),
   process_number: z.string().optional(),
   court: z.string().min(2, 'Informe a vara/comarca'),
-  action_type: z.enum(['obrigacao_de_fazer', 'cobranca', 'indenizacao_danos_morais']),
+  action_type: z.enum(['obrigacao_de_fazer', 'cobranca', 'indenizacao_danos_morais', 'trabalhista', 'familia', 'consumidor', 'tributaria', 'criminal', 'previdenciaria', 'execucao', 'inventario', 'usucapiao', 'despejo', 'outros']),
   opposing_party: z.string().min(2, 'Informe a parte contrária'),
 });
 
