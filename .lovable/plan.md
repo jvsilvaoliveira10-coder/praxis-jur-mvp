@@ -1,33 +1,71 @@
 
-# Corrigir Sobreposicao Checklist/IA + Credito "Por: João Oliveira"
+# Corrigir Logos e Credito "Por: Joao Oliveira"
 
-## Problema 1: Sobreposicao no canto inferior direito
+## Resumo
 
-O checklist de onboarding e o botao da IA juridica usam a mesma posicao (`fixed bottom-6 right-6 z-50`), causando sobreposicao.
+Adicionar os SVGs corretos ao projeto e usar a versao adequada de cada logo conforme o fundo:
+- **Logo branca** em fundos escuros (sidebar, onboarding sidebar)
+- **Logo colorida** em fundos claros (landing page, auth, pricing, mobile header)
+- Centralizar o texto "Por: Joao Oliveira" abaixo da logo, em branco e negrito
 
-**Solucao:** Reposicionar o checklist de onboarding:
-- **Minimizado**: mover para `bottom-6 right-24` (ao lado esquerdo do botao da IA)
-- **Expandido**: mover para `bottom-24 right-6` (acima do botao da IA)
+## Arquivos de logo
 
-O `LegalChatWidget` permanece inalterado na posicao original.
+Copiar os 3 SVGs enviados para `src/assets/`:
+- `praxis_jur_logo_white.svg` (logo branca para fundos escuros)
+- `praxis_jur_logo_color.svg` (logo colorida para fundos claros)
+- `praxis_jur_icon_only.svg` (icone solo, para sidebar colapsado)
 
-## Problema 2: Credito "Por: João Oliveira"
+## Mapeamento de uso
 
-Adicionar o texto discreto "Por: João Oliveira" em dois locais:
+| Local | Fundo | Logo a usar |
+|-------|-------|-------------|
+| Sidebar desktop (expandido) | Azul escuro | Branca |
+| Sidebar desktop (colapsado) | Azul escuro | Icon only (branca) -- usaremos o icon_only |
+| Sidebar mobile | Azul escuro | Branca |
+| OnboardingSidebar | Azul escuro gradiente | Branca |
+| LandingHeader | Claro | Colorida |
+| LandingFooter | Claro (bg-card) | Colorida |
+| Auth page | Claro | Colorida |
+| Pricing page | Claro | Colorida |
+| MainLayout mobile header | Header escuro | Branca |
 
-### Sidebar (desktop e mobile)
-- Logo do texto abaixo da logo, em `text-[10px] text-sidebar-foreground/50`
-- No modo colapsado, o texto fica oculto
+## Credito "Por: Joao Oliveira"
 
-### Landing Page Footer
-- Abaixo da logo, mesmo estilo discreto
+Ajustar nos locais onde ja existe e onde faz sentido:
+- **Sidebar**: centralizado abaixo da logo, texto branco (`text-white`) e negrito (`font-bold`), `text-[10px]`
+- **LandingFooter**: centralizado abaixo da logo, texto branco (`text-white`) e negrito (`font-bold`), `text-[10px]`
 
 ---
 
 ## Secao Tecnica
 
+### Arquivos modificados
+
 | Arquivo | Mudanca |
 |---------|---------|
-| `src/components/onboarding/OnboardingChecklist.tsx` | Alterar posicao `fixed` do minimizado para `right-24` e do expandido para `bottom-24` |
-| `src/components/layout/Sidebar.tsx` | Adicionar "Por: João Oliveira" abaixo da logo (mobile e desktop) |
-| `src/components/landing/LandingFooter.tsx` | Adicionar "Por: João Oliveira" abaixo da logo |
+| `src/assets/` | Copiar 3 SVGs (white, color, icon_only) |
+| `src/components/layout/Sidebar.tsx` | Import logo branca + icon_only; centralizar credito; texto branco bold |
+| `src/components/landing/LandingHeader.tsx` | Import logo colorida SVG |
+| `src/components/landing/LandingFooter.tsx` | Import logo colorida SVG; centralizar credito; texto branco bold |
+| `src/components/onboarding/OnboardingSidebar.tsx` | Import logo branca SVG |
+| `src/pages/Auth.tsx` | Import logo colorida SVG |
+| `src/pages/Pricing.tsx` | Import logo colorida SVG |
+| `src/components/layout/MainLayout.tsx` | Import logo branca SVG (mobile header tem fundo escuro) |
+
+### Padrao de importacao
+
+Usar ES6 imports de `src/assets/` para melhor bundling:
+
+```typescript
+import logoWhite from "@/assets/praxis_jur_logo_white.svg";
+import logoColor from "@/assets/praxis_jur_logo_color.svg";
+import logoIcon from "@/assets/praxis_jur_icon_only.svg";
+```
+
+### Estilo do credito
+
+```html
+<p class="text-[10px] text-white font-bold mt-0.5 text-center">
+  Por: Joao Oliveira
+</p>
+```
