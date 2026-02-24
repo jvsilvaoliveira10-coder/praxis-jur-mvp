@@ -17,6 +17,7 @@ import { FAQSection } from '@/components/landing/FAQSection';
 import { CTASection } from '@/components/landing/CTASection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { WhatsAppButton } from '@/components/landing/WhatsAppButton';
+import { CookieConsentBanner } from '@/components/cookie/CookieConsentBanner';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -65,6 +66,7 @@ const Index = () => {
       </main>
       <LandingFooter />
       <WhatsAppButton />
+      <CookieConsentBanner />
     </div>
   );
 };

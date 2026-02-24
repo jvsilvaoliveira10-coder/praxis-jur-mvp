@@ -49,6 +49,10 @@ import Pricing from "./pages/Pricing";
 // Contact
 import Contact from "./pages/Contact";
 
+// Legal
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+
 // Layout
 import MainLayout from "./components/layout/MainLayout";
 
@@ -66,6 +70,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/privacidade" element={<PrivacyPolicy />} />
+            <Route path="/termos" element={<TermsOfService />} />
             
             {/* Protected routes */}
             <Route element={<MainLayout />}>

@@ -33,6 +33,16 @@ export function LandingFooter() {
               </a>
             </nav>
 
+            {/* Legal Links */}
+            <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
+              <a href="/privacidade" className="hover:text-foreground transition-colors">
+                Política de Privacidade
+              </a>
+              <a href="/termos" className="hover:text-foreground transition-colors">
+                Termos de Uso
+              </a>
+            </nav>
+
             {/* Contact */}
             <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
               <a 
