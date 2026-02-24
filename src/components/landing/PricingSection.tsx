@@ -1,79 +1,48 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Shield, ArrowLeft, Sparkles } from 'lucide-react';
+import { Check, Shield, ShieldCheck, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { PLANS, PlanConfig } from '@/lib/stripe-plans';
-import { toast } from 'sonner';
+import { PLANS } from '@/lib/stripe-plans';
+import { useInView } from '@/hooks/useInView';
 import { cn } from '@/lib/utils';
 
-const Pricing = () => {
+export function PricingSection() {
   const [isAnnual, setIsAnnual] = useState(true);
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const { user, subscriptionTier } = useAuth();
-
-  const handleSubscribe = async (plan: PlanConfig) => {
-    if (!user) {
-      toast.error('Faça login para assinar um plano');
-      return;
-    }
-
-    setLoadingPlan(plan.tier);
-    try {
-      const priceId = isAnnual ? plan.annualPriceId : plan.monthlyPriceId;
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { price_id: priceId },
-      });
-
-      if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, '_blank');
-      }
-    } catch (error: any) {
-      toast.error('Erro ao iniciar checkout: ' + (error.message || 'Tente novamente'));
-    } finally {
-      setLoadingPlan(null);
-    }
-  };
+  const { ref, isInView } = useInView({ threshold: 0.1 });
+  const { ref: guaranteeRef, isInView: guaranteeInView } = useInView({ threshold: 0.2 });
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-          <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-8" />
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-12 max-w-6xl">
-        {/* Title */}
-        <div className="text-center mb-10 space-y-4">
-          <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground">
-            Escolha o plano ideal para o seu escritório
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+    <section id="precos" className="py-14 sm:py-20 relative">
+      <div className="container mx-auto px-4">
+        <div
+          ref={ref}
+          className={cn(
+            'text-center mb-12 transition-all duration-700',
+            isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          )}
+        >
+          <Badge variant="secondary" className="mb-4">
+            <Sparkles className="w-3 h-3 mr-1" />
+            Planos e Preços
+          </Badge>
+          <h2 className="text-3xl sm:text-4xl font-serif font-bold text-foreground mb-4">
+            Escolha o plano ideal para você
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-6">
             Automatize sua rotina jurídica e foque no que realmente importa: seus clientes.
           </p>
 
           {/* Toggle */}
-          <div className="flex items-center justify-center gap-3 pt-4">
-            <Label htmlFor="billing-toggle" className={cn("text-sm font-medium", !isAnnual && "text-foreground", isAnnual && "text-muted-foreground")}>
+          <div className="flex items-center justify-center gap-3">
+            <Label className={cn("text-sm font-medium cursor-pointer", !isAnnual ? "text-foreground" : "text-muted-foreground")}>
               Mensal
             </Label>
-            <Switch
-              id="billing-toggle"
-              checked={isAnnual}
-              onCheckedChange={setIsAnnual}
-            />
-            <Label htmlFor="billing-toggle" className={cn("text-sm font-medium", isAnnual && "text-foreground", !isAnnual && "text-muted-foreground")}>
+            <Switch checked={isAnnual} onCheckedChange={setIsAnnual} />
+            <Label className={cn("text-sm font-medium cursor-pointer", isAnnual ? "text-foreground" : "text-muted-foreground")}>
               Anual
             </Label>
             {isAnnual && (
@@ -84,36 +53,29 @@ const Pricing = () => {
           </div>
         </div>
 
-        {/* Plans */}
-        <div className="grid gap-6 md:grid-cols-3">
-          {PLANS.map((plan) => {
+        {/* Plan Cards */}
+        <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
+          {PLANS.map((plan, index) => {
             const price = isAnnual ? plan.annualMonthlyPrice : plan.monthlyPrice;
-            const isCurrentPlan = subscriptionTier === plan.tier;
             const saving = isAnnual
-              ? ((plan.monthlyPrice * 12 - plan.annualTotalPrice) / 1).toFixed(0)
+              ? ((plan.monthlyPrice * 12 - plan.annualTotalPrice)).toFixed(0)
               : null;
 
             return (
               <Card
                 key={plan.tier}
                 className={cn(
-                  "relative flex flex-col transition-all",
-                  plan.highlight && "border-primary shadow-lg scale-[1.02]",
-                  isCurrentPlan && "ring-2 ring-primary"
+                  'relative flex flex-col transition-all duration-700',
+                  plan.highlight && 'border-primary shadow-lg scale-[1.02]',
+                  isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
                 )}
+                style={{ transitionDelay: isInView ? `${(index + 1) * 150}ms` : '0ms' }}
               >
                 {plan.highlight && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <Badge className="bg-primary text-primary-foreground flex items-center gap-1">
                       <Sparkles className="w-3 h-3" />
                       Mais Popular
-                    </Badge>
-                  </div>
-                )}
-                {isCurrentPlan && (
-                  <div className="absolute -top-3 right-4">
-                    <Badge variant="outline" className="bg-card border-primary text-primary">
-                      Seu Plano
                     </Badge>
                   </div>
                 )}
@@ -151,14 +113,12 @@ const Pricing = () => {
                   <Button
                     className="w-full"
                     variant={plan.highlight ? "default" : "outline"}
-                    disabled={isCurrentPlan || loadingPlan === plan.tier}
-                    onClick={() => handleSubscribe(plan)}
+                    asChild
                   >
-                    {isCurrentPlan
-                      ? 'Plano Atual'
-                      : loadingPlan === plan.tier
-                        ? 'Redirecionando...'
-                        : 'Assinar'}
+                    <Link to="/pricing">
+                      Ver planos
+                      <ArrowRight className="w-4 h-4 ml-1" />
+                    </Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -167,14 +127,20 @@ const Pricing = () => {
         </div>
 
         {/* Guarantee Block - ROBUST */}
-        <div className="max-w-3xl mx-auto mt-14">
+        <div
+          ref={guaranteeRef}
+          className={cn(
+            'max-w-3xl mx-auto mt-16 transition-all duration-700',
+            guaranteeInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          )}
+        >
           <div className="relative rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-background to-primary/5 p-8 sm:p-10 text-center overflow-hidden">
             {/* Decorative glow */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative z-10">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-5">
-                <Shield className="w-9 h-9 text-primary" />
+                <ShieldCheck className="w-9 h-9 text-primary" />
               </div>
 
               <h3 className="text-2xl sm:text-3xl font-serif font-bold text-foreground mb-3">
@@ -192,7 +158,7 @@ const Pricing = () => {
                   'Sem risco nenhum para você',
                 ].map((item) => (
                   <div key={item} className="flex items-center gap-2">
-                    <Check className="w-5 h-5 text-primary shrink-0" />
+                    <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
                     <span className="text-sm font-medium text-foreground">{item}</span>
                   </div>
                 ))}
@@ -200,21 +166,7 @@ const Pricing = () => {
             </div>
           </div>
         </div>
-
-        {/* Login CTA */}
-        {!user && (
-          <div className="mt-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              Já tem uma conta?{' '}
-              <Link to="/auth" className="text-primary font-medium hover:underline">
-                Faça login
-              </Link>
-            </p>
-          </div>
-        )}
       </div>
-    </div>
+    </section>
   );
-};
-
-export default Pricing;
+}

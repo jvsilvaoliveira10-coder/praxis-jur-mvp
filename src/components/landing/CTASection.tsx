@@ -55,8 +55,8 @@ export function CTASection() {
               isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
             )}
           >
-            <Link to="/auth">
-              Criar Conta Gratuita
+            <Link to="/pricing">
+              Comece Agora
               <ArrowRight className="w-5 h-5 ml-2" />
             </Link>
           </Button>
@@ -67,7 +67,7 @@ export function CTASection() {
               isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
             )}
           >
-            Sem cartão de crédito • Acesso imediato • Grátis por tempo limitado
+            7 dias de garantia absoluta — seu dinheiro de volta se não gostar
           </p>
         </div>
       </div>

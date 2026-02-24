@@ -12,6 +12,7 @@ import { FinanceSection } from '@/components/landing/FinanceSection';
 import { IntegrationSection } from '@/components/landing/IntegrationSection';
 import { SecuritySection } from '@/components/landing/SecuritySection';
 import { TargetAudienceSection } from '@/components/landing/TargetAudienceSection';
+import { PricingSection } from '@/components/landing/PricingSection';
 import { FAQSection } from '@/components/landing/FAQSection';
 import { CTASection } from '@/components/landing/CTASection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
@@ -57,6 +58,7 @@ const Index = () => {
           <IntegrationSection />
           <SecuritySection />
           <TargetAudienceSection />
+          <PricingSection />
           <FAQSection />
           <CTASection />
         </div>
