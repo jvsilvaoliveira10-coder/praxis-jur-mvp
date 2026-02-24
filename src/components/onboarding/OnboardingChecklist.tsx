@@ -138,7 +138,7 @@ const OnboardingChecklist = () => {
     return (
       <button
         onClick={() => setIsExpanded(true)}
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 group"
+        className="fixed bottom-6 right-24 z-50 flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 group"
       >
         <div className="relative">
           <div 
@@ -167,7 +167,7 @@ const OnboardingChecklist = () => {
 
   // Expanded state
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-96 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
+    <div className="fixed bottom-24 right-6 z-50 w-96 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
       {/* Celebration overlay */}
       {showCelebration && (
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-secondary/10 to-primary/20 flex items-center justify-center z-10 backdrop-blur-sm">
