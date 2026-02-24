@@ -400,9 +400,7 @@ export const useOnboardingProgress = (
   // Verificar se deve mostrar checklist
   const shouldShowChecklist = !!(
     !isLoading &&
-    firmSettings?.onboarding_completed &&
     progress &&
-    progress.welcome_modal_seen &&
     !progress.checklist_dismissed &&
     calculatePercent() < 100
   );
