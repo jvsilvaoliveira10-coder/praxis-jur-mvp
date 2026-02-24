@@ -13,9 +13,8 @@ export function LandingFooter() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             {/* Logo */}
-            <div className="flex flex-col items-center">
-              <img src={logoColor} alt="Práxis Jur" className="h-10" />
-              <p className="text-[8px] text-foreground/75 font-bold mt-0.5 text-center">Por: João Oliveira</p>
+            <div>
+              <img src={logoColor} alt="Práxis Jur" className="h-12" />
             </div>
 
             {/* Links */}

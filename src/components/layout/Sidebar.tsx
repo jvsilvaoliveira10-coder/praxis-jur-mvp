@@ -212,9 +212,8 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
     <div className="h-full bg-sidebar text-sidebar-foreground flex flex-col">
       {/* Logo - altura fixa de 72px para alinhar com TopHeader */}
       <div className="h-[72px] px-4 flex items-center border-b border-sidebar-border">
-        <div className="flex flex-col items-center w-full">
-          <img src={logoWhite} alt="Práxis Jur" className="h-10" />
-          <p className="text-[8px] text-white/75 font-bold mt-0.5 text-center">Por: João Oliveira</p>
+        <div className="flex items-center justify-center w-full">
+          <img src={logoWhite} alt="Práxis Jur" className="h-12" />
         </div>
       </div>
 
@@ -262,14 +261,11 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
     >
       {/* Logo + botão de recolher - altura fixa de 72px para alinhar com TopHeader */}
       <div className="h-[72px] px-4 flex items-center justify-between border-b border-sidebar-border">
-        <div className={cn("flex flex-col items-center", isCollapsed ? "w-full" : "")}>
+        <div className={cn("flex items-center", isCollapsed ? "justify-center w-full" : "")}>
           {isCollapsed ? (
             <img src={logoIcon} alt="Práxis Jur" className="h-8" />
           ) : (
-            <>
-              <img src={logoWhite} alt="Práxis Jur" className="h-10" />
-              <p className="text-[8px] text-white/75 font-bold mt-0.5 text-center">Por: João Oliveira</p>
-            </>
+            <img src={logoWhite} alt="Práxis Jur" className="h-12" />
           )}
         </div>
         {/* Botão de recolher no header */}
