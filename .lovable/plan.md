@@ -1,100 +1,65 @@
 
-# Pagina de Integracoes BYOK (Bring Your Own Key)
 
-## Por que comecar por aqui
+# Conformidade LGPD - Cookies e Privacidade
 
-Esta pagina e a **base obrigatoria** para qualquer integracao futura (D4Sign, DocuSign, PJe, certificado digital). Sem ela, nao existe onde o advogado cadastre suas credenciais. Implementar primeiro maximiza reuso e evita retrabalho.
+## Situacao Atual
 
-## O que sera construido
+O site atualmente **nao possui**:
+- Banner de consentimento de cookies
+- Pagina de Politica de Privacidade
+- Pagina de Termos de Uso
+- Links para essas paginas no rodape
+- Mecanismo de gerenciamento de consentimento do usuario
 
-Uma nova aba "Integracoes" dentro da pagina de Configuracoes (`/configuracoes`), onde o advogado pode:
+O unico cookie utilizado atualmente e o `sidebar:state` (funcional, para manter o estado da sidebar).
 
-1. Cadastrar API keys de provedores de assinatura digital (D4Sign, DocuSign, Clicksign)
-2. Fazer upload do certificado digital A1 (.pfx) para uso futuro com tribunais
-3. Ver status de cada integracao (conectado/desconectado)
-4. Testar a conexao antes de salvar
+---
 
-## Escopo Tecnico
+## O Que Sera Implementado
 
-### 1. Banco de Dados
+### 1. Banner de Consentimento de Cookies
+- Componente flutuante na parte inferior da tela, exibido na primeira visita
+- Opcoes: "Aceitar Todos", "Apenas Necessarios" e "Configurar"
+- Salva a preferencia no `localStorage` para nao exibir novamente
+- Design discreto e responsivo (mobile e desktop)
 
-**Nova tabela: `user_integrations`**
-- `id` (uuid, PK)
-- `user_id` (uuid, NOT NULL) -- referencia ao usuario logado
-- `provider` (text, NOT NULL) -- ex: 'd4sign', 'docusign', 'clicksign'
-- `api_key_encrypted` (text) -- API key criptografada via pgcrypto
-- `api_secret_encrypted` (text) -- secret criptografado (quando aplicavel)
-- `environment` (text, default 'sandbox') -- 'sandbox' ou 'production'
-- `is_active` (boolean, default true)
-- `last_tested_at` (timestamptz) -- ultima vez que conexao foi testada
-- `test_status` (text) -- 'success', 'failed', null
-- `created_at` / `updated_at` (timestamptz)
-- Constraint UNIQUE em (user_id, provider)
+### 2. Pagina de Politica de Privacidade (`/privacidade`)
+- Conteudo em portugues cobrindo os requisitos da LGPD:
+  - Dados coletados e finalidade
+  - Base legal para tratamento
+  - Direitos do titular (acesso, correcao, exclusao, portabilidade)
+  - Cookies utilizados e suas finalidades
+  - Compartilhamento com terceiros (Stripe, etc.)
+  - Contato do encarregado (DPO)
+  - Retencao e seguranca dos dados
 
-**RLS**: Todas as operacoes (SELECT, INSERT, UPDATE, DELETE) restritas a `auth.uid() = user_id`.
+### 3. Pagina de Termos de Uso (`/termos`)
+- Conteudo basico cobrindo:
+  - Descricao do servico
+  - Responsabilidades do usuario e da plataforma
+  - Limitacao de responsabilidade (peticoes geradas por IA)
+  - Propriedade intelectual
+  - Rescisao e cancelamento
 
-**Criptografia**: Usar `pgp_sym_encrypt` / `pgp_sym_decrypt` com uma chave armazenada como secret do projeto (INTEGRATIONS_ENCRYPTION_KEY). A API key nunca e armazenada em texto plano.
+### 4. Atualizacao do Rodape
+- Adicionar links para "Politica de Privacidade" e "Termos de Uso" no `LandingFooter`
 
-**Novo bucket de storage: `user-certificates`**
-- Privado (public = false)
-- RLS: somente o dono pode fazer upload/download
-- Aceita apenas arquivos `.pfx` e `.p12`
+---
 
-### 2. Edge Function: `test-integration`
+## Detalhes Tecnicos
 
-Nova edge function que recebe `{ provider, api_key, api_secret?, environment }` e testa a conexao com a API do provedor:
-- **D4Sign**: chama `GET /api/v1/safes` com o token
-- **DocuSign**: chama endpoint de userinfo
-- **Clicksign**: chama endpoint de health
+### Arquivos a criar:
+- `src/components/cookie/CookieConsentBanner.tsx` - Componente do banner
+- `src/pages/PrivacyPolicy.tsx` - Pagina de politica de privacidade
+- `src/pages/TermsOfService.tsx` - Pagina de termos de uso
 
-Retorna `{ success: boolean, message: string }`.
+### Arquivos a modificar:
+- `src/App.tsx` - Adicionar rotas `/privacidade` e `/termos`
+- `src/components/landing/LandingFooter.tsx` - Adicionar links
+- `src/pages/Index.tsx` ou `src/components/layout/MainLayout.tsx` - Incluir o banner de cookies
 
-### 3. Frontend: Nova aba em Settings
+### Abordagem:
+- **Sem integracao externa necessaria** - O consentimento sera gerenciado via `localStorage`
+- O banner nao bloqueia a navegacao (modelo de consentimento "soft")
+- Nenhum cookie de rastreamento/analytics esta sendo usado atualmente, entao o risco e baixo, mas o banner e obrigatorio pela LGPD para transparencia
 
-**Arquivo modificado: `src/pages/Settings.tsx`**
-- Adicionar 6a aba "Integracoes" com icone `Plug` (lucide)
-- Ajustar `grid-cols-5` para `grid-cols-6` no TabsList
-
-**Novo componente: `src/components/settings/IntegrationsTab.tsx`**
-
-Conteudo da aba:
-- Card para cada provedor (D4Sign, DocuSign, Clicksign) com:
-  - Campo de API Key (mascarado por padrao, toggle para revelar)
-  - Campo de API Secret (quando aplicavel)
-  - Select de ambiente (Sandbox / Producao)
-  - Botao "Testar Conexao" que chama a edge function
-  - Indicador visual de status (verde/vermelho/cinza)
-  - Botao Salvar
-
-- Card separado "Certificado Digital A1":
-  - Zona de upload drag-and-drop (.pfx/.p12)
-  - Campo de senha do certificado (criptografado)
-  - Indicador de arquivo atual (nome, data de upload)
-  - Botao para remover certificado
-
-### 4. Arquivos Criados/Modificados
-
-| Arquivo | Acao | Descricao |
-|---------|------|-----------|
-| Migracao SQL | Criar | Tabela `user_integrations`, bucket `user-certificates`, habilitar pgcrypto |
-| `supabase/functions/test-integration/index.ts` | Criar | Edge function para testar conexao com provedores |
-| `src/components/settings/IntegrationsTab.tsx` | Criar | Componente da aba de integracoes |
-| `src/pages/Settings.tsx` | Modificar | Adicionar aba "Integracoes" ao TabsList |
-| `supabase/config.toml` | Modificar | Registrar nova edge function |
-
-### 5. Seguranca
-
-- API keys criptografadas no banco com pgcrypto (nunca em texto plano)
-- Certificados .pfx em bucket privado com RLS por user_id
-- Edge function valida JWT antes de processar
-- A chave de criptografia e um secret do projeto (INTEGRATIONS_ENCRYPTION_KEY) -- sera solicitada ao usuario
-- Nenhuma credencial e exposta no frontend apos salvar (apenas mascarada)
-
-### 6. Sequencia de Implementacao
-
-1. Solicitar ao usuario o secret INTEGRATIONS_ENCRYPTION_KEY
-2. Criar migracao SQL (tabela + bucket + RLS + pgcrypto)
-3. Criar edge function `test-integration`
-4. Criar componente `IntegrationsTab.tsx`
-5. Modificar `Settings.tsx` para incluir a nova aba
-6. Deploy da edge function
