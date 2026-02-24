@@ -185,8 +185,8 @@ TAREFA: Gere uma ${petitionType} completa e profissional com base em todas as in
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (error) {
-    console.error("generate-petition error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Erro desconhecido" }), {
+    console.error("generate-petition error:", error instanceof Error ? error.message : error);
+    return new Response(JSON.stringify({ error: "Erro interno ao gerar petição" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
