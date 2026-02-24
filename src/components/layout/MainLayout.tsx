@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import logoWhite from '@/assets/praxis_jur_logo_white.svg';
 import { useFirmSettings } from '@/hooks/useFirmSettings';
 import { useOnboardingProgress } from '@/hooks/useOnboardingProgress';
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
@@ -160,7 +161,7 @@ const MainLayout = () => {
                 </SheetContent>
               </Sheet>
               <div className="flex items-center gap-2">
-                <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-8" />
+                <img src={logoWhite} alt="Práxis Jur" className="h-8" />
               </div>
             </div>
             <div data-tour="notifications">

@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import logoWhite from '@/assets/praxis_jur_logo_white.svg';
 
 interface OnboardingSidebarProps {
   currentStep: number;
@@ -20,9 +21,7 @@ const OnboardingSidebar = ({ currentStep, totalSteps, onSkip }: OnboardingSideba
     <div className="w-[280px] bg-gradient-to-b from-[hsl(222,47%,15%)] to-[hsl(222,47%,12%)] text-white flex flex-col rounded-l-lg">
       {/* Logo */}
       <div className="p-6 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-10" />
-        </div>
+        <img src={logoWhite} alt="Práxis Jur" className="h-10" />
       </div>
 
       {/* Progress Steps */}

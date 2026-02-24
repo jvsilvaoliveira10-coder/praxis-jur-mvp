@@ -1,4 +1,5 @@
 import { Mail, MessageCircle } from 'lucide-react';
+import logoColor from '@/assets/praxis_jur_logo_color.svg';
 
 const WHATSAPP_NUMBER = '5516992159284';
 const EMAIL = 'sac@praxisjur.com';
@@ -12,11 +13,9 @@ export function LandingFooter() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             {/* Logo */}
-            <div>
-              <div className="flex items-center gap-3">
-                <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-10" />
-              </div>
-              <p className="text-[10px] text-muted-foreground/50 mt-0.5">Por: João Oliveira</p>
+            <div className="flex flex-col items-center">
+              <img src={logoColor} alt="Práxis Jur" className="h-10" />
+              <p className="text-[10px] text-foreground font-bold mt-0.5 text-center">Por: João Oliveira</p>
             </div>
 
             {/* Links */}

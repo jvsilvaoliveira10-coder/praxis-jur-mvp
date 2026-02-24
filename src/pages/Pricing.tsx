@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { PLANS, PlanConfig } from '@/lib/stripe-plans';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import logoColor from '@/assets/praxis_jur_logo_color.svg';
 
 const tierConfig = {
   essencial: {
@@ -102,7 +103,7 @@ const Pricing = () => {
           <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-8" />
+          <img src={logoColor} alt="Práxis Jur" className="h-8" />
         </div>
       </div>
 

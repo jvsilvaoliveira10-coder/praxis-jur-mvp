@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Scale, Gavel } from 'lucide-react';
+import { Gavel } from 'lucide-react';
+import logoColor from '@/assets/praxis_jur_logo_color.svg';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -124,7 +125,7 @@ const Auth = () => {
         <div className="text-center mb-8 animate-fade-in">
           <Link to="/" className="inline-flex flex-col items-center justify-center hover:opacity-80 transition-opacity">
             <div className="mb-4">
-              <img src="/praxis-jur-logo.png" alt="Práxis Jur" className="h-16" />
+              <img src={logoColor} alt="Práxis Jur" className="h-16" />
             </div>
           </Link>
         </div>
