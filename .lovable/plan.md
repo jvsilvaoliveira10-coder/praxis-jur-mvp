@@ -1,102 +1,134 @@
 
 
-# Atualizar Landing Page e Onboarding com as Novidades
+# Implementar Monetizacao com Stripe - 3 Planos de Assinatura
 
 ## Visao Geral
 
-Adicionar as 4 funcionalidades premium recentes na landing page e no sistema de onboarding (tour + checklist), para que visitantes e novos usuarios conheçam os novos recursos.
+Integrar o Stripe para cobrar assinaturas mensais e anuais com 3 tiers. O preco anual e exibido por padrao na UI. Cobranca imediata com garantia de reembolso em 7 dias (via email).
 
 ---
 
-## 1. Landing Page - FeaturesSection
+## Precos Finais
 
-Adicionar as novidades nos modulos existentes da `FeaturesSection.tsx`:
-
-### Modulo "Producao Juridica"
-- **Modelos de Peticao com IA**: "Escolha entre 8 modelos especializados (Habeas Corpus, Embargos, etc.) com preenchimento automatico por IA."
-  - Icone: `BookTemplate`
-- **Relatorios PDF para Clientes**: "Gere relatorios executivos em PDF com movimentacoes, prazos e situacao financeira do processo."
-  - Icone: `FileText` ou `FileDown`
-
-### Modulo "Gestao de Processos"
-- **Painel de Prazos com Countdown**: "Veja seus prazos em countdown em tempo real com alertas visuais por urgencia (vermelho, amarelo, verde)."
-  - Icone: `Timer`
-- **Alertas por Email**: "Receba alertas urgentes e resumo diario de movimentacoes por email automaticamente."
-  - Icone: `Mail`
-
-Substituir ou reorganizar features existentes para incluir as novas (manter 6 por modulo para layout consistente).
+| Plano | Anual (por mes) | Total Anual | Mensal |
+|-------|-----------------|-------------|--------|
+| Essencial | R$59,90/mes | R$718,80/ano | R$79,90/mes |
+| Profissional | R$99,90/mes | R$1.198,80/ano | R$119,90/mes |
+| Escritorio | R$149,90/mes | R$1.798,80/ano | R$179,90/mes |
 
 ---
 
-## 2. Landing Page - AISection
+## Etapas de Implementacao
 
-Atualizar a lista de beneficios em `AISection.tsx` para incluir:
-- "8 modelos especializados com prompts otimizados"
-- "Preenchimento automatico de dados do caso e cliente"
+### 1. Criar Produtos e Precos no Stripe
 
----
+3 produtos com 2 precos cada (6 precos no total):
 
-## 3. Landing Page - HeroSection
+- **Essencial**: mensal R$79,90 (7990 centavos) + anual R$718,80 (71880 centavos)
+- **Profissional**: mensal R$119,90 (11990 centavos) + anual R$1.198,80 (119880 centavos)
+- **Escritorio**: mensal R$179,90 (17990 centavos) + anual R$1.798,80 (179880 centavos)
 
-Atualizar os indicadores de confianca (trust indicators) no `HeroSection.tsx`:
-- Adicionar: "Alertas por email em tempo real" ou "Prazos com countdown inteligente"
+### 2. Edge Function: `check-subscription`
 
----
+Verifica se o usuario tem assinatura ativa no Stripe (busca por email). Retorna:
+- `subscribed` (boolean)
+- `product_id` (identifica o tier)
+- `subscription_end` (data)
 
-## 4. Onboarding - Tour Steps
+Chamada automaticamente no login, page load e a cada minuto.
 
-Atualizar `tourSteps.ts` para incluir mencao as novidades nas descricoes dos steps existentes:
+### 3. Edge Function: `create-checkout`
 
-| Step existente | Mudanca na descricao |
-|----------------|---------------------|
-| `dashboard` | Mencionar o painel de prazos com countdown |
-| `petitions` | Mencionar os 8 modelos especializados com IA |
-| `notifications` | Mencionar alertas urgentes por email |
+Recebe `price_id`, cria ou reutiliza customer no Stripe vinculado ao email do usuario, retorna URL do Stripe Checkout (abre em nova aba).
 
-Nao sera necessario adicionar novos steps - as novidades complementam funcionalidades ja mapeadas no tour.
+### 4. Edge Function: `customer-portal`
 
----
+Cria sessao do Stripe Customer Portal para gerenciar cartao, faturas e cancelamento.
 
-## 5. Onboarding - Checklist Modules
+### 5. Atualizar AuthContext
 
-Atualizar `checklistModules.ts` para adicionar novas tarefas nos modulos existentes:
+Adicionar ao estado global:
+- `subscribed` (boolean)
+- `subscriptionTier` ("essencial" | "profissional" | "escritorio" | null)
+- `subscriptionEnd` (string | null)
 
-### Modulo Juridico - Novas tarefas
-| Tarefa | Descricao | Rota | Campo de progresso |
-|--------|-----------|------|--------------------|
-| Usar modelo de peticao IA | Gere uma peticao usando um dos modelos especializados | `/petitions/new` | `ai_template_used` |
-| Gerar relatorio para cliente | Crie um relatorio PDF executivo | `/reports` | `client_report_generated` |
+Chamar `check-subscription` apos login e periodicamente.
 
-### Modulo Juridico - Atualizar descricao existente
-- Task `petition`: atualizar descricao para mencionar os modelos IA
+### 6. Nova pagina `/pricing`
 
-**Nota:** Os novos campos de progresso (`ai_template_used`, `client_report_generated`) precisarao de uma migracao para adicionar colunas na tabela `onboarding_progress` (se existir) ou serao tratados via localStorage/estado local.
+- Toggle Anual/Mensal (anual por padrao)
+- 3 cards com nome, preco, badge "Economize R$X" no anual
+- Badge "Mais Popular" no Profissional
+- Lista de funcionalidades por plano
+- Botao "Assinar" que redireciona para Stripe Checkout
+- Nota: "Garantia de 7 dias - cancele e receba reembolso integral"
+
+**Funcionalidades por plano:**
+
+**Essencial:**
+- Ate 30 processos ativos
+- Gestao de clientes e prazos
+- Templates manuais de peticoes
+- Monitoramento de 10 processos (DataJud)
+- 1 usuario
+
+**Profissional (Mais Popular):**
+- Processos ilimitados
+- Geracao de peticoes com IA (8 modelos)
+- Alertas por email automaticos
+- Relatorios PDF para clientes
+- Modulo financeiro completo
+- Ate 3 usuarios
+
+**Escritorio:**
+- Tudo do Profissional
+- Usuarios ilimitados
+- Dashboards financeiros avancados (DRE, Fluxo de Caixa)
+- Insights de IA para o negocio
+- Suporte prioritario
+
+### 7. Atualizar Settings - Aba Assinatura
+
+- Plano atual, status, proxima cobranca
+- Botao "Gerenciar Assinatura" (Customer Portal)
+- Se nao tem assinatura, link para `/pricing`
+
+### 8. Landing Header + Rota
+
+- Adicionar "Precos" no nav do `LandingHeader.tsx`
+- Adicionar rota `/pricing` no `App.tsx`
 
 ---
 
 ## Secao Tecnica
 
+### Arquivos criados
+
+| Arquivo | Descricao |
+|---------|-----------|
+| `src/pages/Pricing.tsx` | Pagina de precos com toggle anual/mensal |
+| `supabase/functions/check-subscription/index.ts` | Verifica assinatura via Stripe API |
+| `supabase/functions/create-checkout/index.ts` | Cria sessao de checkout |
+| `supabase/functions/customer-portal/index.ts` | Cria sessao do portal do cliente |
+
 ### Arquivos modificados
 
 | Arquivo | Mudanca |
 |---------|---------|
-| `src/components/landing/FeaturesSection.tsx` | Substituir 2 features no modulo juridico e 2 no modulo processos pelas novidades |
-| `src/components/landing/AISection.tsx` | Adicionar 2 beneficios sobre modelos IA |
-| `src/components/landing/HeroSection.tsx` | Atualizar trust indicator |
-| `src/components/onboarding/tourSteps.ts` | Atualizar descricoes dos steps dashboard, petitions e notifications |
-| `src/components/onboarding/checklistModules.ts` | Adicionar 2 novas tarefas ao modulo juridico |
+| `src/App.tsx` | Rota `/pricing` |
+| `src/contexts/AuthContext.tsx` | Estado de subscription + check automatico |
+| `src/pages/Settings.tsx` | Aba Assinatura com dados reais |
+| `src/components/landing/LandingHeader.tsx` | Link "Precos" |
 
-### Migracao de banco (se necessario)
+### Mapeamento de tiers
 
-Verificar se a tabela `onboarding_progress` existe e se precisa de novas colunas para os campos `ai_template_used` e `client_report_generated`. Caso a tabela nao tenha essas colunas, criar migracao:
+Constante no frontend com product_ids e price_ids do Stripe para cada plano, permitindo identificar qual tier o usuario possui e qual preco enviar ao checkout.
 
-```sql
-ALTER TABLE public.onboarding_progress 
-  ADD COLUMN IF NOT EXISTS ai_template_used BOOLEAN DEFAULT false,
-  ADD COLUMN IF NOT EXISTS client_report_generated BOOLEAN DEFAULT false;
-```
+### Sem tabela de subscriptions
 
-### Nenhuma nova dependencia necessaria
+Verificacao feita diretamente via API do Stripe (por email), sem tabela local.
 
-Todos os icones (Timer, Mail, BookTemplate) ja estao disponiveis no lucide-react instalado.
+### Sem webhook
+
+Arquitetura usa polling via `check-subscription`.
 
