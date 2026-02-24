@@ -151,6 +151,28 @@ Deno.serve(async (req) => {
         throw notifError;
       }
       console.log(`[check-deadlines] Inserted ${notifications.length} notifications`);
+
+      // Send urgent email alerts for 1-day notifications
+      const urgentNotifs = notifications.filter((n) => n.title.includes("URGENTE"));
+      for (const notif of urgentNotifs) {
+        try {
+          await fetch(`${supabaseUrl}/functions/v1/send-urgent-alerts`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${supabaseServiceKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              user_id: notif.user_id,
+              deadline_title: notif.title,
+              message: notif.message,
+            }),
+          });
+          console.log(`[check-deadlines] Sent urgent alert for user ${notif.user_id}`);
+        } catch (e) {
+          console.error("[check-deadlines] Failed to send urgent alert:", e);
+        }
+      }
     }
 
     // Update deadline flags

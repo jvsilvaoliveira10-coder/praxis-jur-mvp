@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.auto-sync-stj]
 verify_jwt = false
+
+[functions.send-urgent-alerts]
+verify_jwt = false
+
+[functions.send-daily-digest]
+verify_jwt = false

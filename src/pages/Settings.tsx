@@ -58,7 +58,7 @@ const NotificationPreferencesTab = () => {
   const [loading, setLoading] = useState(true);
   const [savingNotif, setSavingNotif] = useState(false);
   const [prefs, setPrefs] = useState({
-    email_alerts_enabled: true,
+    email_alerts_enabled: false,
     whatsapp_alerts_enabled: false,
     whatsapp_number: '',
     daily_digest_enabled: true,
