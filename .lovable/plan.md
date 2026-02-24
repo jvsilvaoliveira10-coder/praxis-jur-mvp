@@ -1,205 +1,102 @@
 
-# Plano: Tornar o Kanban da Landing Page Responsivo para Mobile
+# Plano: Melhorar a Geracao de Pecas Juridicas (sem n8n)
 
-## Problema Identificado
+## Objetivo
+Expandir os tipos de documentos que o advogado pode gerar e melhorar a qualidade da geracao usando RAG (busca na base juridica local) direto na Edge Function, sem depender do n8n.
 
-A seção de "Gestão de Processos" da landing page contém um demo interativo do Kanban com 4 colunas. No desktop funciona bem, mas no mobile:
+## Mudancas Propostas
 
-- As 4 colunas são exibidas em `flex` horizontal com `overflow-x-auto`
-- Cada coluna tem largura fixa de `w-36` (144px)
-- Total: 4 × 144px + gaps = ~600px de largura mínima
-- Em telas mobile (< 400px), isso causa overflow e quebra do layout
+### 1. Expandir Tipos de Peticao e Acao
+
+**Arquivo: `src/types/database.ts`**
+- Expandir `PetitionType` para incluir todos os tipos de `PieceType` (recurso, agravo, apelacao, embargos, manifestacao, outros)
+- Expandir `ActionType` para incluir mais tipos de acao comuns (trabalhista, familiar, consumidor, tributaria, criminal, previdenciaria, etc.)
+- Atualizar os labels correspondentes (`PETITION_TYPE_LABELS`, `ACTION_TYPE_LABELS`)
+
+**Banco de dados:**
+- Criar migration para adicionar os novos valores nos ENUMs `petition_type` e `action_type`
+
+### 2. Adicionar RAG na Edge Function
+
+**Arquivo: `supabase/functions/generate-petition/index.ts`**
+
+Antes de chamar a IA, a Edge Function vai:
+1. Buscar legislacao relevante usando a funcao `search_legal_references` do banco (full-text search nos artigos e sumulas)
+2. Buscar jurisprudencia relevante usando `search_stj_acordaos` do banco
+3. Injetar os resultados no prompt como contexto fundamentado
+4. Retornar os metadados das referencias encontradas junto com o streaming
+
+Isso garante que a IA cite artigos de lei e sumulas **reais** da base de dados.
+
+### 3. Enriquecer o Prompt com Dados do Escritorio
+
+**Arquivo: `supabase/functions/generate-petition/index.ts`**
+
+- Receber dados do escritorio (nome do advogado, OAB, endereco) do frontend
+- Preencher automaticamente os placeholders [NOME DO ADVOGADO], [OAB/UF], [LOCAL] no prompt
+- Usar modelo `google/gemini-2.5-pro` para pecas mais complexas (recursos, apelacoes)
+
+### 4. Atualizar o Frontend
+
+**Arquivo: `src/pages/PetitionForm.tsx`**
+- Exibir todos os tipos de peca no select (nao apenas 3)
+- Exibir todos os tipos de acao
+- Adicionar templates padrao (facts, legalBasis, requests) para os novos tipos de acao
+
+**Arquivo: `src/lib/petition-templates.ts`**
+- Adicionar templates locais para os novos tipos de peca e acao
+
+**Arquivo: `src/hooks/usePetitionGeneration.ts`**
+- Enviar dados do escritorio (law_firm_settings) na requisicao
+- Tratar metadados de legislacao/jurisprudencia retornados pela Edge Function com RAG
+
+### 5. Retornar Metadata de RAG ao Frontend
+
+**Arquivo: `supabase/functions/generate-petition/index.ts`**
+
+Antes de iniciar o streaming da IA, enviar um evento SSE com os metadados das referencias encontradas:
+```
+data: {"metadata": {"legislationFound": [...], "jurisprudenceFound": [...]}}
+```
+Depois iniciar o streaming normal do conteudo. Assim o componente `PetitionMetadataCard` exibe as referencias reais mesmo sem o n8n.
+
+---
+
+## Secao Tecnica
+
+### Migration SQL (novos ENUMs)
+
+Adicionar valores aos ENUMs existentes:
+- `petition_type`: adicionar `recurso`, `agravo`, `apelacao`, `embargos`, `manifestacao`, `outros`
+- `action_type`: adicionar `trabalhista`, `familia`, `consumidor`, `tributaria`, `criminal`, `previdenciaria`, `execucao`, `inventario`, `usucapiao`, `despejo`, `outros`
+
+### Logica de RAG na Edge Function
 
 ```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                    PROBLEMA ATUAL NO MOBILE                         │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌──────────────── Viewport Mobile (375px) ─────────────────┐      │
-│  │                                                           │      │
-│  │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐             │      │
-│  │  │Consulta│ │Documen.│ │Protoc. │ │Encerr. │ <-- OVERFLOW│      │
-│  │  │ 144px  │ │ 144px  │ │ 144px  │ │ 144px  │             │      │
-│  │  └────────┘ └────────┘ └────────┘ └────────┘             │      │
-│  │                        ^^^^^^^^^^^^^^^^^                  │      │
-│  │                        Conteúdo fora da tela              │      │
-│  └───────────────────────────────────────────────────────────┘      │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+1. Receber request com dados do caso
+2. Extrair palavras-chave do tipo de acao + fatos + fundamentos
+3. Chamar supabase.rpc('search_legal_references', { search_query, result_limit: 10 })
+4. Chamar supabase.rpc('search_stj_acordaos', { search_query, result_limit: 5 })
+5. Montar bloco de contexto com artigos e jurisprudencias encontrados
+6. Enviar SSE event com metadata das referencias
+7. Chamar Lovable AI com o prompt enriquecido
+8. Fazer streaming da resposta para o cliente
 ```
 
----
+### Arquivos Modificados
 
-## Solução Proposta
+| Arquivo | Tipo de Mudanca |
+|---------|----------------|
+| `src/types/database.ts` | Expandir tipos e labels |
+| `src/pages/PetitionForm.tsx` | Novos selects, enviar dados do escritorio |
+| `src/lib/petition-templates.ts` | Templates para novos tipos |
+| `src/hooks/usePetitionGeneration.ts` | Enviar firm settings, tratar metadata |
+| `supabase/functions/generate-petition/index.ts` | RAG + dados do escritorio + metadata SSE |
+| Migration SQL | Expandir ENUMs |
 
-Implementar **duas visualizações distintas**:
-- **Desktop/Tablet**: Layout horizontal atual com 4 colunas
-- **Mobile**: Layout em **grid 2x2** ou **scroll controlado** com indicadores visuais
+### Modelo de IA
 
-### Opção Escolhida: Grid 2x2 no Mobile
+- Pecas simples (peticao simples, manifestacao): `google/gemini-3-flash-preview` (rapido e economico)
+- Pecas complexas (recursos, apelacoes, embargos): `google/gemini-2.5-pro` (mais preciso em raciocinio juridico)
 
-No mobile, as 4 colunas serão reorganizadas em um grid 2x2, que cabe perfeitamente na tela:
-
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                    SOLUÇÃO: GRID 2x2 NO MOBILE                      │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌──────────────── Viewport Mobile (375px) ─────────────────┐      │
-│  │                                                           │      │
-│  │  ┌─────────────────┐  ┌─────────────────┐                │      │
-│  │  │    Consulta     │  │  Documentação   │                │      │
-│  │  │   [Maria S.]    │  │    [João P.]    │                │      │
-│  │  │   [Carlos R.]   │  │                 │                │      │
-│  │  └─────────────────┘  └─────────────────┘                │      │
-│  │                                                           │      │
-│  │  ┌─────────────────┐  ┌─────────────────┐                │      │
-│  │  │   Protocolado   │  │    Encerrado    │                │      │
-│  │  │  [Empresa ABC]  │  │    [Pedro R.]   │                │      │
-│  │  └─────────────────┘  └─────────────────┘                │      │
-│  │                                                           │      │
-│  │  ✓ Tudo visível sem scroll horizontal                    │      │
-│  │  ✓ Drag-and-drop continua funcionando                    │      │
-│  │                                                           │      │
-│  └───────────────────────────────────────────────────────────┘      │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Arquivos a Modificar
-
-| Arquivo | Ação | Descrição |
-|---------|------|-----------|
-| `src/components/landing/ProcessManagementSection.tsx` | MODIFICAR | Adicionar lógica de layout responsivo |
-| `src/components/landing/kanban-demo/KanbanColumn.tsx` | MODIFICAR | Ajustar largura para ser flexível |
-| `src/components/landing/kanban-demo/KanbanCard.tsx` | MODIFICAR | Pequenos ajustes de tamanho no mobile |
-
----
-
-## Detalhes Técnicos
-
-### 1. ProcessManagementSection.tsx
-
-Alterar o container das colunas de `flex` fixo para grid responsivo:
-
-```typescript
-// ANTES (linha 259):
-<div className="flex gap-3 overflow-x-auto pb-2">
-
-// DEPOIS:
-<div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3 sm:overflow-x-auto sm:pb-2">
-```
-
-Isso faz com que:
-- **Mobile (< 640px)**: Grid de 2 colunas
-- **Desktop (≥ 640px)**: Flex horizontal como antes
-
-### 2. KanbanColumn.tsx
-
-Remover a largura fixa no mobile:
-
-```typescript
-// ANTES (linha 18-19):
-className={cn(
-  'flex-shrink-0 w-36 bg-muted/50 rounded-lg p-2 ...',
-
-// DEPOIS:
-className={cn(
-  'w-full sm:w-36 sm:flex-shrink-0 bg-muted/50 rounded-lg p-2 ...',
-```
-
-No mobile:
-- `w-full` faz a coluna ocupar 100% da célula do grid
-- No desktop, volta ao `w-36` fixo
-
-### 3. KanbanCard.tsx
-
-Ajustar padding e texto para melhor visualização:
-
-```typescript
-// ANTES (linha 24-26):
-className={cn(
-  'bg-card border rounded-md p-2 shadow-sm cursor-grab ...',
-
-// DEPOIS:
-className={cn(
-  'bg-card border rounded-md p-2 sm:p-2 shadow-sm cursor-grab ...',
-```
-
-Os cards já estão bem otimizados, mas podemos reduzir ligeiramente o padding em telas muito pequenas se necessário.
-
-### 4. Instrução de Drag (Mobile)
-
-Ajustar texto de instrução para mobile:
-
-```typescript
-// ANTES:
-<span>Experimente! Arraste os cards entre as colunas</span>
-
-// DEPOIS (com responsividade):
-<span className="hidden sm:inline">Experimente! Arraste os cards entre as colunas</span>
-<span className="sm:hidden">Toque e arraste os cards</span>
-```
-
----
-
-## Comportamento do Drag-and-Drop
-
-O `@dnd-kit/core` já está configurado corretamente com `TouchSensor`:
-
-```typescript
-useSensor(TouchSensor, {
-  activationConstraint: {
-    delay: 100,
-    tolerance: 5,
-  },
-})
-```
-
-Isso garante que o drag funcione bem em dispositivos touch. O grid 2x2 não interfere nessa funcionalidade.
-
----
-
-## Visualização Final Esperada
-
-```text
-┌────────────────────────────────────────────────────────────────────┐
-│                                                                    │
-│  MOBILE (< 640px)              DESKTOP (≥ 640px)                   │
-│                                                                    │
-│  ┌────────┐ ┌────────┐         ┌────┐ ┌────┐ ┌────┐ ┌────┐        │
-│  │Consulta│ │Document│         │Con.│ │Doc.│ │Prot│ │Enc.│        │
-│  │  ██    │ │  ██    │         │ ██ │ │ ██ │ │ ██ │ │ ██ │        │
-│  │  ██    │ │        │         │ ██ │ │    │ │    │ │    │        │
-│  └────────┘ └────────┘         └────┘ └────┘ └────┘ └────┘        │
-│  ┌────────┐ ┌────────┐                                            │
-│  │Protoc. │ │Encerr. │         ← Flex horizontal com scroll       │
-│  │  ██    │ │  ██    │                                            │
-│  └────────┘ └────────┘                                            │
-│                                                                    │
-│  ↑ Grid 2x2 sem scroll                                            │
-│                                                                    │
-└────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Ordem de Implementação
-
-1. **KanbanColumn.tsx** - Remover largura fixa, adicionar `w-full sm:w-36`
-2. **ProcessManagementSection.tsx** - Trocar container para `grid grid-cols-2 sm:flex`
-3. **Ajustar texto de instrução** - Versão curta para mobile
-4. **Testar drag-and-drop** - Verificar que funciona no grid 2x2
-
----
-
-## Resultado Esperado
-
-Após a implementação:
-- O Kanban demo será exibido em grid 2x2 em telas mobile
-- Todas as 4 colunas ficam visíveis sem scroll horizontal
-- O drag-and-drop continua funcionando normalmente
-- Em desktop, o layout horizontal é mantido
-- A transição entre layouts é suave via Tailwind breakpoints
+O tipo de peca determina automaticamente qual modelo usar.
