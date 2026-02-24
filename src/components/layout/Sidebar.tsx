@@ -214,7 +214,7 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
       <div className="h-[72px] px-4 flex items-center border-b border-sidebar-border">
         <div className="flex flex-col items-center w-full">
           <img src={logoWhite} alt="Práxis Jur" className="h-10" />
-          <p className="text-[10px] text-white font-bold mt-0.5 text-center">Por: João Oliveira</p>
+          <p className="text-[8px] text-white/75 font-bold mt-0.5 text-center">Por: João Oliveira</p>
         </div>
       </div>
 
@@ -268,7 +268,7 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
           ) : (
             <>
               <img src={logoWhite} alt="Práxis Jur" className="h-10" />
-              <p className="text-[10px] text-white font-bold mt-0.5 text-center">Por: João Oliveira</p>
+              <p className="text-[8px] text-white/75 font-bold mt-0.5 text-center">Por: João Oliveira</p>
             </>
           )}
         </div>
