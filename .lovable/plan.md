@@ -1,61 +1,81 @@
 
-# Corrigir Visibilidade do Checklist de Onboarding
 
-## Diagnostico
+# Modelos do Escritorio como Base para IA
 
-O checklist nao aparece porque a logica `shouldShowChecklist` exige duas condicoes que nao estao sendo atendidas:
+## Situacao Atual
 
-1. **`firmSettings?.onboarding_completed === true`** - O usuario nao tem registro na tabela `law_firm_settings`, entao `firmSettings` e `null`
-2. **`progress.welcome_modal_seen === true`** - Esta como `false` no banco
+O sistema ja tem:
+- Tabela `petition_templates` onde o advogado cadastra modelos
+- No formulario de peticao, um dropdown para selecionar um modelo ativo
+- A edge function `generate-petition` ja recebe `templateContent` e injeta no prompt como "MODELO DO ESCRITORIO"
 
-Essas condicoes fazem com que o checklist nunca seja renderizado, independentemente do posicionamento CSS.
+Porem, a experiencia atual tem lacunas:
+1. O advogado so pode criar modelos pelo editor de texto -- nao pode **subir um arquivo** (DOCX/PDF)
+2. O template so e usado se o advogado manualmente selecionar no dropdown
+3. Nao ha auto-matching: se o tipo de peticao bate com um modelo, deveria sugerir automaticamente
 
-## Solucao
+## Melhorias Propostas
 
-Ajustar a logica no hook `useOnboardingProgress` para que o checklist apareca em mais cenarios:
+### 1. Upload de Arquivos de Modelos
 
-### Arquivo: `src/hooks/useOnboardingProgress.ts`
+Permitir que o advogado faca upload de arquivos `.docx` e `.txt` na pagina de criacao de template (`/templates/new`), alem do editor manual. O conteudo do arquivo sera extraido e inserido no campo de conteudo do template.
 
-Alterar a condicao `shouldShowChecklist` (linha 401-408) para ser mais flexivel:
+### 2. Auto-sugestao de Modelo
 
-**Antes:**
-```typescript
-const shouldShowChecklist = !!(
-  !isLoading &&
-  firmSettings?.onboarding_completed &&
-  progress &&
-  progress.welcome_modal_seen &&
-  !progress.checklist_dismissed &&
-  calculatePercent() < 100
-);
-```
+Quando o advogado selecionar o tipo de peticao no formulario, se existir um modelo ativo do mesmo tipo, exibir um banner sugerindo usa-lo automaticamente como base para a IA.
 
-**Depois:**
-```typescript
-const shouldShowChecklist = !!(
-  !isLoading &&
-  progress &&
-  !progress.checklist_dismissed &&
-  calculatePercent() < 100
-);
-```
+### 3. Indicador Visual no Formulario
 
-Remover as dependencias de `firmSettings?.onboarding_completed` e `welcome_modal_seen` para o checklist. Isso permite que o checklist apareca assim que o usuario tiver um registro de progresso, sem precisar ter completado o onboarding wizard ou visto o welcome modal.
-
-A logica do welcome modal (`shouldShowWelcome`) permanece inalterada - ele so aparece quando o onboarding foi completado.
-
-### Verificacao do posicionamento
-
-Com o checklist visivel novamente, as posicoes atualizadas serao validadas:
-- **Minimizado**: `fixed bottom-6 right-24 z-50` (ao lado do botao de IA)
-- **Expandido**: `fixed bottom-24 right-6 z-50` (acima do botao de IA)
+Mostrar claramente quando um modelo do escritorio sera usado como base, com badge "Usando modelo do escritorio" e preview resumido.
 
 ---
 
 ## Secao Tecnica
 
+### Arquivos Modificados
+
 | Arquivo | Mudanca |
 |---------|---------|
-| `src/hooks/useOnboardingProgress.ts` | Simplificar condicao `shouldShowChecklist` removendo dependencias de `onboarding_completed` e `welcome_modal_seen` |
+| `src/pages/TemplateForm.tsx` | Adicionar zona de upload (DOCX/TXT) usando react-dropzone; extrair texto e preencher o editor |
+| `src/pages/PetitionForm.tsx` | Auto-selecionar template quando `petition_type` bater com um modelo ativo; banner de sugestao |
+| `supabase/functions/extract-template/index.ts` | (Novo) Edge function para extrair texto de DOCX usando a lib `mammoth` no Deno |
 
-Apenas 1 arquivo modificado, mudanca de 6 linhas para 4 linhas.
+### Upload de DOCX - Fluxo
+
+1. Advogado arrasta um `.docx` ou `.txt` na zona de upload em `/templates/new`
+2. Para `.txt`: leitura direta no browser via `FileReader`
+3. Para `.docx`: enviar para edge function `extract-template` que usa `mammoth` para converter DOCX para HTML/texto
+4. Conteudo extraido e inserido no RichTextEditor para revisao antes de salvar
+
+### Auto-sugestao no PetitionForm
+
+```text
+Quando petition_type muda:
+  -> Filtrar templates ativos do mesmo piece_type
+  -> Se encontrar 1+ template:
+     -> Mostrar banner: "Voce tem X modelo(s) para este tipo de peticao. Usar como base?"
+     -> Ao clicar, auto-seleciona o primeiro (ou abre seletor se >1)
+  -> Template selecionado e passado para a IA no campo templateContent (ja funciona)
+```
+
+### Edge Function: extract-template
+
+Nova edge function para processar uploads DOCX:
+
+```typescript
+// supabase/functions/extract-template/index.ts
+// Recebe o arquivo DOCX como base64
+// Usa mammoth para converter para HTML
+// Retorna o HTML extraido
+```
+
+### Dependencias
+
+- `react-dropzone` (ja instalado no projeto)
+- Nenhuma nova dependencia frontend necessaria
+- `mammoth` via esm.sh no edge function para parsing DOCX
+
+### Nenhuma alteracao de banco
+
+A tabela `petition_templates` ja suporta tudo que precisamos -- o campo `content` (text) armazena o conteudo do modelo independente de como foi criado (digitado ou uploaded).
+
