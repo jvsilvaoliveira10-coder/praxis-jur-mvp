@@ -129,13 +129,36 @@ serve(async (req) => {
       firmSettings,
     } = body;
 
+    // Input validation
+    if (!facts || typeof facts !== 'string' || facts.trim().length < 10) {
+      return new Response(JSON.stringify({ error: 'Fatos devem ter pelo menos 10 caracteres.' }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!legalBasis || typeof legalBasis !== 'string' || legalBasis.trim().length < 10) {
+      return new Response(JSON.stringify({ error: 'Fundamento jurídico deve ter pelo menos 10 caracteres.' }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!requests || typeof requests !== 'string' || requests.trim().length < 10) {
+      return new Response(JSON.stringify({ error: 'Pedidos devem ter pelo menos 10 caracteres.' }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const MAX_TEXT_LENGTH = 10000;
+    const safeFacts = facts.substring(0, MAX_TEXT_LENGTH);
+    const safeLegalBasis = legalBasis.substring(0, MAX_TEXT_LENGTH);
+    const safeRequests = requests.substring(0, MAX_TEXT_LENGTH);
+    const safeUserContext = userContext ? userContext.substring(0, 5000) : '';
+    const safeTemplateContent = templateContent ? templateContent.substring(0, 15000) : undefined;
+
     // Determine model based on petition complexity
     const model = getModelForPetitionType(petitionType);
     console.log(`Using model: ${model} for petition type: ${petitionType}`);
 
     // ===== RAG: Search legal references and jurisprudence =====
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
-    const searchQuery = buildSearchQuery(caseData, facts, legalBasis);
+    const searchQuery = buildSearchQuery(caseData, safeFacts, safeLegalBasis);
     
     console.log(`RAG search query: ${searchQuery.substring(0, 100)}...`);
 
@@ -245,35 +268,35 @@ ${clientData.legalRepPosition ? `- Cargo do Representante: ${clientData.legalRep
 TIPO DE PETIÇÃO: ${petitionType}
 
 FATOS NARRADOS PELO ADVOGADO:
-${facts}
+${safeFacts}
 
 FUNDAMENTOS JURÍDICOS:
-${legalBasis}
+${safeLegalBasis}
 
 PEDIDOS:
-${requests}`;
+${safeRequests}`;
 
     // Add RAG context
     if (ragContext) {
       contextMessage += ragContext;
     }
 
-    if (templateContent) {
+    if (safeTemplateContent) {
       contextMessage += `
 
 MODELO DO ESCRITÓRIO (use como base/referência de estilo):
 Título: ${templateTitle || "Modelo sem título"}
 Conteúdo:
-${templateContent}
+${safeTemplateContent}
 
 INSTRUÇÃO ESPECIAL: Use o modelo acima como REFERÊNCIA DE ESTILO E ESTRUTURA. Adapte o conteúdo para o caso específico mantendo o tom, formatação e estilo do modelo do escritório.`;
     }
 
-    if (userContext && userContext.trim()) {
+    if (safeUserContext && safeUserContext.trim()) {
       contextMessage += `
 
 CONTEXTUALIZAÇÃO ADICIONAL DO ADVOGADO:
-${userContext}
+${safeUserContext}
 
 Use estas informações adicionais para enriquecer a petição com detalhes específicos do caso.`;
     }

@@ -36,8 +36,23 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { messages } = await req.json();
-    const lastMsg = messages[messages.length - 1]?.content || '';
+    const body = await req.json();
+    const messages = body.messages;
+
+    // Input validation
+    if (!Array.isArray(messages) || messages.length === 0 || messages.length > 50) {
+      return new Response(JSON.stringify({ error: 'Mensagens inválidas.' }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Truncate messages to prevent abuse
+    const safeMessages = messages.slice(-20).map((m: any) => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: typeof m.content === 'string' ? m.content.substring(0, 5000) : '',
+    }));
+
+    const lastMsg = safeMessages[safeMessages.length - 1]?.content || '';
 
     // RAG: search legal references if query involves law
     let ragContext = '';
@@ -84,7 +99,7 @@ ${ragContext ? `\n\nCONTEXTO LEGAL DA BASE DE DADOS (use estas referências quan
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          ...messages,
+          ...safeMessages,
         ],
         stream: true,
       }),
