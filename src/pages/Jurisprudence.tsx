@@ -23,6 +23,11 @@ const TRIBUNAL_COLORS: Record<string, string> = {
   TJDFT: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
 };
 
+const TRIBUNAL_LABELS: Record<string, string> = {
+  STF: 'STF (DataJud)',
+  TJDFT: 'TJDFT',
+};
+
 function ResultCard({ item }: { item: Resultado }) {
   const [expandido, setExpandido] = useState(false);
   const ementaCurta = item.ementa.slice(0, 300);
