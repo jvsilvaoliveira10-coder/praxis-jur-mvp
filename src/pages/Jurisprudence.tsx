@@ -170,7 +170,7 @@ const Jurisprudence = () => {
       <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md p-3">
         <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
         <span>
-          A busca consulta <strong>STF</strong> e <strong>TJDFT</strong> simultaneamente. Use aspas para frase exata: <code className="bg-muted px-1 rounded">"dano moral"</code>
+          A busca consulta <strong>STJ</strong> (via DataJud) e <strong>TJDFT</strong> simultaneamente. Use aspas para frase exata: <code className="bg-muted px-1 rounded">"dano moral"</code>
         </span>
       </div>
 
