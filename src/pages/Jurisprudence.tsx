@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Scale, Search, Calendar, Building2, ExternalLink, ChevronLeft, ChevronRight, Loader2, AlertCircle, Info } from 'lucide-react';
+import { Scale, Search, Calendar, ExternalLink, ChevronLeft, ChevronRight, Loader2, AlertCircle, Info } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -12,13 +12,16 @@ type Resultado = {
   titulo: string;
   ementa: string;
   data: string;
-  autoridade: string;
-  tipo: string;
-  urn: string;
+  tribunal: string;
   link: string;
 };
 
 const POR_PAGINA = 10;
+
+const TRIBUNAL_COLORS: Record<string, string> = {
+  STF: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
+  TJDFT: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+};
 
 function ResultCard({ item }: { item: Resultado }) {
   const [expandido, setExpandido] = useState(false);
@@ -30,15 +33,9 @@ function ResultCard({ item }: { item: Resultado }) {
       <CardContent className="pt-4 pb-4 space-y-3">
         {/* Meta */}
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary" className="text-xs">
-            {item.tipo || 'Jurisprudência'}
-          </Badge>
-          {item.autoridade && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Building2 className="h-3 w-3" />
-              <span className="font-medium text-foreground/80">{item.autoridade}</span>
-            </div>
-          )}
+          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TRIBUNAL_COLORS[item.tribunal] || 'bg-muted text-muted-foreground'}`}>
+            {item.tribunal}
+          </span>
           {item.data && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
               <Calendar className="h-3 w-3" />
@@ -71,12 +68,7 @@ function ResultCard({ item }: { item: Resultado }) {
             </Button>
           )}
           {item.link && (
-            <a
-              href={item.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-auto"
-            >
+            <a href={item.link} target="_blank" rel="noopener noreferrer" className="ml-auto">
               <Button variant="outline" size="sm" className="text-xs h-7 gap-1">
                 <ExternalLink className="h-3 w-3" />
                 Acessar documento
@@ -106,8 +98,9 @@ const Jurisprudence = () => {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [buscaFeita, setBuscaFeita] = useState(false);
+  const [fontes, setFontes] = useState<{ stf?: { total: number }; tjdft?: { total: number } }>({});
 
-  const totalPaginas = Math.ceil(total / POR_PAGINA);
+  const totalPaginas = Math.max(1, Math.ceil(total / (POR_PAGINA * 2))); // 2 sources
 
   async function buscar(novaPagina = 1) {
     if (!query.trim() || query.trim().length < 3) return;
@@ -125,6 +118,7 @@ const Jurisprudence = () => {
 
       setResultados(data.resultados || []);
       setTotal(data.total || 0);
+      setFontes(data.fontes || {});
       setBuscaFeita(true);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Erro ao buscar jurisprudência';
@@ -144,7 +138,7 @@ const Jurisprudence = () => {
         <div>
           <h1 className="text-2xl font-serif font-bold">Pesquisa de Jurisprudência</h1>
           <p className="text-muted-foreground text-sm">
-            Base LexML · Acórdãos, súmulas e decisões de tribunais brasileiros
+            Fontes: STF · TJDFT — Acórdãos, súmulas e decisões
           </p>
         </div>
       </div>
@@ -171,8 +165,7 @@ const Jurisprudence = () => {
       <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md p-3">
         <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
         <span>
-          Use <code className="bg-muted px-1 rounded">AND</code>, <code className="bg-muted px-1 rounded">OR</code>, <code className="bg-muted px-1 rounded">NOT</code> entre termos. 
-          Aspas para frase exata: <code className="bg-muted px-1 rounded">"dano moral"</code>
+          A busca consulta <strong>STF</strong> e <strong>TJDFT</strong> simultaneamente. Use aspas para frase exata: <code className="bg-muted px-1 rounded">"dano moral"</code>
         </span>
       </div>
 
@@ -188,7 +181,7 @@ const Jurisprudence = () => {
       {carregando && (
         <div className="flex items-center justify-center gap-3 py-12 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin" />
-          <span>Consultando base LexML...</span>
+          <span>Consultando STF e TJDFT...</span>
         </div>
       )}
 
@@ -196,16 +189,28 @@ const Jurisprudence = () => {
       {buscaFeita && !carregando && resultados.length === 0 && !erro && (
         <div className="text-center py-12 text-muted-foreground">
           <Scale className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p>Nenhum documento encontrado para "<strong>{query}</strong>"</p>
-          <p className="text-xs mt-1">Tente termos mais simples ou use operadores de busca</p>
+          <p>Nenhum resultado encontrado para "<strong>{query}</strong>"</p>
+          <p className="text-xs mt-1">Nenhuma das fontes (STF e TJDFT) retornou documentos para esta consulta</p>
         </div>
       )}
 
       {/* Results */}
       {resultados.length > 0 && !carregando && (
         <>
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>{total.toLocaleString('pt-BR')} resultados encontrados</span>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-3">
+              <span>{total.toLocaleString('pt-BR')} resultados</span>
+              {fontes.stf && (
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TRIBUNAL_COLORS.STF}`}>
+                  STF: {fontes.stf.total.toLocaleString('pt-BR')}
+                </span>
+              )}
+              {fontes.tjdft && (
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TRIBUNAL_COLORS.TJDFT}`}>
+                  TJDFT: {fontes.tjdft.total.toLocaleString('pt-BR')}
+                </span>
+              )}
+            </div>
             <span>Página {pagina} de {totalPaginas}</span>
           </div>
 
@@ -220,24 +225,14 @@ const Jurisprudence = () => {
           {/* Pagination */}
           {totalPaginas > 1 && (
             <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => buscar(pagina - 1)}
-                disabled={pagina === 1}
-              >
+              <Button variant="outline" size="sm" onClick={() => buscar(pagina - 1)} disabled={pagina === 1}>
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 Anterior
               </Button>
               <span className="text-sm text-muted-foreground px-3">
                 {pagina} / {totalPaginas}
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => buscar(pagina + 1)}
-                disabled={pagina >= totalPaginas}
-              >
+              <Button variant="outline" size="sm" onClick={() => buscar(pagina + 1)} disabled={pagina >= totalPaginas}>
                 Próxima
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
