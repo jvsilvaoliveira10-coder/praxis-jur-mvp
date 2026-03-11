@@ -19,8 +19,13 @@ type Resultado = {
 const POR_PAGINA = 10;
 
 const TRIBUNAL_COLORS: Record<string, string> = {
-  STF: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
+  STJ: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
   TJDFT: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+};
+
+const TRIBUNAL_LABELS: Record<string, string> = {
+  STJ: 'STJ (DataJud)',
+  TJDFT: 'TJDFT',
 };
 
 function ResultCard({ item }: { item: Resultado }) {
@@ -34,7 +39,7 @@ function ResultCard({ item }: { item: Resultado }) {
         {/* Meta */}
         <div className="flex flex-wrap items-center gap-2">
           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TRIBUNAL_COLORS[item.tribunal] || 'bg-muted text-muted-foreground'}`}>
-            {item.tribunal}
+            {TRIBUNAL_LABELS[item.tribunal] || item.tribunal}
           </span>
           {item.data && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
@@ -98,7 +103,7 @@ const Jurisprudence = () => {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [buscaFeita, setBuscaFeita] = useState(false);
-  const [fontes, setFontes] = useState<{ stf?: { total: number }; tjdft?: { total: number } }>({});
+  const [fontes, setFontes] = useState<{ stj?: { total: number }; tjdft?: { total: number } }>({});
 
   const totalPaginas = Math.max(1, Math.ceil(total / (POR_PAGINA * 2))); // 2 sources
 
@@ -138,7 +143,7 @@ const Jurisprudence = () => {
         <div>
           <h1 className="text-2xl font-serif font-bold">Pesquisa de Jurisprudência</h1>
           <p className="text-muted-foreground text-sm">
-            Fontes: STF · TJDFT — Acórdãos, súmulas e decisões
+            Fontes: STJ (DataJud) · TJDFT — Acórdãos, súmulas e decisões
           </p>
         </div>
       </div>
@@ -165,7 +170,7 @@ const Jurisprudence = () => {
       <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md p-3">
         <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
         <span>
-          A busca consulta <strong>STF</strong> e <strong>TJDFT</strong> simultaneamente. Use aspas para frase exata: <code className="bg-muted px-1 rounded">"dano moral"</code>
+          A busca consulta <strong>STJ</strong> (via DataJud) e <strong>TJDFT</strong> simultaneamente. Use aspas para frase exata: <code className="bg-muted px-1 rounded">"dano moral"</code>
         </span>
       </div>
 
@@ -200,9 +205,9 @@ const Jurisprudence = () => {
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
             <div className="flex items-center gap-3">
               <span>{total.toLocaleString('pt-BR')} resultados</span>
-              {fontes.stf && (
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TRIBUNAL_COLORS.STF}`}>
-                  STF: {fontes.stf.total.toLocaleString('pt-BR')}
+              {fontes.stj && (
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TRIBUNAL_COLORS.STJ}`}>
+                  STJ: {fontes.stj.total.toLocaleString('pt-BR')}
                 </span>
               )}
               {fontes.tjdft && (

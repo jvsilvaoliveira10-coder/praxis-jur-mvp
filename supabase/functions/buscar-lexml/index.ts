@@ -13,80 +13,120 @@ interface ResultadoNormalizado {
   link: string;
 }
 
-async function buscarSTF(query: string, pagina: number, porPagina: number): Promise<{ resultados: ResultadoNormalizado[]; total: number }> {
-  try {
-    const url = `https://jurisprudencia.stf.jus.br/api/search/search?qFrase=${encodeURIComponent(query)}&base=ACORDAOS&pageSize=${porPagina}&page=${pagina}`;
-    const res = await fetch(url, {
-      headers: { "Accept": "application/json" },
-    });
-
-    if (!res.ok) {
-      console.warn(`STF retornou status ${res.status}`);
-      return { resultados: [], total: 0 };
-    }
-
-    const json = await res.json();
-    const hits = json?.result || [];
-    const total = json?.totalHits ?? json?.total ?? hits.length;
-
-    const resultados: ResultadoNormalizado[] = hits.map((item: any) => {
-      const titulo = item.title || item.titulo || item.processo || "Acórdão STF";
-      const ementa = item.ementa || item.preview || item.resumo || "";
-      const data = item.publicacao || item.dataJulgamento || item.data || "";
-      const id = item.id || "";
-      const link = id
-        ? `https://jurisprudencia.stf.jus.br/pages/search/${id}`
-        : "https://jurisprudencia.stf.jus.br";
-
-      return { titulo, ementa, data, tribunal: "STF", link };
-    });
-
-    return { resultados, total: Number(total) || resultados.length };
-  } catch (err) {
-    console.error("Erro STF:", err);
-    return { resultados: [], total: 0 };
-  }
-}
-
 async function buscarTJDFT(query: string, pagina: number, porPagina: number): Promise<{ resultados: ResultadoNormalizado[]; total: number }> {
   try {
-    const res = await fetch("https://jurisprudencia.tjdft.jus.br/api/v1/pesquisar", {
+    const paginaZeroBased = Math.max(0, pagina - 1);
+
+    const res = await fetch("https://jurisdf.tjdft.jus.br/api/v1/pesquisa", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
       },
       body: JSON.stringify({
-        texto: query,
-        pagina,
-        quantidadePorPagina: porPagina,
+        query,
+        pagina: paginaZeroBased,
+        tamanho: porPagina,
       }),
     });
 
     if (!res.ok) {
-      console.warn(`TJDFT retornou status ${res.status}`);
+      console.warn(`TJDFT retornou status ${res.status}: ${await res.text()}`);
       return { resultados: [], total: 0 };
     }
 
     const json = await res.json();
-    const hits = json?.resultado || json?.resultados || json?.data || [];
-    const total = json?.totalRegistros ?? json?.total ?? hits.length;
+    const hits = json?.registros || json?.resultado || json?.resultados || json?.data || [];
+    const total = json?.hits ?? json?.totalRegistros ?? json?.total ?? hits.length;
 
     const resultados: ResultadoNormalizado[] = (Array.isArray(hits) ? hits : []).map((item: any) => {
-      const titulo = item.titulo || item.numeroProcesso || item.numero || "Decisão TJDFT";
+      const titulo = item.processo || item.titulo || item.numeroProcesso || item.numero || "Decisão TJDFT";
       const ementa = item.ementa || item.textoCompleto || item.resumo || "";
-      const data = item.dataJulgamento || item.dataPublicacao || item.data || "";
-      const numero = item.numeroProcesso || item.numero || "";
+      const data = item.dataPublicacao || item.dataJulgamento || item.data || "";
+      const relator = item.nomeRelator || item.relator || "";
+      const numero = item.processo || item.numeroProcesso || item.numero || "";
       const link = numero
-        ? `https://jurisprudencia.tjdft.jus.br/pesquisar?query=${encodeURIComponent(numero)}`
-        : "https://jurisprudencia.tjdft.jus.br";
+        ? `https://pesquisajuris.tjdft.jus.br/IndexadorAcordaos-web/sistj?visaoId=tjdf.sistj.acordaoeletronico.buscaindexada.apresentacao.VisaoBuscaAcordao&controladorId=tjdf.sistj.acordaoeletronico.buscaindexada.apresentacao.ControladorBuscaAcordao&informession=S&txtPesquisaLivre=${encodeURIComponent(numero)}`
+        : "https://pesquisajuris.tjdft.jus.br";
 
-      return { titulo, ementa, data, tribunal: "TJDFT", link };
+      return {
+        titulo: relator ? `${titulo} — Rel. ${relator}` : titulo,
+        ementa: ementa.slice(0, 2000),
+        data,
+        tribunal: "TJDFT",
+        link,
+      };
     });
 
     return { resultados, total: Number(total) || resultados.length };
   } catch (err) {
     console.error("Erro TJDFT:", err);
+    return { resultados: [], total: 0 };
+  }
+}
+
+async function buscarDataJud(query: string, pagina: number, porPagina: number, tribunal: string, endpoint: string): Promise<{ resultados: ResultadoNormalizado[]; total: number }> {
+  try {
+    const apiKey = Deno.env.get("DATAJUD_API_KEY");
+    if (!apiKey) {
+      console.warn("DATAJUD_API_KEY não configurada");
+      return { resultados: [], total: 0 };
+    }
+
+    const from = (pagina - 1) * porPagina;
+    const body = {
+      size: porPagina,
+      from,
+      query: {
+        bool: {
+          must: [
+            {
+              multi_match: {
+                query,
+                fields: ["textoSemFormatacao", "assuntos.nome", "classeProcessual.nome"],
+                type: "best_fields",
+              },
+            },
+          ],
+        },
+      },
+      sort: [{ dataHoraUltimaAtualizacao: { order: "desc" } }],
+    };
+
+    const res = await fetch(`https://api-publica.datajud.cnj.jus.br/${endpoint}/_search`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `APIKey ${apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      console.warn(`DataJud ${tribunal} retornou status ${res.status}`);
+      return { resultados: [], total: 0 };
+    }
+
+    const json = await res.json();
+    const hits = json?.hits?.hits || [];
+    const total = json?.hits?.total?.value ?? hits.length;
+
+    const resultados: ResultadoNormalizado[] = hits.map((hit: any) => {
+      const s = hit._source || {};
+      const classe = s.classeProcessual?.nome || "";
+      const numero = s.numeroProcesso || "";
+      const titulo = classe ? `${classe} - ${numero}` : numero || `Processo ${tribunal}`;
+      const assuntos = (s.assuntos || []).map((a: any) => a.nome).join("; ");
+      const ementa = assuntos || s.textoSemFormatacao || "";
+      const data = s.dataHoraUltimaAtualizacao || s.dataAjuizamento || "";
+      const link = `https://processo.stj.jus.br/processo/pesquisa/?aplicacao=processos.ea&tipoPesquisa=tipoPesquisaGenerica&termo=${encodeURIComponent(numero)}`;
+
+      return { titulo, ementa: ementa.slice(0, 2000), data, tribunal, link };
+    });
+
+    return { resultados, total: Number(total) || resultados.length };
+  } catch (err) {
+    console.error(`Erro DataJud ${tribunal}:`, err);
     return { resultados: [], total: 0 };
   }
 }
@@ -110,28 +150,26 @@ serve(async (req) => {
     const safePagina = Math.max(1, Math.min(Number(pagina) || 1, 100));
     const safePorPagina = Math.max(1, Math.min(Number(porPagina) || 10, 50));
 
-    // Call both APIs in parallel
-    const [stfResult, tjdftResult] = await Promise.all([
-      buscarSTF(sanitizedQuery, safePagina, safePorPagina),
+    // STJ via DataJud + TJDFT direto
+    const [stjResult, tjdftResult] = await Promise.all([
+      buscarDataJud(sanitizedQuery, safePagina, safePorPagina, "STJ", "api_publica_stj"),
       buscarTJDFT(sanitizedQuery, safePagina, safePorPagina),
     ]);
 
-    // Combine results interleaving sources for variety
+    // Interleave results
     const combinados: ResultadoNormalizado[] = [];
-    const maxLen = Math.max(stfResult.resultados.length, tjdftResult.resultados.length);
+    const maxLen = Math.max(stjResult.resultados.length, tjdftResult.resultados.length);
     for (let i = 0; i < maxLen; i++) {
-      if (i < stfResult.resultados.length) combinados.push(stfResult.resultados[i]);
+      if (i < stjResult.resultados.length) combinados.push(stjResult.resultados[i]);
       if (i < tjdftResult.resultados.length) combinados.push(tjdftResult.resultados[i]);
     }
 
-    const totalCombinado = stfResult.total + tjdftResult.total;
-
     return new Response(
       JSON.stringify({
-        total: totalCombinado,
+        total: stjResult.total + tjdftResult.total,
         resultados: combinados,
         fontes: {
-          stf: { total: stfResult.total, retornados: stfResult.resultados.length },
+          stj: { total: stjResult.total, retornados: stjResult.resultados.length },
           tjdft: { total: tjdftResult.total, retornados: tjdftResult.resultados.length },
         },
       }),
