@@ -205,9 +205,9 @@ const Jurisprudence = () => {
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
             <div className="flex items-center gap-3">
               <span>{total.toLocaleString('pt-BR')} resultados</span>
-              {fontes.stf && (
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TRIBUNAL_COLORS.STF}`}>
-                  STF: {fontes.stf.total.toLocaleString('pt-BR')}
+              {fontes.stj && (
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TRIBUNAL_COLORS.STJ}`}>
+                  STJ: {fontes.stj.total.toLocaleString('pt-BR')}
                 </span>
               )}
               {fontes.tjdft && (
