@@ -103,7 +103,7 @@ const Jurisprudence = () => {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [buscaFeita, setBuscaFeita] = useState(false);
-  const [fontes, setFontes] = useState<{ stf?: { total: number }; tjdft?: { total: number } }>({});
+  const [fontes, setFontes] = useState<{ stj?: { total: number }; tjdft?: { total: number } }>({});
 
   const totalPaginas = Math.max(1, Math.ceil(total / (POR_PAGINA * 2))); // 2 sources
 
