@@ -39,7 +39,7 @@ function ResultCard({ item }: { item: Resultado }) {
         {/* Meta */}
         <div className="flex flex-wrap items-center gap-2">
           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TRIBUNAL_COLORS[item.tribunal] || 'bg-muted text-muted-foreground'}`}>
-            {item.tribunal}
+            {TRIBUNAL_LABELS[item.tribunal] || item.tribunal}
           </span>
           {item.data && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
