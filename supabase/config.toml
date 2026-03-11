@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.generate-petition]
 verify_jwt = false
+
+[functions.buscar-lexml]
+verify_jwt = false

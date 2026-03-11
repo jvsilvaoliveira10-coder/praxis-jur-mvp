@@ -1,45 +1,65 @@
 
 
-# Integração LexML - Jurisprudência Funcional
+# Conformidade LGPD - Cookies e Privacidade
 
-## Análise do Arquivo Enviado
+## Situacao Atual
 
-O arquivo contém duas partes: uma Edge Function para proxy da API LexML (protocolo SRU/CQL) e um componente React. A abordagem é viável porque:
+O site atualmente **nao possui**:
+- Banner de consentimento de cookies
+- Pagina de Politica de Privacidade
+- Pagina de Termos de Uso
+- Links para essas paginas no rodape
+- Mecanismo de gerenciamento de consentimento do usuario
 
-- A API LexML é **pública e gratuita**, sem necessidade de API key
-- O protocolo SRU retorna XML com ementas, datas, autoridades e URNs persistentes
-- Já temos infraestrutura similar no projeto (edge functions, componentes de busca)
+O unico cookie utilizado atualmente e o `sidebar:state` (funcional, para manter o estado da sidebar).
 
-## O Que Já Temos
+---
 
-- Edge function `search-jurisprudence` que tenta scraping do TJSP (bloqueado por reCAPTCHA) e cai em mock
-- Página `Jurisprudence.tsx` totalmente em modo demo (campos desabilitados, dados mock estáticos)
-- Componentes UI reutilizáveis (Card, Badge, Input, Button, ScrollArea)
+## O Que Sera Implementado
 
-## O Que Será Feito
+### 1. Banner de Consentimento de Cookies
+- Componente flutuante na parte inferior da tela, exibido na primeira visita
+- Opcoes: "Aceitar Todos", "Apenas Necessarios" e "Configurar"
+- Salva a preferencia no `localStorage` para nao exibir novamente
+- Design discreto e responsivo (mobile e desktop)
 
-### 1. Criar Edge Function `buscar-lexml`
-- Proxy para `https://www.lexml.gov.br/busca/SRU` com CQL query
-- Parser XML para extrair: título, ementa, data, autoridade, tipo, URN/link
-- Paginação via `startRecord` e `maximumRecords`
-- CORS headers corretos, validação de input (query obrigatória, limites de tamanho)
-- Baseado no código do arquivo, mas adaptado às convenções de segurança do projeto
+### 2. Pagina de Politica de Privacidade (`/privacidade`)
+- Conteudo em portugues cobrindo os requisitos da LGPD:
+  - Dados coletados e finalidade
+  - Base legal para tratamento
+  - Direitos do titular (acesso, correcao, exclusao, portabilidade)
+  - Cookies utilizados e suas finalidades
+  - Compartilhamento com terceiros (Stripe, etc.)
+  - Contato do encarregado (DPO)
+  - Retencao e seguranca dos dados
 
-### 2. Reescrever `Jurisprudence.tsx`
-- Remover modo demo e dados mock
-- Campo de busca **funcional** chamando `supabase.functions.invoke('buscar-lexml')`
-- Cards de resultado com: título, ementa (expandível), autoridade, data, badge de tipo, link para documento no LexML
-- Paginação real
-- Estados de loading, erro e sem resultados
-- Usar componentes UI existentes (Card, Badge, Button, Input, ScrollArea) em vez de estilos inline
+### 3. Pagina de Termos de Uso (`/termos`)
+- Conteudo basico cobrindo:
+  - Descricao do servico
+  - Responsabilidades do usuario e da plataforma
+  - Limitacao de responsabilidade (peticoes geradas por IA)
+  - Propriedade intelectual
+  - Rescisao e cancelamento
 
-### 3. Registrar no `config.toml`
-- Adicionar `[functions.buscar-lexml]` com `verify_jwt = false`
+### 4. Atualizacao do Rodape
+- Adicionar links para "Politica de Privacidade" e "Termos de Uso" no `LandingFooter`
 
-## Detalhes Técnicos
+---
 
-- **Sem secrets necessários** - API LexML é pública
-- A edge function faz sanitização da query (max 500 chars, min 3 chars)
-- O parser XML usa regex (mesmo approach do arquivo) pois não há DOM parser nativo no Deno para XML simples
-- Mantém compatibilidade com o restante do sistema (mesma estrutura de layout, sidebar, etc.)
+## Detalhes Tecnicos
+
+### Arquivos a criar:
+- `src/components/cookie/CookieConsentBanner.tsx` - Componente do banner
+- `src/pages/PrivacyPolicy.tsx` - Pagina de politica de privacidade
+- `src/pages/TermsOfService.tsx` - Pagina de termos de uso
+
+### Arquivos a modificar:
+- `src/App.tsx` - Adicionar rotas `/privacidade` e `/termos`
+- `src/components/landing/LandingFooter.tsx` - Adicionar links
+- `src/pages/Index.tsx` ou `src/components/layout/MainLayout.tsx` - Incluir o banner de cookies
+
+### Abordagem:
+- **Sem integracao externa necessaria** - O consentimento sera gerenciado via `localStorage`
+- O banner nao bloqueia a navegacao (modelo de consentimento "soft")
+- Nenhum cookie de rastreamento/analytics esta sendo usado atualmente, entao o risco e baixo, mas o banner e obrigatorio pela LGPD para transparencia
 
