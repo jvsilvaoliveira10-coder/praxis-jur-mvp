@@ -19,12 +19,12 @@ type Resultado = {
 const POR_PAGINA = 10;
 
 const TRIBUNAL_COLORS: Record<string, string> = {
-  STF: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
+  STJ: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
   TJDFT: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
 };
 
 const TRIBUNAL_LABELS: Record<string, string> = {
-  STF: 'STF (DataJud)',
+  STJ: 'STJ (DataJud)',
   TJDFT: 'TJDFT',
 };
 
