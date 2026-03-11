@@ -143,7 +143,7 @@ const Jurisprudence = () => {
         <div>
           <h1 className="text-2xl font-serif font-bold">Pesquisa de Jurisprudência</h1>
           <p className="text-muted-foreground text-sm">
-            Fontes: STF · TJDFT — Acórdãos, súmulas e decisões
+            Fontes: STJ (DataJud) · TJDFT — Acórdãos, súmulas e decisões
           </p>
         </div>
       </div>
